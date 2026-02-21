@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, ArrowLeft } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import ReviewReplies from '../../components/reviews/ReviewReplies';
+import type { Review, ReviewReply } from '../../services/reviewService';
 
 // Import plantation data - you might want to move this to a shared constants file
 const PLANTATION_DATA: Record<string, any> = {
@@ -17,7 +20,20 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 15, 2025',
         text: 'Absolutely fantastic experience! The staff was welcoming and knowledgeable. Our guide explained every detail of tea production beautifully. The views were breathtaking!',
-        verified: true
+        verified: true,
+        authorUsername: 'sarahj',
+        replies: [
+          {
+            id: 'reply_1_1',
+            author: 'Pedro Estate Team',
+            authorRole: 'plantationadmin' as const,
+            authorPlantationId: '1',
+            text: 'Thank you so much for the wonderful review, Sarah! We are delighted that you enjoyed your tea tasting experience. We look forward to welcoming you again!',
+            date: 'January 16, 2025',
+            verified: true,
+            plantationId: '1',
+          },
+        ],
       },
       {
         id: 2,
@@ -25,7 +41,9 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 10, 2025',
         text: 'Best plantation tour I\'ve done in Sri Lanka. The tea tasting was excellent and authentic. The team made us feel very welcome throughout the visit.',
-        verified: true
+        verified: true,
+        authorUsername: 'michaelc',
+        replies: [],
       },
       {
         id: 3,
@@ -33,7 +51,20 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 4,
         date: 'January 5, 2025',
         text: 'Great experience overall. The factory tour was impressive. Only minor issue was the tour duration was shorter than expected, but still worth visiting!',
-        verified: true
+        verified: true,
+        authorUsername: 'emmaw',
+        replies: [
+          {
+            id: 'reply_3_1',
+            author: 'Pedro Estate Team',
+            authorRole: 'plantationadmin' as const,
+            authorPlantationId: '1',
+            text: 'We appreciate your feedback regarding the tour duration. We have taken this into account and adjusted our standard tour packages. Thank you for visiting!',
+            date: 'January 6, 2025',
+            verified: true,
+            plantationId: '1',
+          },
+        ],
       },
       {
         id: 4,
@@ -41,7 +72,9 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'December 28, 2024',
         text: 'Exceptional service and amazing hospitality. The tea tasting session was educational and delicious. Highly recommend!',
-        verified: true
+        verified: true,
+        authorUsername: 'johnsmith',
+        replies: [],
       },
       {
         id: 5,
@@ -49,9 +82,11 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 4,
         date: 'December 20, 2024',
         text: 'Beautiful plantation with knowledgeable guides. Food could have been better but overall very good experience.',
-        verified: true
-      }
-    ]
+        verified: true,
+        authorUsername: 'mariagarcia',
+        replies: [],
+      },
+    ],
   },
   '2': {
     name: 'Bluefield Tea Garden',
@@ -65,7 +100,9 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 12, 2025',
         text: 'The waterfall trek was spectacular! The tea blending workshop was the highlight. Highly recommended for nature lovers.',
-        verified: true
+        verified: true,
+        authorUsername: 'jamesrod',
+        replies: [],
       },
       {
         id: 2,
@@ -73,9 +110,11 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 4,
         date: 'January 8, 2025',
         text: 'Beautiful location with wonderful hospitality. The farm-fresh meals were delicious and authentic.',
-        verified: true
-      }
-    ]
+        verified: true,
+        authorUsername: 'lisaand',
+        replies: [],
+      },
+    ],
   },
   '3': {
     name: 'Haputale Estate',
@@ -89,9 +128,11 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 11, 2025',
         text: 'Absolutely breathtaking views from the estate. The heritage tour was very informative. A must-visit!',
-        verified: true
-      }
-    ]
+        verified: true,
+        authorUsername: 'davidthompson',
+        replies: [],
+      },
+    ],
   },
   '4': {
     name: 'Uda Pussellawa',
@@ -105,9 +146,11 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 4,
         date: 'January 9, 2025',
         text: 'Great tea picking experience! The guides were very knowledgeable. Would recommend for anyone interested in authentic tea farming.',
-        verified: true
-      }
-    ]
+        verified: true,
+        authorUsername: 'robertdavis',
+        replies: [],
+      },
+    ],
   },
   '5': {
     name: 'Dambulla Tea Valley',
@@ -121,9 +164,11 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 7, 2025',
         text: 'Cultural experience was amazing! The traditional tea-making demonstration was enlightening. Very authentic!',
-        verified: true
-      }
-    ]
+        verified: true,
+        authorUsername: 'patriciamiller',
+        replies: [],
+      },
+    ],
   },
   '6': {
     name: 'Ella Ridge Plantation',
@@ -137,7 +182,9 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 14, 2025',
         text: 'Outstanding views and exceptional service! The gourmet tea-paired meals were exquisite. Highly recommended!',
-        verified: true
+        verified: true,
+        authorUsername: 'jenniferw',
+        replies: [],
       },
       {
         id: 2,
@@ -145,16 +192,49 @@ const PLANTATION_DATA: Record<string, any> = {
         rating: 5,
         date: 'January 6, 2025',
         text: 'The tea spa was incredibly relaxing. The hikes offer some of the best views in Sri Lanka. Worth every penny!',
-        verified: true
-      }
-    ]
-  }
+        verified: true,
+        authorUsername: 'chrisbrown',
+        replies: [],
+      },
+    ],
+  },
 };
 
 export default function PlantationReviews() {
   const { id } = useParams();
   const navigate = useNavigate();
   const plantation = id ? PLANTATION_DATA[id] : null;
+  const [reviewsList, setReviewsList] = useState<Review[]>(
+    plantation?.reviewsList || []
+  );
+
+  const handleReplyAdded = (reviewId: string | number, reply: ReviewReply) => {
+    setReviewsList((reviews) =>
+      reviews.map((review) => {
+        if (review.id === reviewId) {
+          return {
+            ...review,
+            replies: [...(review.replies || []), reply],
+          };
+        }
+        return review;
+      })
+    );
+  };
+
+  const handleReplyDeleted = (reviewId: string | number, replyId: string) => {
+    setReviewsList((reviews) =>
+      reviews.map((review) => {
+        if (review.id === reviewId) {
+          return {
+            ...review,
+            replies: (review.replies || []).filter((r) => r.id !== replyId),
+          };
+        }
+        return review;
+      })
+    );
+  };
 
   if (!plantation) {
     return (
@@ -220,7 +300,7 @@ export default function PlantationReviews() {
 
           {/* Reviews List */}
           <div className="space-y-6">
-            {plantation.reviewsList.map((review: any) => (
+            {reviewsList.map((review) => (
               <div key={review.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -239,17 +319,25 @@ export default function PlantationReviews() {
                 <p className="text-gray-700 leading-relaxed mb-4">{review.text}</p>
 
                 {review.verified && (
-                  <div className="flex items-center gap-2 text-green-600 text-sm">
+                  <div className="flex items-center gap-2 text-green-600 text-sm mb-4">
                     <span>✓</span>
                     <span>Verified Guest</span>
                   </div>
                 )}
+
+                {/* Replies Section */}
+                <ReviewReplies
+                  review={review}
+                  plantationId={id || ''}
+                  onReplyAdded={handleReplyAdded}
+                  onReplyDeleted={handleReplyDeleted}
+                />
               </div>
             ))}
           </div>
 
           {/* No More Reviews Message */}
-          {plantation.reviewsList.length === 0 && (
+          {reviewsList.length === 0 && (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <p className="text-gray-600 text-lg">No reviews yet</p>
             </div>

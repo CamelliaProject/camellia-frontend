@@ -66,7 +66,7 @@ export default function TouristDetailsModal({ isOpen, onClose, onSubmit }: Touri
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
               <label htmlFor="fullName" className="block text-sm font-semibold mb-2 text-gray-700">
-                Full name <span className="text-red-500">*</span>
+                Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"

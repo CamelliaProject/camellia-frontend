@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Trash2, Camera, GalleryHorizontal } from 'lucide-react';
 
 // Assuming Plantation type from PlantationDetail.tsx, extended for editable media
@@ -31,16 +31,46 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [experienceImages, setExperienceImages] = useState<Record<string, string[]>>(
-    plantation.experiences?.reduce((acc, exp) => {
+  const [experienceImages, setExperienceImages] = useState<Record<string, string[]>>(() => {
+    // Initialize from localStorage if available, otherwise from plantation data
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const storedExperiences = stored[plantation.id]?.experiences;
+      if (storedExperiences) {
+        return storedExperiences.reduce((acc: Record<string, string[]>, exp: any) => {
+          acc[exp.name] = exp.images || [];
+          return acc;
+        }, {});
+      }
+    } catch (e) {
+      // Fall back to plantation data if localStorage fails
+    }
+    return plantation.experiences?.reduce((acc, exp) => {
       acc[exp.name] = exp.images || [];
       return acc;
-    }, {} as Record<string, string[]>) || {}
-  );
+    }, {} as Record<string, string[]>) || {};
+  });
 
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const galleryImageInputRef = useRef<HTMLInputElement>(null);
   const experienceImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Sync experience images from localStorage on mount and when plantation changes
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const storedExperiences = stored[plantation.id]?.experiences;
+      if (storedExperiences) {
+        const images: Record<string, string[]> = {};
+        storedExperiences.forEach((exp: any) => {
+          images[exp.name] = exp.images || [];
+        });
+        setExperienceImages(images);
+      }
+    } catch (e) {
+      // Silent fail, keep current state
+    }
+  }, [plantation.id]);
 
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

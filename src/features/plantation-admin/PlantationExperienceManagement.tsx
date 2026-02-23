@@ -273,13 +273,44 @@ export default function PlantationExperienceManagement({ plantation }: Plantatio
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [localExperiences, setLocalExperiences] = useState<Experience[]>(() =>
-    plantation.experiences.map(exp => ({
+  const [localExperiences, setLocalExperiences] = useState<Experience[]>(() => {
+    // Get the latest experience images from localStorage if available
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const storedExperiences = stored[plantation.id]?.experiences;
+      if (storedExperiences) {
+        return storedExperiences.map((exp: any) => ({
+          ...exp,
+          priceLKR: exp.priceLKR || { adult: 0, child: 0 },
+          priceUSD: exp.priceUSD || { adult: 0, child: 0 },
+        }));
+      }
+    } catch (e) {
+      // Fall back to plantation data if localStorage fails
+    }
+    return plantation.experiences.map(exp => ({
       ...exp,
       priceLKR: exp.priceLKR || { adult: 0, child: 0 },
       priceUSD: exp.priceUSD || { adult: 0, child: 0 },
-    }))
-  );
+    }));
+  });
+
+  // Sync experience images from localStorage whenever component mounts or plantation changes
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const storedExperiences = stored[plantation.id]?.experiences;
+      if (storedExperiences) {
+        setLocalExperiences(storedExperiences.map((exp: any) => ({
+          ...exp,
+          priceLKR: exp.priceLKR || { adult: 0, child: 0 },
+          priceUSD: exp.priceUSD || { adult: 0, child: 0 },
+        })));
+      }
+    } catch (e) {
+      // Silent fail, keep current state
+    }
+  }, [plantation.id]);
 
   const handleAddExperience = () => {
     setCurrentExperience(undefined);

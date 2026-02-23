@@ -2,11 +2,23 @@ import { useState, useRef } from 'react';
 import { Upload, Trash2, Camera, GalleryHorizontal } from 'lucide-react';
 
 // Assuming Plantation type from PlantationDetail.tsx, extended for editable media
+interface Experience {
+  name: string;
+  category?: string;
+  description?: string;
+  shortDescription?: string;
+  images?: string[];
+  priceUSD?: { adult: number; child: number };
+  priceLKR?: { adult: number; child: number };
+  timeSlots?: Array<{ date: string; time: string; capacity: number; booked: number }>;
+}
+
 interface Plantation {
   id: string;
   name: string;
   mainImage: string;
   galleryImages: string[];
+  experiences?: Experience[];
 }
 
 interface PlantationMediaManagementProps {
@@ -86,6 +98,25 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
     setMessage('Media updated successfully!');
     setIsLoading(false);
     // Refresh previews or reset state if needed
+    // Persist media changes so tourist view reflects updates
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const existing = stored[plantation.id] || {};
+      existing.mainImage = mainImagePreview;
+      existing.galleryImages = galleryPreviews;
+      stored[plantation.id] = { ...existing, mainImage: mainImagePreview, galleryImages: galleryPreviews };
+      localStorage.setItem('plantations', JSON.stringify(stored));
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod = await import('../tourist/PlantationDetail') as any;
+        if (mod && mod.PLANTATION_DATA && mod.PLANTATION_DATA[plantation.id]) {
+          mod.PLANTATION_DATA[plantation.id].mainImage = mainImagePreview;
+          mod.PLANTATION_DATA[plantation.id].galleryImages = galleryPreviews;
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error('Failed to persist media changes:', err);
+    }
   };
 
   return (
@@ -186,6 +217,34 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
             {isLoading ? 'Saving Media...' : 'Save Media Changes'}
           </button>
         </div>
+
+        {/* Experience Gallery Images */}
+        {plantation.experiences && plantation.experiences.length > 0 && (
+          <div className="border-t border-gray-200 pt-8 mt-8">
+            <h3 className="text-2xl font-bold text-[#2D6A4F] mb-6 flex items-center gap-2">
+              <GalleryHorizontal size={24} /> Experience Gallery Images
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">Images from your experiences that were added during experience management.</p>
+            <div className="space-y-8">
+              {plantation.experiences.map((experience) => (
+                <div key={experience.name} className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                  <h4 className="text-lg font-bold text-[#2D6A4F] mb-4">{experience.name}</h4>
+                  {experience.images && experience.images.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                      {experience.images.map((imageSrc, index) => (
+                        <div key={index} className="relative group w-full h-36 rounded-lg overflow-hidden shadow-sm border border-gray-200">
+                          <img src={imageSrc} alt={`${experience.name} ${index + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No images added for this experience yet.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

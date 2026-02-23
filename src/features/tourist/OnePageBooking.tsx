@@ -151,6 +151,11 @@ export default function OnePageBooking() {
                           <p className="mt-3 text-sm text-gray-700">{exp.description}</p>
                         )}
 
+                        {/* Announcement */}
+                        {exp.announcement && (
+                          <p className="mt-3 text-sm text-red-600 font-semibold italic">{exp.announcement}</p>
+                        )}
+
                         {/* Images (up to 3) */}
                         {images.length > 0 && (
                           <div className="mt-3 grid grid-cols-3 gap-2">

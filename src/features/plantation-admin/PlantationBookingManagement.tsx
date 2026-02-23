@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Filter, CheckCircle, Clock, XCircle } from 'lucide-react'; // Added icons for status and sorting
+import { Filter, CheckCircle, Clock, XCircle, X, Eye } from 'lucide-react'; // Added icons for status and sorting
+import { PLANTATION_DATA } from '../tourist/PlantationDetail';
 
 // Mock booking data (similar to what's used in Dashboard, but we'll filter by plantationId)
 interface Booking {
@@ -19,6 +20,8 @@ interface Booking {
     phone: string;
     country: string;
   };
+  adults?: number;
+  children?: number;
 }
 
 // Mock ALL bookings for demonstration
@@ -154,12 +157,18 @@ export default function PlantationBookingManagement({ plantationId }: Plantation
   const [filterStatus, setFilterStatus] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Default to newest first
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const USD_TO_LKR = 365;
   // Removed `message` state as booking actions are no longer available
 
   useEffect(() => {
     setIsLoading(true);
     setTimeout(() => {
-      const filteredBookings = MOCK_ALL_BOOKINGS.filter(
+      // Merge persisted bookings from localStorage with mock bookings
+      const stored: Booking[] = JSON.parse(localStorage.getItem('bookings') || '[]');
+      const allBookings = [...MOCK_ALL_BOOKINGS, ...stored];
+      const filteredBookings = allBookings.filter(
         (booking) => booking.plantationId === plantationId
       );
       setBookings(filteredBookings);
@@ -267,7 +276,8 @@ export default function PlantationBookingManagement({ plantationId }: Plantation
                     <th className="py-3 px-4">Guests</th>
                     <th className="py-3 px-4">Experiences</th>
                     <th className="py-3 px-4">Total Paid</th>
-                    <th className="py-3 px-4 rounded-tr-lg">Status</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 rounded-tr-lg">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -285,7 +295,23 @@ export default function PlantationBookingManagement({ plantationId }: Plantation
                       </td>
                       <td className="py-3 px-4 text-gray-700">{booking.guests}</td>
                       <td className="py-3 px-4 text-sm text-gray-600">{booking.experiences.join(', ')}</td>
-                      <td className="py-3 px-4 font-bold text-[#1B4332]">{booking.totalPaid}</td>
+                      <td className="py-3 px-4 font-bold text-[#1B4332]">
+                        {booking.totalPaid}
+                        {(() => {
+                          // Show LKR equivalent if totalPaid is in USD
+                          try {
+                            const rate = 365;
+                            const t = String(booking.totalPaid || '');
+                            const usdMatch = t.match(/\$\s?(\d+(?:\.\d+)?)/);
+                            if (usdMatch) {
+                              const usd = Number(usdMatch[1]);
+                              const lkr = usd * rate;
+                              return <div className="text-xs text-gray-500">Rs {lkr.toLocaleString()}</div>;
+                            }
+                          } catch (e) {}
+                          return null;
+                        })()}
+                      </td>
                       <td className="py-3 px-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -297,6 +323,15 @@ export default function PlantationBookingManagement({ plantationId }: Plantation
                           {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                         </span>
                       </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => { setSelectedBooking(booking); setIsDetailModalOpen(true); }}
+                          className="p-2 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                          title="View Details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -305,6 +340,174 @@ export default function PlantationBookingManagement({ plantationId }: Plantation
           )}
         </>
       )}
+
+      {/* Booking Detail Modal */}
+      <BookingDetailModal
+        isOpen={isDetailModalOpen}
+        booking={selectedBooking}
+        onClose={() => { setIsDetailModalOpen(false); setSelectedBooking(null); }}
+        plantationId={plantationId}
+      />
+    </div>
+  );
+}
+
+// Booking Detail Modal
+interface BookingDetailModalProps {
+  isOpen: boolean;
+  booking: Booking | null;
+  onClose: () => void;
+  plantationId: string;
+}
+
+function BookingDetailModal({ isOpen, booking, onClose, plantationId }: BookingDetailModalProps) {
+  if (!isOpen || !booking) return null;
+
+  const plantation = PLANTATION_DATA[plantationId];
+  const USD_TO_LKR = 365;
+
+  // Parse totalPaid to extract amount and currency
+  const parseTotalPaid = (totalPaid: string) => {
+    const usdMatch = totalPaid.match(/\$\s?(\d+(?:\.\d+)?)/);
+    const lkrMatch = totalPaid.match(/Rs\s?(\d+(?:\.\d+)?)/);
+    if (usdMatch) {
+      const usd = Number(usdMatch[1]);
+      return { usd, lkr: usd * USD_TO_LKR, currency: 'USD' };
+    }
+    if (lkrMatch) {
+      const lkr = Number(lkrMatch[1]);
+      return { usd: lkr / USD_TO_LKR, lkr, currency: 'LKR' };
+    }
+    return { usd: 0, lkr: 0, currency: 'UNKNOWN' };
+  };
+
+  const { usd, lkr, currency } = parseTotalPaid(booking.totalPaid);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-[#2D6A4F]">Booking Details</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="p-6 space-y-6">
+          {/* Booking Summary */}
+          <div className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-bold text-[#1B4332] mb-3">Booking Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Booking Reference</p>
+                <p className="font-semibold text-[#2D6A4F]">{booking.bookingReference}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <p className={`font-semibold ${
+                  booking.status === 'upcoming' ? 'text-blue-700' :
+                  booking.status === 'completed' ? 'text-green-700' :
+                  'text-red-700'
+                }`}>{booking.status.toUpperCase()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Date</p>
+                <p className="font-semibold">{new Date(booking.date).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Time</p>
+                <p className="font-semibold">{booking.time || 'Not specified'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tourist Details */}
+          <div className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-bold text-[#1B4332] mb-3">Tourist Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Name</p>
+                <p className="font-semibold">{booking.touristDetails.fullName}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="font-semibold text-sm">{booking.touristDetails.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Phone</p>
+                <p className="font-semibold">{booking.touristDetails.phone}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Country</p>
+                <p className="font-semibold">{booking.touristDetails.country}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Guests */}
+          <div className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-bold text-[#1B4332] mb-3">Guests</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Adults</p>
+                <p className="text-2xl font-bold text-blue-700">{booking.adults || 0}</p>
+              </div>
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="text-sm text-gray-600">Children</p>
+                <p className="text-2xl font-bold text-blue-700">{booking.children || 0}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Experiences */}
+          <div className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-bold text-[#1B4332] mb-3">Selected Experiences</h3>
+            <div className="space-y-3">
+              {booking.experiences.map((expName, idx) => {
+                const exp = plantation?.experiences?.find((e: any) => e.name === expName);
+                if (!exp) return <div key={idx} className="text-sm text-gray-600">{expName}</div>;
+                return (
+                  <div key={idx} className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="font-semibold text-[#2D6A4F]">{exp.name}</p>
+                    {exp.description && <p className="text-sm text-gray-600 mt-1">{exp.description}</p>}
+                    <div className="mt-2 flex gap-4 text-sm">
+                      <span className="font-medium">Adult: ${exp.priceUSD?.adult || 0}</span>
+                      <span className="font-medium">Child: ${exp.priceUSD?.child || 0}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className="border-b border-gray-200 pb-4">
+            <h3 className="text-lg font-bold text-[#1B4332] mb-3">Pricing</h3>
+            <div className="bg-green-50 p-4 rounded border border-green-200">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-700">Total Paid (Original)</span>
+                <span className="font-bold text-[#2D6A4F]">{booking.totalPaid}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">Equivalent in {currency === 'USD' ? 'LKR' : 'USD'}</span>
+                <span className="font-bold text-[#2D6A4F]">{currency === 'USD' ? `Rs ${lkr.toLocaleString()}` : `$${usd.toFixed(2)}`}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Close Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-lg transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

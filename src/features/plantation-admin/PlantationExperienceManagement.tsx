@@ -1,14 +1,7 @@
-import { useState, useEffect } from 'react';
-import { PlusCircle, Edit3, Trash2, Clock, X, DollarSign } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { PlusCircle, Edit3, Trash2, X, DollarSign, ImagePlus } from 'lucide-react';
 
 // Types
-interface TimeSlot {
-  date: string;
-  time: string;
-  capacity: number;
-  booked: number;
-}
-
 interface PriceDetails {
   adult: number;
   child: number;
@@ -16,10 +9,12 @@ interface PriceDetails {
 
 interface Experience {
   name: string;
-  category: string;
+  description?: string;
+  shortDescription?: string;
+  announcement?: string;
   priceLKR: PriceDetails;
   priceUSD: PriceDetails;
-  timeSlots: TimeSlot[];
+  images?: string[];
 }
 
 interface Plantation {
@@ -43,33 +38,42 @@ interface ExperienceModalProps {
 function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: ExperienceModalProps) {
   const [formData, setFormData] = useState<Experience>({
     name: '',
-    category: '',
+    description: '',
+    shortDescription: '',
+    announcement: '',
     priceLKR: { adult: 0, child: 0 },
     priceUSD: { adult: 0, child: 0 },
-    timeSlots: [],
+    images: [],
   });
 
-  const [newTimeSlot, setNewTimeSlot] = useState<TimeSlot>({ date: '', time: '', capacity: 1, booked: 0 });
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Sync modal with initialExperience
   useEffect(() => {
     if (initialExperience) {
       setFormData({
         name: initialExperience.name || '',
-        category: initialExperience.category || '',
+        description: initialExperience.description || '',
+        shortDescription: initialExperience.shortDescription || '',
+        announcement: initialExperience.announcement || '',
         priceLKR: initialExperience.priceLKR || { adult: 0, child: 0 },
         priceUSD: initialExperience.priceUSD || { adult: 0, child: 0 },
-        timeSlots: initialExperience.timeSlots || [],
+        images: initialExperience.images || [],
       });
+      setImagePreviews(initialExperience.images || []);
     } else {
       // Reset for new experience
       setFormData({
         name: '',
-        category: '',
+        description: '',
+        shortDescription: '',
+        announcement: '',
         priceLKR: { adult: 0, child: 0 },
         priceUSD: { adult: 0, child: 0 },
-        timeSlots: [],
+        images: [],
       });
+      setImagePreviews([]);
     }
   }, [initialExperience]);
 
@@ -95,25 +99,25 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
     }
   };
 
-  const handleTimeSlotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setNewTimeSlot(prev => ({
-      ...prev,
-      [name]: name === 'capacity' || name === 'booked' ? parseInt(value) || 0 : value,
-    }));
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageData = reader.result as string;
+        setImagePreviews(prev => [...prev, imageData]);
+        setFormData(prev => ({ ...prev, images: [...(prev.images || []), imageData] }));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
   };
 
-  const handleAddTimeSlot = () => {
-    if (newTimeSlot.date && newTimeSlot.time && newTimeSlot.capacity > 0) {
-      setFormData(prev => ({ ...prev, timeSlots: [...prev.timeSlots, newTimeSlot] }));
-      setNewTimeSlot({ date: '', time: '', capacity: 1, booked: 0 });
-    }
-  };
-
-  const handleRemoveTimeSlot = (index: number) => {
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImagePreviews(prev => prev.filter((_, idx) => idx !== indexToRemove));
     setFormData(prev => ({
       ...prev,
-      timeSlots: prev.timeSlots.filter((_, i) => i !== index),
+      images: (prev.images || []).filter((_, idx) => idx !== indexToRemove),
     }));
   };
 
@@ -133,7 +137,7 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Name & Category */}
+          {/* Name */}
           <div>
             <label className="block text-sm font-semibold mb-2 text-gray-700">Experience Name <span className="text-red-500">*</span></label>
             <input
@@ -145,19 +149,68 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
               required
             />
           </div>
+
+          {/* Description Fields */}
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Category <span className="text-red-500">*</span></label>
-            <select
-              name="category"
-              value={formData.category}
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Short Description</label>
+            <input
+              type="text"
+              name="shortDescription"
+              value={formData.shortDescription || ''}
               onChange={handleChange}
+              placeholder="Brief description for listing"
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788]"
-              required
-            >
-              <option value="">Select a Category</option>
-              <option value="Tea Factory Tour & Tasting">Tea Factory Tour & Tasting</option>
-              <option value="Hiking & Tea Plucking">Hiking & Tea Plucking</option>
-            </select>
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Full Description</label>
+            <textarea
+              name="description"
+              value={formData.description || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Detailed description of the experience"
+              rows={4}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788]"
+            />
+          </div>
+
+          {/* Experience Images */}
+          <div className="border-t border-gray-200 pt-6 mt-6">
+            <h3 className="text-lg font-bold text-[#2D6A4F] mb-4 flex items-center gap-2"><ImagePlus size={20} /> Experience Gallery Images</h3>
+            <div className="mb-4">
+              <input
+                ref={imageInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold py-2 px-4 rounded-lg transition border-2 border-dashed border-blue-300"
+              >
+                <ImagePlus size={18} className="inline mr-2" /> Add Images to Experience
+              </button>
+            </div>
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {imagePreviews.map((img, idx) => (
+                  <div key={idx} className="relative">
+                    <img src={img} alt={`Experience ${idx}`} className="w-full h-24 object-cover rounded-lg" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Prices */}
@@ -189,27 +242,18 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
             </div>
           </div>
 
-          {/* Time Slots */}
+          {/* Announcement */}
           <div className="border-t border-gray-200 pt-6 mt-6">
-            <h3 className="text-xl font-bold text-[#2D6A4F] mb-4 flex items-center gap-2"><Clock size={20} /> Manage Time Slots</h3>
-            <div className="space-y-3 mb-6">
-              {formData.timeSlots.map((slot, index) => (
-                <div key={index} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border">
-                  <span className="flex-1 font-medium">{slot.date} at {slot.time}</span>
-                  <span className="text-sm text-gray-600">Capacity: {slot.capacity}</span>
-                  <span className="text-sm text-gray-600">Booked: {slot.booked}</span>
-                  <button type="button" onClick={() => handleRemoveTimeSlot(index)} className="text-red-500 hover:text-red-700"><Trash2 size={18}/></button>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input type="date" name="date" value={newTimeSlot.date} onChange={handleTimeSlotChange} className="w-full px-3 py-2 border rounded-lg" />
-              <input type="time" name="time" value={newTimeSlot.time} onChange={handleTimeSlotChange} className="w-full px-3 py-2 border rounded-lg" />
-              <input type="number" name="capacity" value={newTimeSlot.capacity} onChange={handleTimeSlotChange} min={1} className="w-full px-3 py-2 border rounded-lg" />
-              <button type="button" onClick={handleAddTimeSlot} className="w-full bg-[#52B788] hover:bg-[#40916c] text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2">
-                <PlusCircle size={18} /> Add Slot
-              </button>
-            </div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Announcement <span className="text-gray-500">(optional)</span></label>
+            <textarea
+              name="announcement"
+              value={formData.announcement || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, announcement: e.target.value }))}
+              placeholder="E.g., 'Not available on Sundays' or 'Limited availability during monsoon season'"
+              rows={2}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788]"
+            />
+            <p className="text-xs text-gray-500 mt-1">This will be displayed in red color under the experience on the tourist side.</p>
           </div>
 
           <div className="flex gap-4 justify-end pt-6">
@@ -234,7 +278,6 @@ export default function PlantationExperienceManagement({ plantation }: Plantatio
       ...exp,
       priceLKR: exp.priceLKR || { adult: 0, child: 0 },
       priceUSD: exp.priceUSD || { adult: 0, child: 0 },
-      timeSlots: exp.timeSlots || [],
     }))
   );
 
@@ -252,18 +295,36 @@ export default function PlantationExperienceManagement({ plantation }: Plantatio
     setIsLoading(true);
     setMessage('');
     await new Promise(resolve => setTimeout(resolve, 1000));
-
+    let newExperiences: Experience[] = [];
     if (currentExperience) {
-      setLocalExperiences(prev =>
-        prev.map(exp => (exp.name === currentExperience.name ? experience : exp))
-      );
+      newExperiences = localExperiences.map(exp => (exp.name === currentExperience.name ? experience : exp));
+      setLocalExperiences(newExperiences);
       setMessage('Experience updated successfully!');
     } else {
-      setLocalExperiences(prev => [...prev, experience]);
+      newExperiences = [...localExperiences, experience];
+      setLocalExperiences(newExperiences);
       setMessage('Experience added successfully!');
     }
     setIsLoading(false);
     setIsModalOpen(false);
+    // Persist experiences to localStorage under plantation id
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const existing = stored[plantation.id] || {};
+      existing.experiences = newExperiences;
+      stored[plantation.id] = { ...existing, experiences: existing.experiences };
+      localStorage.setItem('plantations', JSON.stringify(stored));
+      // Update in-memory PLANTATION_DATA if available
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod = await import('../tourist/PlantationDetail') as any;
+        if (mod && mod.PLANTATION_DATA && mod.PLANTATION_DATA[plantation.id]) {
+          mod.PLANTATION_DATA[plantation.id].experiences = existing.experiences;
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error('Failed to persist experiences:', err);
+    }
   };
 
   const handleDeleteExperience = async (experienceName: string) => {
@@ -271,9 +332,27 @@ export default function PlantationExperienceManagement({ plantation }: Plantatio
     setIsLoading(true);
     setMessage('');
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setLocalExperiences(prev => prev.filter(exp => exp.name !== experienceName));
+    const newExperiences = (localExperiences || []).filter(exp => exp.name !== experienceName);
+    setLocalExperiences(newExperiences);
     setMessage('Experience deleted successfully!');
     setIsLoading(false);
+    // Persist deletion
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      const existing = stored[plantation.id] || {};
+      existing.experiences = newExperiences;
+      stored[plantation.id] = { ...existing, experiences: existing.experiences };
+      localStorage.setItem('plantations', JSON.stringify(stored));
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod = await import('../tourist/PlantationDetail') as any;
+        if (mod && mod.PLANTATION_DATA && mod.PLANTATION_DATA[plantation.id]) {
+          mod.PLANTATION_DATA[plantation.id].experiences = existing.experiences;
+        }
+      } catch (e) {}
+    } catch (err) {
+      console.error('Failed to persist experience deletion:', err);
+    }
   };
 
   return (
@@ -300,14 +379,15 @@ export default function PlantationExperienceManagement({ plantation }: Plantatio
             <div key={index} className="bg-gray-50 p-5 rounded-lg border border-gray-200 flex items-center justify-between shadow-sm">
               <div>
                 <h3 className="text-xl font-bold text-[#2D6A4F]">{experience.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">Category: {experience.category}</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 mt-1">
                   <span className="font-semibold">USD:</span> Adult ${experience.priceUSD.adult} | Child ${experience.priceUSD.child}
                 </p>
                 <p className="text-sm text-gray-600">
                   <span className="font-semibold">LKR:</span> Adult Rs {experience.priceLKR.adult} | Child Rs {experience.priceLKR.child}
                 </p>
-                <p className="text-sm text-gray-500">{experience.timeSlots.length} Time Slots</p>
+                {experience.announcement && (
+                  <p className="text-sm text-red-600 mt-2 italic">{experience.announcement}</p>
+                )}
               </div>
               <div className="flex gap-3">
                 <button onClick={() => handleEditExperience(experience)} className="p-2 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition" title="Edit Experience" disabled={isLoading}>

@@ -88,6 +88,30 @@ export default function PaymentPage() {
         };
         payments.push(newPayment);
         localStorage.setItem('payments', JSON.stringify(payments));
+        // Also persist a booking record so admin bookings reflect new bookings
+        try {
+          const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+          const bookingId = `B-${Date.now()}`;
+          const newBooking = {
+            id: bookingId,
+            bookingReference: bookingId,
+            plantationName: bookingSummary.plantationName,
+            plantationId,
+            date: bookingSummary.date || new Date().toISOString().split('T')[0],
+            time: bookingSummary.time || '',
+            guests: `${bookingSummary.adults || 0} Adults, ${bookingSummary.children || 0} Children`,
+            experiences: bookingSummary.experiences || [],
+            totalPaid: `${bookingSummary.currency === 'LKR' ? 'Rs' : '$'}${bookingSummary.totalPrice}`,
+            status: 'upcoming',
+            touristDetails: touristDetails,
+            adults: bookingSummary.adults || 0,
+            children: bookingSummary.children || 0,
+          };
+          bookings.push(newBooking);
+          localStorage.setItem('bookings', JSON.stringify(bookings));
+        } catch (err) {
+          console.error('Failed to persist booking:', err);
+        }
 
         // After successful payment, navigate to a confirmation page
         navigate('/booking-confirmation', {

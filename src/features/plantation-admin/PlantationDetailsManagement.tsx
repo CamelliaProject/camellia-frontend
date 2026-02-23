@@ -60,8 +60,25 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     // Simulate API call to save updated plantation details
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('Saving plantation details:', formData);
-    // In a real app, you would send formData to your backend API
-    // On success:
+    // Persist changes to localStorage for demo purposes so tourist pages reflect edits
+    try {
+      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
+      stored[formData.id] = formData;
+      localStorage.setItem('plantations', JSON.stringify(stored));
+      // Also update in-memory PLANTATION_DATA if available (best-effort)
+      try {
+        const mod = await import('../tourist/PlantationDetail');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const modAny = mod as any;
+        if (modAny && modAny.PLANTATION_DATA && modAny.PLANTATION_DATA[formData.id]) {
+          modAny.PLANTATION_DATA[formData.id] = { ...modAny.PLANTATION_DATA[formData.id], ...formData };
+        }
+      } catch (e) {
+        // ignore if cannot update module cache
+      }
+    } catch (err) {
+      console.error('Failed to persist plantation details:', err);
+    }
     setMessage('Details updated successfully!');
     setIsEditing(false);
     setIsLoading(false);

@@ -623,6 +623,20 @@ export const PLANTATION_DATA: Record<string, any> = {
   }
 };
 
+// Merge persisted plantation overrides from localStorage (admin edits)
+try {
+  const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
+  Object.keys(storedPlantations).forEach((pid) => {
+    if (PLANTATION_DATA[pid]) {
+      PLANTATION_DATA[pid] = { ...PLANTATION_DATA[pid], ...storedPlantations[pid] };
+    } else {
+      PLANTATION_DATA[pid] = storedPlantations[pid];
+    }
+  });
+} catch (e) {
+  // ignore parse errors
+}
+
 export default function PlantationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();

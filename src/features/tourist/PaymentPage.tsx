@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { PLANTATION_DATA } from './PlantationDetail';
 import { CheckCircle2, CreditCard, Calendar, Lock } from 'lucide-react'; // Import icons
 
 export default function PaymentPage() {
@@ -69,16 +70,41 @@ export default function PaymentPage() {
 
       setPaymentSuccess(true);
       setPaymentProcessing(false);
-      
-      // After successful payment, navigate to a confirmation page
-      navigate('/booking-confirmation', {
-        state: {
-          bookingSummary,
-          touristDetails,
-          transactionId: 'CAM-546', // Example transaction ID
-        },
-        replace: true // Replace current history entry so user can't go back to payment form easily
-      });
+
+      // Persist a simple payment record to localStorage so admin can view it (demo only)
+      try {
+        const payments = JSON.parse(localStorage.getItem('payments') || '[]');
+        const transactionId = `P-${Date.now()}`;
+        const plantationEntry = Object.entries(PLANTATION_DATA).find(([, p]: any) => p.name === bookingSummary.plantationName);
+        const plantationId = plantationEntry ? plantationEntry[0] : '';
+        const newPayment = {
+          id: transactionId,
+          bookingReference: transactionId,
+          plantationId,
+          amount: String(bookingSummary.totalPrice),
+          currency: bookingSummary.currency === 'LKR' ? 'Rs' : '$',
+          status: 'paid',
+          date: new Date().toISOString().split('T')[0],
+        };
+        payments.push(newPayment);
+        localStorage.setItem('payments', JSON.stringify(payments));
+
+        // After successful payment, navigate to a confirmation page
+        navigate('/booking-confirmation', {
+          state: {
+            bookingSummary,
+            touristDetails,
+            transactionId,
+          },
+          replace: true // Replace current history entry so user can't go back to payment form easily
+        });
+      } catch (err) {
+        console.error('Failed to persist payment:', err);
+        navigate('/booking-confirmation', {
+          state: { bookingSummary, touristDetails, transactionId: 'CAM-546' },
+          replace: true,
+        });
+      }
 
     } catch (err) {
       console.error("Payment failed:", err);

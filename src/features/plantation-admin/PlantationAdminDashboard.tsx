@@ -9,6 +9,7 @@ import PlantationMediaManagement from '../plantation-admin/PlantationMediaManage
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet } from 'lucide-react'; // Added Wallet icon
+import PlantationPayments from './PlantationPayments';
 
 // Define a type for a simplified plantation admin user (can be extended)
 interface PlantationAdminUser {
@@ -30,7 +31,7 @@ const MOCK_PLANTATION_ADMINS: Record<string, PlantationAdminUser> = {
 export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
   const { user, logOut } = useAuth(); // Assuming useAuth provides the logged-in user
-  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings' | 'payments'>('details');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
 
   useEffect(() => {
@@ -141,6 +142,16 @@ export default function PlantationAdminDashboard() {
             >
               <CalendarCheck size={20} /> View Bookings
             </button>
+            <button
+              onClick={() => setActiveTab('payments')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
+                activeTab === 'payments'
+                  ? 'bg-[#2D6A4F] text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Wallet size={20} /> Payments
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -156,6 +167,9 @@ export default function PlantationAdminDashboard() {
             )}
             {activeTab === 'bookings' && (
               <PlantationBookingManagement plantationId={plantationId} />
+            )}
+            {activeTab === 'payments' && (
+              <PlantationPayments plantationId={plantationId} />
             )}
           </div>
         </div>

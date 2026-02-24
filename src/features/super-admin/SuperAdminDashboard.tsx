@@ -116,7 +116,7 @@ export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    'plantations' | 'registerPlantation' | 'contactRequests'
+    'plantations' | 'registerPlantation' | 'contactRequests' | 'passwordManagement'
   >('plantations');
   // Initialize plantations from localStorage or MOCK_PLANTATIONS
   const [plantations, setPlantations] = useState<Plantation[]>(() => {

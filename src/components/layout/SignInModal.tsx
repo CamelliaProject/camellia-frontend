@@ -33,6 +33,10 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleForgotPassword = () => {
+    alert('Forgot password feature not implemented yet.');
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!username.trim()) newErrors.username = 'Username is required';
@@ -168,6 +172,12 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
               }`}
             />
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+          </div>
+
+          <div className="text-right mb-4">
+            <button type="button" onClick={handleForgotPassword} className="text-sm text-[#2D6A4F] hover:text-[#1B4332]">
+              Forgot Password?
+            </button>
           </div>
 
           <button

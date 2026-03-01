@@ -8,6 +8,7 @@ import PlantationDetailsManagement from './PlantationDetailsManagement';
 import PlantationMediaManagement from '../plantation-admin/PlantationMediaManagement';
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
+import PlantationSetup from './PlantationSetup';
 import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet } from 'lucide-react'; // Added Wallet icon
 import PlantationPayments from './PlantationPayments';
 
@@ -28,6 +29,15 @@ export default function PlantationAdminDashboard() {
   const { user, logOut } = useAuth(); // Assuming useAuth provides the logged-in user
   const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings' | 'payments'>('details');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
+  const [showSetup, setShowSetup] = useState(false);
+  const [plantation, setPlantation] = useState<any>(null);
+  const [setupSuccess, setSetupSuccess] = useState(false);
+
+  const isPlantationIncomplete = (plant: any) => {
+    // Check if essential fields are missing or empty
+    return !plant || !plant.name || !plant.address || !plant.contact?.email || 
+           !plant.detailedDescription || !plant.highlights?.altitude || !plant.highlights?.area;
+  };
 
   useEffect(() => {
     // In a real app, this would involve validating the user's role and associated plantation.
@@ -47,6 +57,26 @@ export default function PlantationAdminDashboard() {
           // force them to update their password first
           navigate('/plantation-admin/change-password');
         }
+
+        // Check plantation data
+        let plantData = PLANTATION_DATA[found.id];
+        
+        // Also check localStorage for updated plantation data
+        try {
+          const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
+          if (storedPlantations[found.id]) {
+            plantData = storedPlantations[found.id];
+          }
+        } catch (e) {
+          console.error('Failed to load plantation from localStorage:', e);
+        }
+
+        setPlantation(plantData);
+
+        // If plantation details are incomplete, show setup form
+        if (isPlantationIncomplete(plantData)) {
+          setShowSetup(true);
+        }
       } else {
         // If logged in but not a plantation admin, redirect or show error
         alert("You don't have permission to access the admin dashboard.");
@@ -58,6 +88,16 @@ export default function PlantationAdminDashboard() {
     }
   }, [user, navigate]);
 
+  const handleSetupComplete = (completePlantation: any) => {
+    setShowSetup(false);
+    setPlantation(completePlantation);
+    setSetupSuccess(true);
+    setActiveTab('details');
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => setSetupSuccess(false), 3000);
+  };
+
 
   if (!user || !plantationAdmin) {
     // Optionally show a loading spinner or a message
@@ -68,8 +108,15 @@ export default function PlantationAdminDashboard() {
     );
   }
 
-  const plantationId = plantationAdmin.plantationId;
-  const plantation = PLANTATION_DATA[plantationId];
+  // Show setup form if plantation details are incomplete
+  if (showSetup) {
+    return (
+      <PlantationSetup 
+        plantationId={plantationAdmin.plantationId} 
+        onSetupComplete={handleSetupComplete}
+      />
+    );
+  }
 
   if (!plantation) {
     return (
@@ -93,6 +140,19 @@ export default function PlantationAdminDashboard() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">
       <Navbar />
+      {setupSuccess && (
+        <div className="bg-green-50 border-b-4 border-green-500 px-12 py-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-green-600 text-2xl">✓</span>
+              <div>
+                <p className="font-semibold text-green-800">Setup Complete!</p>
+                <p className="text-sm text-green-700">Your plantation profile has been created successfully. You can now upload images, create experiences, and manage bookings.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <main className="py-16 px-12">
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
@@ -170,10 +230,10 @@ export default function PlantationAdminDashboard() {
               <PlantationExperienceManagement plantation={plantation} />
             )}
             {activeTab === 'bookings' && (
-              <PlantationBookingManagement plantationId={plantationId} />
+              <PlantationBookingManagement plantationId={plantationAdmin.plantationId} />
             )}
             {activeTab === 'payments' && (
-              <PlantationPayments plantationId={plantationId} />
+              <PlantationPayments plantationId={plantationAdmin.plantationId} />
             )}
           </div>
         </div>

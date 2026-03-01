@@ -15,11 +15,6 @@ interface UserData {
   plantationId?: string;
 }
 
-// Mock admin users
-const MOCK_PLANTATION_ADMINS: Record<string, { username: string; plantationId: string }> = {
-  pedroadmin: { username: 'pedroadmin', plantationId: '1' },
-  bluefieldadmin: { username: 'bluefieldadmin', plantationId: '2' },
-};
 
 // Super Admin credentials
 const SUPER_ADMIN_USERNAME = 'superadmin';
@@ -32,10 +27,6 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleForgotPassword = () => {
-    alert('Forgot password feature not implemented yet.');
-  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -58,34 +49,72 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
     setTimeout(() => {
       let userRole: UserData['role'] = 'tourist';
       let userData: UserData = { username, email: `${username}@camellia.com`, role: 'tourist' };
+      let loginAllowed = true;
 
       // Super Admin
       if (username === SUPER_ADMIN_USERNAME && password === SUPER_ADMIN_PASSWORD) {
         userRole = 'superadmin';
         userData.role = 'superadmin';
+      } else {
+        // check dynamic plantation admins
+        const plantations: any[] = JSON.parse(
+          localStorage.getItem('superAdminPlantations') || '[]'
+        );
+        const matched = plantations.find((p) => p.adminUsername === username);
+        if (matched) {
+          const pwMap: Record<string, string> = JSON.parse(
+            localStorage.getItem('plantationPasswords') || '{}'
+          );
+          const storedPw = pwMap[username] || matched.adminPassword || 'password123';
+          if (password === storedPw) {
+            userRole = 'plantationadmin';
+            userData = {
+              ...userData,
+              role: 'plantationadmin',
+              plantationId: matched.id,
+            };
+          } else {
+            // wrong password for known plantation admin
+            loginAllowed = false;
+          }
+        }
+        // otherwise if no match we treat as tourist and allow
       }
-      // Plantation Admin
-      else if (MOCK_PLANTATION_ADMINS[username] && password === 'password123') {
-        userRole = 'plantationadmin';
-        userData = {
-          ...userData,
-          role: 'plantationadmin',
-          plantationId: MOCK_PLANTATION_ADMINS[username].plantationId,
-        };
+
+      if (!loginAllowed) {
+        setErrors({ password: 'Invalid username or password' });
+        setIsLoading(false);
+        return;
       }
 
       signIn(userData);
 
+      // reset form
       setUsername('');
       setPassword('');
       setErrors({});
       setIsLoading(false);
       onClose();
 
-      // Navigate to the correct dashboard
-      if (userRole === 'superadmin') navigate('/super-admin/dashboard');
-      else if (userRole === 'plantationadmin') navigate('/plantation-admin/dashboard');
-      else navigate('/dashboard');
+      // Redirect logic depending on role and password change status
+      if (userRole === 'superadmin') {
+        navigate('/super-admin/dashboard');
+      } else if (userRole === 'plantationadmin') {
+        // check flag
+        const plantations: any[] = JSON.parse(
+          localStorage.getItem('superAdminPlantations') || '[]'
+        );
+        const matched = plantations.find((p) => p.adminUsername === username);
+        const changed = matched?.passwordChanged;
+        if (!changed) {
+          // force password update
+          navigate('/plantation-admin/change-password');
+        } else {
+          navigate('/plantation-admin/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
     }, 1000);
   };
 
@@ -172,12 +201,6 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
               }`}
             />
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-          </div>
-
-          <div className="text-right mb-4">
-            <button type="button" onClick={handleForgotPassword} className="text-sm text-[#2D6A4F] hover:text-[#1B4332]">
-              Forgot Password?
-            </button>
           </div>
 
           <button

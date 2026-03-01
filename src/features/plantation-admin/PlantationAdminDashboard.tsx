@@ -18,11 +18,6 @@ interface PlantationAdminUser {
   plantationId: string; // The ID of the plantation this admin manages
 }
 
-// Mock admin users for demonstration
-const MOCK_PLANTATION_ADMINS: Record<string, PlantationAdminUser> = {
-  'pedroadmin': { username: 'pedroadmin', email: 'pedroadmin@pedroestate.com', plantationId: '1' },
-  'bluefieldadmin': { username: 'bluefieldadmin', email: 'bluefieldadmin@bluefieldgarden.com', plantationId: '2' },
-};
 
 // Extend AuthContext to include the admin user if authenticated as one
 // (This is a simplified approach, a real app would have more robust role management)
@@ -36,13 +31,22 @@ export default function PlantationAdminDashboard() {
 
   useEffect(() => {
     // In a real app, this would involve validating the user's role and associated plantation.
-    // For this mock, we check if the logged-in user matches a mock admin.
+    // For this mock, check localStorage list and also enforce password-change requirement.
     if (user) {
-      const foundAdmin = Object.values(MOCK_PLANTATION_ADMINS).find(
-        (admin) => admin.username === user.username
+      const plantations: any[] = JSON.parse(
+        localStorage.getItem('superAdminPlantations') || '[]'
       );
-      if (foundAdmin) {
-        setPlantationAdmin(foundAdmin);
+      const found = plantations.find((p) => p.adminUsername === user.username);
+      if (found) {
+        setPlantationAdmin({
+          username: found.adminUsername,
+          email: user.email,
+          plantationId: found.id,
+        });
+        if (!found.passwordChanged) {
+          // force them to update their password first
+          navigate('/plantation-admin/change-password');
+        }
       } else {
         // If logged in but not a plantation admin, redirect or show error
         alert("You don't have permission to access the admin dashboard.");

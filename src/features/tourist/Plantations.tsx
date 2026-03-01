@@ -24,8 +24,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Experience the charm of Pedro Tea Estate with breathtaking views of tea plantations.',
     owner: 'Pedro Es', businessReg: 'BRN-001-2020', adminUsername: 'pedroadmin',
     email: 'pedro@estate.com', telephone: '0342256789',
-    isDisabled: false, registeredYear: 2025,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2025
   },
   {
     id: '2',
@@ -35,8 +34,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Discover the tranquility and beauty of Bluefield Tea Garden.',
     owner: 'Bluefield Co.', businessReg: 'BRN-001-2021', adminUsername: 'bluefieldadmin',
     email: 'bluefield@garden.com', telephone: '0522267890',
-    isDisabled: false, registeredYear: 2025,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2025
   },
   {
     id: '3',
@@ -46,8 +44,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Explore the historic Haputale Estate with stunning mountain views.',
     owner: 'Haputale PLC', businessReg: 'BRN-001-2018', adminUsername: 'haputaleadmin',
     email: 'haputale@estate.com', telephone: '0711234567',
-    isDisabled: false, registeredYear: 2024,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2024
   },
   {
     id: '4',
@@ -57,8 +54,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Visit the lush green plantations of Uda Pussellawa.',
     owner: 'Uda Pussellawa Co.', businessReg: 'BRN-001-2017', adminUsername: 'udapussellawaadmin',
     email: 'uda@pussellawa.com', telephone: '0812345678',
-    isDisabled: false, registeredYear: 2023,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2023
   },
   {
     id: '5',
@@ -68,8 +64,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Immerse yourself in the scenic Dambulla Tea Valley with traditional tea-making experiences.',
     owner: 'Dambulla Valley Ltd.', businessReg: 'BRN-001-2022', adminUsername: 'dambullaadmin',
     email: 'dambulla@valley.com', telephone: '0661234567',
-    isDisabled: false, registeredYear: 2026,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2026
   },
   {
     id: '6',
@@ -79,8 +74,7 @@ const INITIAL_FALLBACK_PLANTATIONS: SuperAdminPlantation[] = [
     description: 'Enjoy panoramic views and authentic Ceylon tea at Ella Ridge Plantation.',
     owner: 'Ella Ridge Farms', businessReg: 'BRN-001-2023', adminUsername: 'ellaadmin',
     email: 'ella@ridge.com', telephone: '0761234567',
-    isDisabled: false, registeredYear: 2027,
-    adminPassword: 'password123'
+    isDisabled: false, registeredYear: 2027
   }
 ];
 

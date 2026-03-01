@@ -6,16 +6,13 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Package,
   Eye,
-  Key,
-  AreaChart,
   UserPlus,
   Mail,
   CheckCircle,
-  BarChart2, // Changed from AreaChart to BarChart2 for clarity
+  BarChart2,
 } from 'lucide-react';
-import PlantationDetailModal from '../../features/super-admin/PlantationDetailModal'; // NEW: Import the modal
+import PlantationDetailModal from './PlantationDetailModal'; // modal component in same folder
 
 // Mock data for plantations
 export interface Plantation {
@@ -26,7 +23,8 @@ export interface Plantation {
   owner: string;
   businessReg: string;
   adminUsername: string; // Renamed for clarity
-  adminPassword?: string; // Storing mock password for editing
+  adminPassword?: string; // Storing mock password for editing – only visible until admin changes it
+  passwordChanged?: boolean; // track whether the plantation admin has changed their password
   address: string; // Added for registration details
   telephone: string; // Added for registration details
   email: string; // Added for registration details
@@ -43,6 +41,7 @@ const MOCK_PLANTATIONS: Plantation[] = [
     businessReg: 'BRN-001-2020',
     adminUsername: 'pedroadmin',
     adminPassword: 'password123',
+    passwordChanged: false,
     address: 'Pedro Tea Estate, Nuwara Eliya',
     telephone: '0342256789',
     email: 'pedro@estate.com',
@@ -58,6 +57,7 @@ const MOCK_PLANTATIONS: Plantation[] = [
     businessReg: 'BRN-001-2021',
     adminUsername: 'bluefieldadmin',
     adminPassword: 'password123',
+    passwordChanged: false,
     address: 'Blue Field Tea Garden, Ramboda',
     telephone: '0522267890',
     email: 'bluefield@garden.com',
@@ -73,6 +73,7 @@ const MOCK_PLANTATIONS: Plantation[] = [
     businessReg: 'BRN-001-2018',
     adminUsername: 'haputaleadmin',
     adminPassword: 'password123',
+    passwordChanged: false,
     address: 'Haputale, Sri Lanka',
     telephone: '0771234567',
     email: 'haputale@estate.com',
@@ -114,14 +115,16 @@ const MOCK_CONTACT_REQUESTS: ContactRequest[] = [
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
-  const { user, logOut } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    'plantations' | 'registerPlantation' | 'contactRequests' | 'passwordManagement'
+    'plantations' | 'registerPlantation' | 'contactRequests'
   >('plantations');
   // Initialize plantations from localStorage or MOCK_PLANTATIONS
   const [plantations, setPlantations] = useState<Plantation[]>(() => {
     const storedPlantations = localStorage.getItem('superAdminPlantations');
-    return storedPlantations ? JSON.parse(storedPlantations) : MOCK_PLANTATIONS;
+    const baseList: Plantation[] = storedPlantations ? JSON.parse(storedPlantations) : MOCK_PLANTATIONS;
+    // ensure every entry has a defined passwordChanged boolean
+    return baseList.map((p) => ({ ...p, passwordChanged: p.passwordChanged || false }));
   });
   const [contactRequests, setContactRequests] =
     useState<ContactRequest[]>(MOCK_CONTACT_REQUESTS);
@@ -153,6 +156,29 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     localStorage.setItem('superAdminPlantations', JSON.stringify(plantations));
   }, [plantations]);
+
+  // utility for managing password map
+  const setStoredPassword = (username: string, password: string) => {
+    const map = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
+    map[username] = password;
+    localStorage.setItem('plantationPasswords', JSON.stringify(map));
+  };
+
+  // When the component mounts we might want to ensure the initial passwords are stored
+  useEffect(() => {
+    // iterate through plantations and ensure map has entries
+    const existingMap = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
+    let updated = false;
+    plantations.forEach((p) => {
+      if (p.adminUsername && p.adminPassword && !existingMap[p.adminUsername]) {
+        existingMap[p.adminUsername] = p.adminPassword;
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem('plantationPasswords', JSON.stringify(existingMap));
+    }
+  }, []);
 
   if (!user || user.role !== 'superadmin') {
     return (
@@ -188,27 +214,65 @@ export default function SuperAdminDashboard() {
   };
 
   const handleUpdatePlantation = (updatedPlantation: Plantation) => {
+    const original = plantations.find((p) => p.id === updatedPlantation.id);
+    
     setPlantations((prev) =>
       prev.map((p) => (p.id === updatedPlantation.id ? updatedPlantation : p))
     );
     // Also update the selected plantation in state if the modal is open
-    setSelectedPlantation(updatedPlantation); 
+    setSelectedPlantation(updatedPlantation);
+
+    // if passwordChanged becomes true, clear the password from the plantation object
+    // (super admin should no longer see it in the modal)
+    if (original && !original.passwordChanged && updatedPlantation.passwordChanged) {
+      const clearedPlantation = { ...updatedPlantation, adminPassword: '' };
+      setPlantations((prev) =>
+        prev.map((p) => (p.id === updatedPlantation.id ? clearedPlantation : p))
+      );
+      setSelectedPlantation(clearedPlantation);
+    }
+
+    // if the admin username changed, move the password entry in the map
+    if (original && original.adminUsername !== updatedPlantation.adminUsername) {
+      const map: Record<string, string> = JSON.parse(
+        localStorage.getItem('plantationPasswords') || '{}'
+      );
+      if (map[original.adminUsername]) {
+        map[updatedPlantation.adminUsername] = map[original.adminUsername];
+        delete map[original.adminUsername];
+        localStorage.setItem('plantationPasswords', JSON.stringify(map));
+      }
+    }
+
+    // if the password was edited directly by super admin before passwordChanged is true
+    // update the password map
+    if (updatedPlantation.adminPassword && !updatedPlantation.passwordChanged) {
+      setStoredPassword(updatedPlantation.adminUsername, updatedPlantation.adminPassword);
+    }
   };
 
   const handleGenerateCredentials = (plantation: Plantation) => {
+    if (plantation.passwordChanged) {
+      alert('Cannot generate new credentials after the administrator has changed their password.');
+      return;
+    }
+
     const generatedUsername = `admin_${plantation.id}`;
     const generatedPassword = Math.random().toString(36).slice(-8); // Simple random password
 
-    // Update the plantation with new credentials
-    const updatedPlantation = {
+    // Update the plantation with new credentials - store password so super admin can see and copy it
+    const updatedPlantation: Plantation = {
       ...plantation,
       adminUsername: generatedUsername,
       adminPassword: generatedPassword,
+      passwordChanged: false,
     };
     handleUpdatePlantation(updatedPlantation); // Update the state and localStorage
+    // Also store in the password map for login validation
+    setStoredPassword(generatedUsername, generatedPassword);
 
     alert(
-      `NEW Credentials for ${plantation.name}:\nUsername: ${generatedUsername}\nPassword: ${generatedPassword}\n\n(In a real app, these would be securely emailed or displayed once)`
+      `NEW Credentials for ${plantation.name}:\nUsername: ${generatedUsername}\nPassword: ${generatedPassword}\n\nYou can copy these credentials from the plantation details. Once the administrator changes their password, you will no longer be able to see it.`
     );
   };
 
@@ -259,13 +323,17 @@ export default function SuperAdminDashboard() {
 
     const newId = (plantations.length + 1).toString();
     const currentYear = new Date().getFullYear();
+    const generatedUsername = `admin_${newId}`;
+    const generatedPassword = Math.random().toString(36).slice(-8);
+
     const newPlantationEntry: Plantation = {
       id: newId,
       name: newPlantation.name,
       owner: newPlantation.owner,
       businessReg: newPlantation.businessReg,
-      adminUsername: `admin_${newId}`, // Mock username for now
-      adminPassword: Math.random().toString(36).slice(-8), // Generate initial password
+      adminUsername: generatedUsername,
+      adminPassword: generatedPassword, // store password so super admin can see and copy it
+      passwordChanged: false,
       address: newPlantation.address,
       telephone: newPlantation.telephone,
       email: newPlantation.email,
@@ -274,9 +342,19 @@ export default function SuperAdminDashboard() {
       image: '',
       description: undefined
     };
+    // store password in map as well for login validation
+    setStoredPassword(generatedUsername, generatedPassword);
 
     setPlantations((prev) => [...prev, newPlantationEntry]);
     setRegSuccess(true);
+
+    // Display credentials once
+    alert(
+      `NEW plantation registered. Credentials for ${newPlantationEntry.name}:\n` +
+        `Username: ${generatedUsername}\nPassword: ${generatedPassword}\n\n` +
+        'You can copy these credentials from the plantation details. Once the administrator changes their password, you will no longer be able to see it.'
+    );
+
     setNewPlantation({
       name: '',
       owner: '',

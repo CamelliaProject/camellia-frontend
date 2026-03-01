@@ -64,11 +64,13 @@ export default function PlantationDetailModal({
       newErrors.email = 'Please enter a valid email address';
     }
     if (!formData.adminUsername.trim()) newErrors.adminUsername = 'Admin Username is required';
-    if (!formData.adminPassword?.trim()) newErrors.adminPassword = 'Admin Password is required';
-    else if (formData.adminPassword && formData.adminPassword.length < 6) {
+    // validate password only if not yet changed by admin
+    if (!formData.passwordChanged) {
+      if (!formData.adminPassword?.trim()) newErrors.adminPassword = 'Admin Password is required';
+      else if (formData.adminPassword && formData.adminPassword.length < 6) {
         newErrors.adminPassword = 'Password must be at least 6 characters';
+      }
     }
-
     return newErrors;
   };
 
@@ -217,50 +219,77 @@ export default function PlantationDetailModal({
 
           {/* Admin Credentials */}
           <h3 className="text-xl font-bold mt-6 mb-2 text-[#1B4332]">Admin Credentials</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold mb-1">Username</label>
-              <input
-                type="text"
-                name="adminUsername"
-                value={formData.adminUsername}
-                onChange={handleChange}
-                readOnly={!isEditing}
-                className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminUsername ? 'border-red-500' : 'border-gray-300'}`}
-              />
-              {errors.adminUsername && <p className="text-red-500 text-xs mt-1">{errors.adminUsername}</p>}
+          {formData.passwordChanged ? (
+            // After password changed - show locked state
+            <div className="p-4 bg-red-50 border border-red-300 rounded-md">
+              <p className="text-sm text-red-800 font-semibold">⚠️ Credentials Locked</p>
+              <p className="text-xs text-red-700 mt-2">
+                The plantation administrator has changed their password. Credentials cannot be modified or viewed anymore.
+              </p>
             </div>
-            <div className="relative">
-              <label className="block text-sm font-semibold mb-1">Password</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="adminPassword"
-                value={formData.adminPassword || ''}
-                onChange={handleChange}
-                readOnly={!isEditing}
-                className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminPassword ? 'border-red-500' : 'border-gray-300'}`}
-              />
-              {isEditing && (
-                 <button
-                 type="button"
-                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5"
-                 onClick={() => setShowPassword(!showPassword)}
-                 style={{ top: '1.75rem' }} // Adjust position to align with input
-               >
-                 {showPassword ? 'Hide' : 'Show'}
-               </button>
+          ) : (
+            // Before password changed - show editable credentials
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Username</label>
+                  <input
+                    type="text"
+                    name="adminUsername"
+                    value={formData.adminUsername}
+                    onChange={handleChange}
+                    readOnly={!isEditing}
+                    className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminUsername ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {errors.adminUsername && <p className="text-red-500 text-xs mt-1">{errors.adminUsername}</p>}
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-semibold mb-1">Password</label>
+                  <div className="flex gap-2">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="adminPassword"
+                      value={formData.adminPassword || ''}
+                      onChange={handleChange}
+                      readOnly={!isEditing}
+                      className={`flex-1 px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminPassword ? 'border-red-500' : 'border-gray-300'}`}
+                    />
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-semibold"
+                      >
+                        {showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    )}
+                  </div>
+                  {errors.adminPassword && <p className="text-red-500 text-xs mt-1">{errors.adminPassword}</p>}
+                </div>
+              </div>
+              {!isEditing && !formData.passwordChanged && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const credentials = `Username: ${formData.adminUsername}\nPassword: ${formData.adminPassword}`;
+                    navigator.clipboard.writeText(credentials);
+                    alert('Credentials copied to clipboard!');
+                  }}
+                  className="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+                >
+                  Copy Credentials
+                </button>
               )}
-              {errors.adminPassword && <p className="text-red-500 text-xs mt-1">{errors.adminPassword}</p>}
-            </div>
-          </div>
-          {isEditing && (
-            <button
-              type="button"
-              onClick={handleGenerateAndSetNewCredentials}
-              className="mt-2 text-sm text-blue-600 hover:underline"
-            >
-              Generate New Credentials
-            </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={handleGenerateAndSetNewCredentials}
+                  className="mt-2 text-sm text-blue-600 hover:underline"
+                >
+                  Generate New Credentials
+                </button>
+              )}
+            </>
           )}
 
           {/* Disable/Enable Toggle */}

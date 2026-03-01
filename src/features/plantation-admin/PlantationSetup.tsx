@@ -13,7 +13,7 @@ interface SetupFormData {
   altitude: string;
   area: string;
   established: string;
-  mainImage: string;
+  
 }
 
 interface PlantationSetupProps {
@@ -35,7 +35,7 @@ export default function PlantationSetup({ plantationId, onSetupComplete }: Plant
     altitude: '',
     area: '',
     established: '',
-    mainImage: '',
+    
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -127,8 +127,7 @@ export default function PlantationSetup({ plantationId, onSetupComplete }: Plant
       description: formData.description,
       detailedDescription: formData.detailedDescription,
       bestTime: formData.bestTime,
-      mainImage: formData.mainImage,
-      galleryImages: formData.mainImage ? [formData.mainImage] : [],
+      
       contact: {
         phone: formData.phone,
         email: formData.email,
@@ -324,7 +323,7 @@ export default function PlantationSetup({ plantationId, onSetupComplete }: Plant
                 <input
                   type="url"
                   name="mainImage"
-                  value={formData.mainImage}
+                  
                   onChange={handleChange}
                   placeholder="https://example.com/image.jpg"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"

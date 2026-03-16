@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MapPin, Info, DollarSign, CalendarCheck } from 'lucide-react';
+import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react'; // Import Activity icon
 
 // Assuming Plantation type from PlantationDetail.tsx
 interface Plantation {
@@ -19,7 +19,7 @@ interface Plantation {
     visitors: string;
     established: string;
   };
-  // ... other properties you might want to edit
+  activities: string[]; // Added this line
 }
 
 interface PlantationDetailsManagementProps {
@@ -31,6 +31,7 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [newActivity, setNewActivity] = useState(''); // State for new activity input
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -50,6 +51,25 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     setFormData((prev) => ({
       ...prev,
       highlights: { ...prev.highlights, [name]: value },
+    }));
+  };
+
+  // Handler for adding a new activity
+  const handleAddActivity = () => {
+    if (newActivity.trim() !== '') {
+      setFormData((prev) => ({
+        ...prev,
+        activities: [...prev.activities, newActivity.trim()],
+      }));
+      setNewActivity(''); // Clear the input field
+    }
+  };
+
+  // Handler for removing an activity
+  const handleRemoveActivity = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      activities: prev.activities.filter((_, index) => index !== indexToRemove),
     }));
   };
 
@@ -274,6 +294,50 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
           </div>
         </div>
 
+        {/* Available Activities */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-2xl font-bold text-[#2D6A4F] mb-4 flex items-center gap-2">
+            <Activity size={24} /> Available Activities
+          </h3>
+          <div className="flex flex-wrap gap-3 mb-4">
+            {formData.activities.map((activity, index) => (
+              <div
+                key={index}
+                className="flex items-center bg-[#D6F0E0] text-[#1B4332] px-4 py-2 rounded-full font-medium"
+              >
+                <span>{activity}</span>
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveActivity(index)}
+                    className="ml-2 text-gray-600 hover:text-red-600 focus:outline-none"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {isEditing && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newActivity}
+                onChange={(e) => setNewActivity(e.target.value)}
+                placeholder="Add new activity"
+                className="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788]"
+              />
+              <button
+                type="button"
+                onClick={handleAddActivity}
+                className="bg-[#52B788] hover:bg-[#40916c] text-white font-semibold py-2 px-4 rounded-lg transition"
+              >
+                Add
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Best Time */}
         <div className="pb-6">
           <h3 className="text-2xl font-bold text-[#2D6A4F] mb-4 flex items-center gap-2">
@@ -303,6 +367,7 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
                 setIsEditing(false);
                 setFormData(plantation); // Reset to original data
                 setMessage('');
+                setNewActivity(''); // Clear new activity input on cancel
               }}
               className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-lg transition"
             >

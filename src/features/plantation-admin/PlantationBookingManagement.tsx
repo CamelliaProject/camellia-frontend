@@ -31,7 +31,7 @@ const MOCK_ALL_BOOKINGS: Booking[] = [
     bookingReference: 'CAM-556',
     plantationName: 'Pedro Tea Estate',
     plantationId: '1',
-    date: '2025-11-17', // Use standard date format for sorting
+    date: '2025-11-17', 
     time: '11:00 AM',
     guests: '1 Adult',
     experiences: ['Tea Factory Tour', 'Tea Tasting'],
@@ -155,12 +155,12 @@ const formatDate = (dateString: string) => {
 export default function PlantationBookingManagement({ plantationId }: PlantationBookingManagementProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Default to newest first
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); 
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const USD_TO_LKR = 365;
-  // Removed `message` state as booking actions are no longer available
+  
 
   useEffect(() => {
     setIsLoading(true);

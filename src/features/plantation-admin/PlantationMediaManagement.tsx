@@ -26,8 +26,8 @@ interface PlantationMediaManagementProps {
 }
 
 export default function PlantationMediaManagement({ plantation }: PlantationMediaManagementProps) {
-  const [mainImagePreview, setMainImagePreview] = useState<string>(plantation.mainImage);
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(plantation.galleryImages);
+  const [mainImagePreview, setMainImagePreview] = useState<string>(plantation.mainImage || '');
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(plantation.galleryImages || []);
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -50,6 +50,12 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
       return acc;
     }, {} as Record<string, string[]>) || {};
   });
+
+  // Keep state in sync if the parent passes in updated plantation data
+  useEffect(() => {
+    setMainImagePreview(plantation.mainImage || '');
+    setGalleryPreviews(plantation.galleryImages || []);
+  }, [plantation.mainImage, plantation.galleryImages]);
 
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const galleryImageInputRef = useRef<HTMLInputElement>(null);

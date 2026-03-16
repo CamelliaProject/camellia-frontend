@@ -9,24 +9,19 @@ import PlantationMediaManagement from '../plantation-admin/PlantationMediaManage
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import PlantationSetup from './PlantationSetup';
-import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet } from 'lucide-react'; // Added Wallet icon
+import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet } from 'lucide-react'; 
 import PlantationPayments from './PlantationPayments';
 
-// Define a type for a simplified plantation admin user (can be extended)
 interface PlantationAdminUser {
   username: string;
   email: string;
-  plantationId: string; // The ID of the plantation this admin manages
+  plantationId: string; 
 }
 
 
-// Extend AuthContext to include the admin user if authenticated as one
-// (This is a simplified approach, a real app would have more robust role management)
-// For this example, we'll assume a user object with a 'plantationId' property implies a plantation admin.
-
 export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
-  const { user, logOut } = useAuth(); // Assuming useAuth provides the logged-in user
+  const { user, logOut } = useAuth(); 
   const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings' | 'payments'>('details');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
   const [showSetup, setShowSetup] = useState(false);
@@ -40,7 +35,7 @@ export default function PlantationAdminDashboard() {
   };
 
   useEffect(() => {
-    // In a real app, this would involve validating the user's role and associated plantation.
+    
     // For this mock, check localStorage list and also enforce password-change requirement.
     if (user) {
       const plantations: any[] = JSON.parse(
@@ -58,14 +53,17 @@ export default function PlantationAdminDashboard() {
           navigate('/plantation-admin/change-password');
         }
 
-        // Check plantation data
+        // Base plantation data from mock dataset
         let plantData = PLANTATION_DATA[found.id];
-        
-        // Also check localStorage for updated plantation data
+
+        // Also check localStorage for updated plantation data and merge any partial updates
         try {
           const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
           if (storedPlantations[found.id]) {
-            plantData = storedPlantations[found.id];
+            plantData = {
+              ...plantData,
+              ...storedPlantations[found.id],
+            };
           }
         } catch (e) {
           console.error('Failed to load plantation from localStorage:', e);
@@ -89,11 +87,17 @@ export default function PlantationAdminDashboard() {
   }, [user, navigate]);
 
   const handleSetupComplete = (completePlantation: any) => {
+    // Merge with default mock data so we retain gallery images / main image, etc.
+    const mergedPlantation = {
+      ...PLANTATION_DATA[plantationAdmin?.plantationId || ''],
+      ...completePlantation,
+    };
+
     setShowSetup(false);
-    setPlantation(completePlantation);
+    setPlantation(mergedPlantation);
     setSetupSuccess(true);
     setActiveTab('details');
-    
+
     // Hide success message after 3 seconds
     setTimeout(() => setSetupSuccess(false), 3000);
   };

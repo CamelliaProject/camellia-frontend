@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react'; // Import Activity icon
+import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react'; 
 
-// Assuming Plantation type from PlantationDetail.tsx
+
 interface Plantation {
   id: string;
   name: string;
@@ -19,7 +19,7 @@ interface Plantation {
     visitors: string;
     established: string;
   };
-  activities: string[]; // Added this line
+  activities: string[]; 
 }
 
 interface PlantationDetailsManagementProps {
@@ -31,7 +31,7 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [newActivity, setNewActivity] = useState(''); // State for new activity input
+  const [newActivity, setNewActivity] = useState(''); 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -54,18 +54,18 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     }));
   };
 
-  // Handler for adding a new activity
+ 
   const handleAddActivity = () => {
     if (newActivity.trim() !== '') {
       setFormData((prev) => ({
         ...prev,
         activities: [...prev.activities, newActivity.trim()],
       }));
-      setNewActivity(''); // Clear the input field
+      setNewActivity(''); 
     }
   };
 
-  // Handler for removing an activity
+  
   const handleRemoveActivity = (indexToRemove: number) => {
     setFormData((prev) => ({
       ...prev,
@@ -77,24 +77,24 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-    // Simulate API call to save updated plantation details
+    
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('Saving plantation details:', formData);
-    // Persist changes to localStorage for demo purposes so tourist pages reflect edits
+    
     try {
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
       stored[formData.id] = formData;
       localStorage.setItem('plantations', JSON.stringify(stored));
-      // Also update in-memory PLANTATION_DATA if available (best-effort)
+      
       try {
         const mod = await import('../tourist/PlantationDetail');
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        
         const modAny = mod as any;
         if (modAny && modAny.PLANTATION_DATA && modAny.PLANTATION_DATA[formData.id]) {
           modAny.PLANTATION_DATA[formData.id] = { ...modAny.PLANTATION_DATA[formData.id], ...formData };
         }
       } catch (e) {
-        // ignore if cannot update module cache
+      
       }
     } catch (err) {
       console.error('Failed to persist plantation details:', err);
@@ -102,8 +102,7 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     setMessage('Details updated successfully!');
     setIsEditing(false);
     setIsLoading(false);
-    // Potentially update the global PLANTATION_DATA if it's mutable,
-    // or trigger a refetch in the parent component.
+    
   };
 
   return (

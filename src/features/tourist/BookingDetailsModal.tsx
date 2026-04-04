@@ -17,17 +17,16 @@ interface BookingDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: ExperienceBooking;
-  onWriteReview?: (booking: ExperienceBooking) => void; // Optional prop for write review button
+  onWriteReview?: (booking: ExperienceBooking) => void; 
 }
 
 export default function BookingDetailsModal({ isOpen, onClose, booking, onWriteReview }: BookingDetailsModalProps) {
   if (!isOpen) return null;
 
-  // Format date to "Monday, November 17, 2025" if it's a simple "2025-11-17" format
-  // This is a simple example, a robust date utility would be better for real apps.
+  
   const formatDate = (dateString: string) => {
     try {
-      // Check if it's already a descriptive string
+      
       if (dateString.includes(',')) {
         return dateString;
       }
@@ -39,7 +38,7 @@ export default function BookingDetailsModal({ isOpen, onClose, booking, onWriteR
         day: 'numeric',
       });
     } catch {
-      return dateString; // Fallback if invalid date string
+      return dateString; 
     }
   };
 
@@ -103,7 +102,7 @@ export default function BookingDetailsModal({ isOpen, onClose, booking, onWriteR
               <button
                 onClick={() => {
                   onWriteReview(booking);
-                  onClose(); // Close this modal after opening the review modal
+                  onClose(); 
                 }}
                 className="bg-[#52B788] hover:bg-[#40916c] text-white font-semibold py-3 px-8 rounded-lg transition text-lg"
               >

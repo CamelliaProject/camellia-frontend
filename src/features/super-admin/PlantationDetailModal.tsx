@@ -25,8 +25,8 @@ export default function PlantationDetailModal({
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setFormData(plantation); // Reset form data if plantation prop changes (e.g., when modal re-opens)
-    setIsEditing(false); // Start in view mode
+    setFormData(plantation); 
+    setIsEditing(false); 
     setErrors({});
     setShowPassword(false);
   }, [plantation, isOpen]);
@@ -64,7 +64,7 @@ export default function PlantationDetailModal({
       newErrors.email = 'Please enter a valid email address';
     }
     if (!formData.adminUsername.trim()) newErrors.adminUsername = 'Admin Username is required';
-    // validate password only if not yet changed by admin
+    
     if (!formData.passwordChanged) {
       if (!formData.adminPassword?.trim()) newErrors.adminPassword = 'Admin Password is required';
       else if (formData.adminPassword && formData.adminPassword.length < 6) {

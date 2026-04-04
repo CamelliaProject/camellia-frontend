@@ -6,7 +6,7 @@ import Footer from '../../components/layout/Footer';
 import ReviewReplies from '../../components/reviews/ReviewReplies';
 import type { Review, ReviewReply } from '../../services/reviewService';
 
-// Import plantation data - you might want to move this to a shared constants file
+
 const PLANTATION_DATA: Record<string, any> = {
   '1': {
     name: 'Pedro Tea Estate',

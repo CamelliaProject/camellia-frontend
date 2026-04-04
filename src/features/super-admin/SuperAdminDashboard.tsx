@@ -2,8 +2,6 @@
 
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/layout/Navbar';
-import Footer from '../../components/layout/Footer';
 import { useAuth } from '../../context/AuthContext';
 import {
   Eye,
@@ -11,10 +9,11 @@ import {
   Mail,
   CheckCircle,
   BarChart2,
+  LogOut,
+  LayoutDashboard
 } from 'lucide-react';
-import PlantationDetailModal from './PlantationDetailModal'; // modal component in same folder
+import PlantationDetailModal from './PlantationDetailModal'; 
 
-// Mock data for plantations
 export interface Plantation {
   image: string;
   description: ReactNode;
@@ -22,17 +21,17 @@ export interface Plantation {
   name: string;
   owner: string;
   businessReg: string;
-  adminUsername: string; // Renamed for clarity
-  adminPassword?: string; // Storing mock password for editing – only visible until admin changes it
-  passwordChanged?: boolean; // track whether the plantation admin has changed their password
-  address: string; // Added for registration details
-  telephone: string; // Added for registration details
-  email: string; // Added for registration details
-  isDisabled: boolean; // NEW: To control visibility on public pages
-  registeredYear: number; // NEW: For chart data
+  adminUsername: string; 
+  adminPassword?: string; 
+  passwordChanged?: boolean; 
+  address: string; 
+  telephone: string; 
+  email: string;
+  isDisabled: boolean; 
+  registeredYear: number; 
 }
 
-// Mock initial plantations
+
 const MOCK_PLANTATIONS: Plantation[] = [
   {
     id: '1',
@@ -119,11 +118,11 @@ export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState<
     'plantations' | 'registerPlantation' | 'contactRequests'
   >('plantations');
-  // Initialize plantations from localStorage or MOCK_PLANTATIONS
+  
   const [plantations, setPlantations] = useState<Plantation[]>(() => {
     const storedPlantations = localStorage.getItem('superAdminPlantations');
     const baseList: Plantation[] = storedPlantations ? JSON.parse(storedPlantations) : MOCK_PLANTATIONS;
-    // ensure every entry has a defined passwordChanged boolean
+    
     return baseList.map((p) => ({ ...p, passwordChanged: p.passwordChanged || false }));
   });
   const [contactRequests, setContactRequests] =
@@ -132,7 +131,7 @@ export default function SuperAdminDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlantation, setSelectedPlantation] = useState<Plantation | null>(null);
 
-  // State for Register Plantation form
+  
   const [newPlantation, setNewPlantation] = useState({
     name: '',
     owner: '',
@@ -145,28 +144,28 @@ export default function SuperAdminDashboard() {
   const [regSuccess, setRegSuccess] = useState(false);
 
   useEffect(() => {
-    // Redirect if not a super admin
+    
     if (!user || user.role !== 'superadmin') {
       alert("You don't have permission to access the Super Admin dashboard.");
-      navigate('/'); // Redirect to home or sign-in
+      navigate('/'); 
     }
   }, [user, navigate]);
 
-  // Save plantations to localStorage whenever they change
+  
   useEffect(() => {
     localStorage.setItem('superAdminPlantations', JSON.stringify(plantations));
   }, [plantations]);
 
-  // utility for managing password map
+  
   const setStoredPassword = (username: string, password: string) => {
     const map = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
     map[username] = password;
     localStorage.setItem('plantationPasswords', JSON.stringify(map));
   };
 
-  // When the component mounts we might want to ensure the initial passwords are stored
+  
   useEffect(() => {
-    // iterate through plantations and ensure map has entries
+   
     const existingMap = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
     let updated = false;
     plantations.forEach((p) => {
@@ -192,8 +191,8 @@ export default function SuperAdminDashboard() {
   const getChartData = () => {
     const years = Array.from(new Set(plantations.map(p => p.registeredYear))).sort((a,b) => a - b);
     const currentYear = new Date().getFullYear();
-    const minYear = Math.min(...years, currentYear - 2); // Ensure at least a few years back
-    const maxYear = Math.max(...years, currentYear + 2); // Ensure a few years forward
+    const minYear = Math.min(...years, currentYear - 2); 
+    const maxYear = Math.max(...years, currentYear + 2); 
     
     const allYears = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
 
@@ -219,11 +218,10 @@ export default function SuperAdminDashboard() {
     setPlantations((prev) =>
       prev.map((p) => (p.id === updatedPlantation.id ? updatedPlantation : p))
     );
-    // Also update the selected plantation in state if the modal is open
+   
     setSelectedPlantation(updatedPlantation);
 
-    // if passwordChanged becomes true, clear the password from the plantation object
-    // (super admin should no longer see it in the modal)
+    
     if (original && !original.passwordChanged && updatedPlantation.passwordChanged) {
       const clearedPlantation = { ...updatedPlantation, adminPassword: '' };
       setPlantations((prev) =>
@@ -232,7 +230,7 @@ export default function SuperAdminDashboard() {
       setSelectedPlantation(clearedPlantation);
     }
 
-    // if the admin username changed, move the password entry in the map
+   
     if (original && original.adminUsername !== updatedPlantation.adminUsername) {
       const map: Record<string, string> = JSON.parse(
         localStorage.getItem('plantationPasswords') || '{}'
@@ -244,8 +242,7 @@ export default function SuperAdminDashboard() {
       }
     }
 
-    // if the password was edited directly by super admin before passwordChanged is true
-    // update the password map
+    
     if (updatedPlantation.adminPassword && !updatedPlantation.passwordChanged) {
       setStoredPassword(updatedPlantation.adminUsername, updatedPlantation.adminPassword);
     }
@@ -258,17 +255,17 @@ export default function SuperAdminDashboard() {
     }
 
     const generatedUsername = `admin_${plantation.id}`;
-    const generatedPassword = Math.random().toString(36).slice(-8); // Simple random password
+    const generatedPassword = Math.random().toString(36).slice(-8); 
 
-    // Update the plantation with new credentials - store password so super admin can see and copy it
+    
     const updatedPlantation: Plantation = {
       ...plantation,
       adminUsername: generatedUsername,
       adminPassword: generatedPassword,
       passwordChanged: false,
     };
-    handleUpdatePlantation(updatedPlantation); // Update the state and localStorage
-    // Also store in the password map for login validation
+    handleUpdatePlantation(updatedPlantation); 
+   
     setStoredPassword(generatedUsername, generatedPassword);
 
     alert(
@@ -332,12 +329,12 @@ export default function SuperAdminDashboard() {
       owner: newPlantation.owner,
       businessReg: newPlantation.businessReg,
       adminUsername: generatedUsername,
-      adminPassword: generatedPassword, // store password so super admin can see and copy it
+      adminPassword: generatedPassword, 
       passwordChanged: false,
       address: newPlantation.address,
       telephone: newPlantation.telephone,
       email: newPlantation.email,
-      isDisabled: false, // Newly registered plantations are enabled by default
+      isDisabled: false, 
       registeredYear: currentYear,
       image: '',
       description: undefined
@@ -376,56 +373,84 @@ export default function SuperAdminDashboard() {
     alert('Contact request marked as resolved.');
   };
 
+  const { logOut } = useAuth();
+  
   return (
-    <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      <Navbar />
-      <main className="py-16 px-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-5xl font-bold font-serif text-center mb-4">
-              Super Admin Dashboard
-            </h1>
-            <p className="text-gray-600 text-center text-lg">
-              Manage the entire Camellia platform.
-            </p>
+    <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
+        <div className="p-6 border-b border-[#2D6A4F]">
+          <div className="flex items-center gap-3">
+            <LayoutDashboard className="h-8 w-8 text-green-300" />
+            <h1 className="text-2xl font-bold font-serif whitespace-nowrap">Super Admin</h1>
           </div>
+          <p className="text-green-200 text-xs mt-2 pl-11">Camellia Platform</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          <button
+            onClick={() => setActiveTab('plantations')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'plantations'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <BarChart2 size={20} /> Plantations
+          </button>
+          <button
+            onClick={() => setActiveTab('registerPlantation')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'registerPlantation'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <UserPlus size={20} /> Register
+          </button>
+          <button
+            onClick={() => setActiveTab('contactRequests')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'contactRequests'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <Mail size={20} /> Contact Requests
+          </button>
+        </nav>
+        
+        <div className="p-4 border-t border-[#2D6A4F]">
+          <button
+            onClick={() => logOut()}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+          >
+            <LogOut size={20} /> Log Out
+          </button>
+        </div>
+      </aside>
 
-          {/* Tab Navigation */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12 border-b border-gray-200 pb-4">
-            <button
-              onClick={() => setActiveTab('plantations')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'plantations'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <BarChart2 size={20} /> Plantations
-            </button>
-            <button
-              onClick={() => setActiveTab('registerPlantation')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'registerPlantation'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <UserPlus size={20} /> Register Plantation
-            </button>
-            <button
-              onClick={() => setActiveTab('contactRequests')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'contactRequests'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Mail size={20} /> Contact Requests
-            </button>
-          </div>
+      {/* Main Content */}
+      <main className="flex-1 p-8 md:p-12 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Header */}
+          <header className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-[#1B4332] font-serif">
+                {activeTab === 'plantations' && 'Plantations Overview'}
+                {activeTab === 'registerPlantation' && 'Register Plantation'}
+                {activeTab === 'contactRequests' && 'Contact Requests'}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">Manage the Camellia ecosystem</p>
+            </div>
+            <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-full border border-green-100">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-semibold text-green-800">System Active</span>
+            </div>
+          </header>
 
           {/* Tab Content */}
-          <div className="bg-gray-50 p-8 rounded-lg shadow-inner">
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
             {activeTab === 'plantations' && (
               <div>
                 <h2 className="text-3xl font-bold mb-6 text-center">
@@ -842,7 +867,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       </main>
-      <Footer />
 
       {selectedPlantation && (
         <PlantationDetailModal

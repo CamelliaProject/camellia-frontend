@@ -1,6 +1,4 @@
 // This file is often used for mock data and shared interfaces.
-// Let's ensure the Plantation and Experience types are correctly defined here
-// and that the mock data adheres to them.
 
 export interface TimeSlot {
   date: string;
@@ -17,8 +15,8 @@ export interface PriceDetails {
 export interface Experience {
   name: string;
   category: string;
-  priceLKR: PriceDetails; // Added for local currency
-  priceUSD: PriceDetails; // For foreign currency
+  priceLKR: PriceDetails; 
+  priceUSD: PriceDetails; 
   timeSlots: TimeSlot[];
 }
 
@@ -41,7 +39,7 @@ export interface Plantation {
   };
   mainImage: string; // Add if not present
   galleryImages: string[]; // Add if not present
-  experiences: Experience[]; // Ensure this is correctly typed
+  experiences: Experience[]; 
 }
 
 export const PLANTATION_DATA: Record<string, Plantation> = {
@@ -137,5 +135,5 @@ export const PLANTATION_DATA: Record<string, Plantation> = {
       },
     ],
   },
-  // Add more plantation data as needed
+
 };

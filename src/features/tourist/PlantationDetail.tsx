@@ -4,7 +4,7 @@ import { MapPin, Phone, Mail, X } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
-// Mock plantation data with full details
+
 export const PLANTATION_DATA: Record<string, any> = {
   '1': {
     id: '1',
@@ -623,7 +623,7 @@ export const PLANTATION_DATA: Record<string, any> = {
   }
 };
 
-// Merge persisted plantation overrides from localStorage (admin edits)
+
 try {
   const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
   Object.keys(storedPlantations).forEach((pid) => {
@@ -878,7 +878,7 @@ export default function PlantationDetail() {
         </div>
       </main>
 
-      {/* Footer */}
+     
       <Footer />
     </div>
   );

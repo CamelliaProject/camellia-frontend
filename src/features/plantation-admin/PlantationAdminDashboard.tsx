@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/layout/Navbar';
-import Footer from '../../components/layout/Footer';
 import { useAuth } from '../../context/AuthContext';
 import { PLANTATION_DATA } from '../tourist/PlantationDetail'; // Re-using existing mock data for now
 import PlantationDetailsManagement from './PlantationDetailsManagement';
@@ -9,7 +7,7 @@ import PlantationMediaManagement from '../plantation-admin/PlantationMediaManage
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import PlantationSetup from './PlantationSetup';
-import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet } from 'lucide-react'; 
+import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, Leaf, LayoutDashboard, Settings } from 'lucide-react'; 
 import PlantationPayments from './PlantationPayments';
 
 interface PlantationAdminUser {
@@ -124,106 +122,139 @@ export default function PlantationAdminDashboard() {
 
   if (!plantation) {
     return (
-      <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-        <Navbar />
-        <main className="py-16 px-12 text-center">
-          <h1 className="text-3xl font-bold mb-4">Plantation data not found for your account.</h1>
-          <p className="text-lg text-gray-600 mb-6">Please contact support.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 font-sans text-[#1B4332]">
+        <div className="bg-white p-12 rounded-xl shadow-sm text-center max-w-lg">
+          <h1 className="text-3xl font-bold mb-4 font-serif">Data Not Found</h1>
+          <p className="text-lg text-gray-600 mb-8">Plantation data could not be found for your account. Please contact support.</p>
           <button
             onClick={logOut}
-            className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition"
+            className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition inline-flex items-center gap-2"
           >
-            Log Out
+            <LogOut size={20} /> Log Out
           </button>
-        </main>
-        <Footer />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      <Navbar />
-      {setupSuccess && (
-        <div className="bg-green-50 border-b-4 border-green-500 px-12 py-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-3">
-              <span className="text-green-600 text-2xl">✓</span>
-              <div>
-                <p className="font-semibold text-green-800">Setup Complete!</p>
-                <p className="text-sm text-green-700">Your plantation profile has been created successfully. You can now upload images, create experiences, and manage bookings.</p>
-              </div>
+    <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
+        <div className="p-6 border-b border-[#2D6A4F]">
+          <div className="flex items-center gap-3">
+            <LayoutDashboard className="h-8 w-8 text-green-300" />
+            <h1 className="text-xl font-bold font-serif whitespace-nowrap overflow-hidden text-ellipsis" title={plantation.name}>
+              Admin
+            </h1>
+          </div>
+          <p className="text-green-200 text-xs mt-2 pl-11 truncate">{plantation.name}</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'details'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <Image size={20} /> Details
+          </button>
+          <button
+            onClick={() => setActiveTab('media')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'media'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <GalleryHorizontal size={20} /> Media Gallery
+          </button>
+          <button
+            onClick={() => setActiveTab('experiences')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'experiences'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <Package size={20} /> Experiences
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'bookings'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <CalendarCheck size={20} /> View Bookings
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'payments'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <Wallet size={20} /> Payments
+          </button>
+        </nav>
+        
+        <div className="p-4 border-t border-[#2D6A4F]">
+          <button
+            onClick={() => {
+              navigate('/plantation-admin/change-password');
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white transition-colors mb-2"
+          >
+            <Settings size={20} /> Settings
+          </button>
+          <button
+            onClick={() => logOut()}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+          >
+            <LogOut size={20} /> Log Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-8 md:p-12 overflow-x-hidden">
+        {setupSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 shadow-sm flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+            <span className="text-green-600 text-2xl bg-green-100 rounded-full w-8 h-8 flex items-center justify-center">✓</span>
+            <div>
+              <p className="font-semibold text-green-800">Setup Complete!</p>
+              <p className="text-sm text-green-700">Your plantation profile has been created successfully. You can now manage your information.</p>
             </div>
           </div>
-        </div>
-      )}
-      <main className="py-16 px-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
-            <h1 className="text-5xl font-bold font-serif text-center mb-4">
-              {plantation.name} Admin Dashboard
-            </h1>
-            <p className="text-gray-600 text-center">
-              Manage your plantation's details, media, experiences, and bookings.
-            </p>
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12 border-b border-gray-200 pb-4">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'details'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Image size={20} /> Plantation Details
-            </button>
-            <button
-              onClick={() => setActiveTab('media')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'media'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <GalleryHorizontal size={20} /> Media Gallery
-            </button>
-            <button
-              onClick={() => setActiveTab('experiences')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'experiences'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Package size={20} /> Manage Experiences
-            </button>
-            <button
-              onClick={() => setActiveTab('bookings')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'bookings'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <CalendarCheck size={20} /> View Bookings
-            </button>
-            <button
-              onClick={() => setActiveTab('payments')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition ${
-                activeTab === 'payments'
-                  ? 'bg-[#2D6A4F] text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <Wallet size={20} /> Payments
-            </button>
-          </div>
+        )}
+        
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Header */}
+          <header className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-[#1B4332] font-serif">
+                {activeTab === 'details' && 'Plantation Details'}
+                {activeTab === 'media' && 'Media Gallery'}
+                {activeTab === 'experiences' && 'Manage Experiences'}
+                {activeTab === 'bookings' && 'View Bookings'}
+                {activeTab === 'payments' && 'Payments & Payouts'}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">Manage your plantation's operations.</p>
+            </div>
+            <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-full border border-green-100">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-sm font-semibold text-green-800">Active</span>
+            </div>
+          </header>
 
           {/* Tab Content */}
-          <div className="bg-gray-50 p-8 rounded-lg shadow-inner">
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
             {activeTab === 'details' && (
               <PlantationDetailsManagement plantation={plantation} />
             )}
@@ -242,7 +273,6 @@ export default function PlantationAdminDashboard() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

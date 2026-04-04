@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { PLANTATION_DATA } from './PlantationDetail';
-import { CheckCircle2, CreditCard, Calendar, Lock } from 'lucide-react'; // Import icons
+import { CheckCircle2, CreditCard, Calendar, Lock } from 'lucide-react'; 
 
 export default function PaymentPage() {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export default function PaymentPage() {
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
     cardHolderName: '',
-    expiryDate: '', // MM/YY
+    expiryDate: '', 
     cvv: '',
   });
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -23,19 +23,19 @@ export default function PaymentPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setError(null); // Clear any previous errors on input change
+    setError(null); 
     if (name === 'cardNumber') {
       const formattedValue = value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-      setCardDetails((prev) => ({ ...prev, [name]: formattedValue.slice(0, 19) })); // Max 16 digits + 3 spaces
+      setCardDetails((prev) => ({ ...prev, [name]: formattedValue.slice(0, 19) })); 
     } else if (name === 'expiryDate') {
       const formattedValue = value.replace(/\D/g, '');
       let finalValue = formattedValue;
       if (formattedValue.length > 2) {
         finalValue = `${formattedValue.slice(0, 2)}/${formattedValue.slice(2, 4)}`;
       }
-      setCardDetails((prev) => ({ ...prev, [name]: finalValue.slice(0, 5) })); // MM/YY max 5 chars
+      setCardDetails((prev) => ({ ...prev, [name]: finalValue.slice(0, 5) })); 
     } else if (name === 'cvv') {
-      setCardDetails((prev) => ({ ...prev, [name]: value.replace(/\D/g, '').slice(0, 3) })); // Max 3 digits
+      setCardDetails((prev) => ({ ...prev, [name]: value.replace(/\D/g, '').slice(0, 3) })); 
     }
     else {
       setCardDetails((prev) => ({ ...prev, [name]: value }));
@@ -59,19 +59,17 @@ export default function PaymentPage() {
       return;
     }
 
-    // Simulate API call to a payment gateway
+   
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // In a real application, you would integrate with a payment gateway (e.g., Stripe, PayPal)
-      // and send the card details securely to their API.
-      // For this example, we'll simulate a successful payment.
+      
       console.log("Processing payment for:", { bookingSummary, touristDetails, cardDetails });
 
       setPaymentSuccess(true);
       setPaymentProcessing(false);
 
-      // Persist a simple payment record to localStorage so admin can view it (demo only)
+    
       try {
         const payments = JSON.parse(localStorage.getItem('payments') || '[]');
         const transactionId = `P-${Date.now()}`;
@@ -88,7 +86,7 @@ export default function PaymentPage() {
         };
         payments.push(newPayment);
         localStorage.setItem('payments', JSON.stringify(payments));
-        // Also persist a booking record so admin bookings reflect new bookings
+       
         try {
           const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
           const bookingId = `B-${Date.now()}`;
@@ -113,14 +111,14 @@ export default function PaymentPage() {
           console.error('Failed to persist booking:', err);
         }
 
-        // After successful payment, navigate to a confirmation page
+        
         navigate('/booking-confirmation', {
           state: {
             bookingSummary,
             touristDetails,
             transactionId,
           },
-          replace: true // Replace current history entry so user can't go back to payment form easily
+          replace: true 
         });
       } catch (err) {
         console.error('Failed to persist payment:', err);
@@ -138,12 +136,12 @@ export default function PaymentPage() {
   };
 
   if (!bookingSummary || !touristDetails) {
-    // Redirect if booking data is missing
+    
     navigate('/plantations', { replace: true });
     return null;
   }
 
-  // Extract necessary details from bookingSummary for display
+  
   const { plantationName, experiences, date, time, adults, children, totalPrice, currency } = bookingSummary;
 
   return (
@@ -155,7 +153,7 @@ export default function PaymentPage() {
           <p className="text-lg text-gray-600 mb-8 text-center">Secure Payment</p>
 
           <div className="bg-white rounded-lg shadow-lg max-w-xl mx-auto border border-gray-200">
-            {/* Payment form content */}
+           
             <div className="p-8">
               <h2 className="text-2xl font-bold text-[#2D6A4F] mb-6">Payment Details</h2>
 
@@ -246,7 +244,7 @@ export default function PaymentPage() {
                   </div>
                 </div>
 
-                {/* Test Card Information */}
+                
                 <div className="bg-[#E8F5E9] border border-[#B7E4C7] text-[#2D6A4F] px-4 py-3 rounded-md text-sm">
                   <p className="font-semibold mb-1">Test Card Information :</p>
                   <p>Card: 4242 4242 4242 4242 | Expiry: Any future date | CVV: 3 digits</p>

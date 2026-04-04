@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Filter, CheckCircle, Clock, XCircle, X, Eye } from 'lucide-react'; // Added icons for status and sorting
+import { Filter, CheckCircle, Clock, XCircle, X, Eye } from 'lucide-react'; 
 import { PLANTATION_DATA } from '../tourist/PlantationDetail';
 
-// Mock booking data (similar to what's used in Dashboard, but we'll filter by plantationId)
+// Mock booking data 
 interface Booking {
   id: string;
   bookingReference: string;
   plantationName: string;
-  plantationId: string; // Added to easily filter
+  plantationId: string; 
   date: string;
   time: string;
-  guests: string; // e.g., "2 Adults, 1 Child"
+  guests: string; 
   experiences: string[];
-  totalPaid: string; // e.g., "$50" or "Rs 16500"
-  status: 'upcoming' | 'completed' | 'cancelled'; // Added cancelled status for management
+  totalPaid: string; 
+  status: 'upcoming' | 'completed' | 'cancelled'; 
   touristDetails: {
     fullName: string;
     email: string;
@@ -148,7 +148,7 @@ const formatDate = (dateString: string) => {
     });
   } catch (e) {
     console.error("Invalid date string:", dateString);
-    return dateString; // Fallback
+    return dateString; 
   }
 };
 

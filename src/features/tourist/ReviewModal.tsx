@@ -6,8 +6,8 @@ interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (review: { plantationName: string; rating: number; reviewText: string; image?: string }) => void;
-  experiencedPlantations: string[]; // List of plantations the user has experienced
-  initialSelectedPlantation?: string; // Optional: to pre-select a plantation if opened from a specific booking
+  experiencedPlantations: string[]; 
+  initialSelectedPlantation?: string; 
 }
 
 export default function ReviewModal({ isOpen, onClose, onSubmit, experiencedPlantations, initialSelectedPlantation = '' }: ReviewModalProps) {

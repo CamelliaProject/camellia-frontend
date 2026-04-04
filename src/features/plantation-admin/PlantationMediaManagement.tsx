@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Trash2, Camera, GalleryHorizontal } from 'lucide-react';
 
-// Assuming Plantation type from PlantationDetail.tsx, extended for editable media
 interface Experience {
   name: string;
   category?: string;
@@ -32,7 +31,7 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [experienceImages, setExperienceImages] = useState<Record<string, string[]>>(() => {
-    // Initialize from localStorage if available, otherwise from plantation data
+    
     try {
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
       const storedExperiences = stored[plantation.id]?.experiences;
@@ -43,7 +42,7 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
         }, {});
       }
     } catch (e) {
-      // Fall back to plantation data if localStorage fails
+      
     }
     return plantation.experiences?.reduce((acc, exp) => {
       acc[exp.name] = exp.images || [];
@@ -51,7 +50,7 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
     }, {} as Record<string, string[]>) || {};
   });
 
-  // Keep state in sync if the parent passes in updated plantation data
+  
   useEffect(() => {
     setMainImagePreview(plantation.mainImage || '');
     setGalleryPreviews(plantation.galleryImages || []);
@@ -61,7 +60,6 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
   const galleryImageInputRef = useRef<HTMLInputElement>(null);
   const experienceImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Sync experience images from localStorage on mount and when plantation changes
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
@@ -74,7 +72,7 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
         setExperienceImages(images);
       }
     } catch (e) {
-      // Silent fail, keep current state
+    
     }
   }, [plantation.id]);
 
@@ -84,7 +82,7 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
       const reader = new FileReader();
       reader.onloadend = () => {
         setMainImagePreview(reader.result as string);
-        // In a real app, you would also store the File object to upload later
+       
       };
       reader.readAsDataURL(file);
       setMessage('');
@@ -102,20 +100,20 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
         };
         reader.readAsDataURL(file);
       });
-      e.target.value = ''; // Clear input for next selection
+      e.target.value = ''; 
       setMessage('');
     }
   };
 
   const handleRemoveGalleryImage = (indexToRemove: number, isNewFile: boolean = false) => {
     if (isNewFile) {
-      // Remove from new files list and its preview
+      
       setNewGalleryFiles((prev) => prev.filter((_, idx) => idx !== (indexToRemove - (galleryPreviews.length - newGalleryFiles.length))));
       setGalleryPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
     } else {
-      // Remove from existing gallery images
+     
       setGalleryPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
-      // In a real app, you'd mark this image for deletion on the backend
+      
     }
     setMessage('');
   };
@@ -158,22 +156,17 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
     console.log('Updating gallery:', galleryPreviews);
     console.log('New files to upload:', newGalleryFiles);
 
-    // In a real application:
-    // 1. Upload new mainImagePreview if it's different from initial plantation.mainImage
-    // 2. Upload newGalleryFiles to your storage (e.g., S3, Cloudinary)
-    // 3. Update plantation.galleryImages on your backend with new URLs and removed ones
-    // 4. Handle potential errors during upload/update
+    
 
     setMessage('Media updated successfully!');
     setIsLoading(false);
-    // Refresh previews or reset state if needed
-    // Persist media changes so tourist view reflects updates
+    
     try {
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
       const existing = stored[plantation.id] || {};
       existing.mainImage = mainImagePreview;
       existing.galleryImages = galleryPreviews;
-      // Persist experience images
+      
       if (existing.experiences) {
         existing.experiences = existing.experiences.map((exp: any) => ({
           ...exp,
@@ -183,12 +176,12 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
       stored[plantation.id] = existing;
       localStorage.setItem('plantations', JSON.stringify(stored));
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        
         const mod = await import('../tourist/PlantationDetail') as any;
         if (mod && mod.PLANTATION_DATA && mod.PLANTATION_DATA[plantation.id]) {
           mod.PLANTATION_DATA[plantation.id].mainImage = mainImagePreview;
           mod.PLANTATION_DATA[plantation.id].galleryImages = galleryPreviews;
-          // Update experience images
+       
           if (mod.PLANTATION_DATA[plantation.id].experiences) {
             mod.PLANTATION_DATA[plantation.id].experiences = mod.PLANTATION_DATA[plantation.id].experiences.map((exp: any) => ({
               ...exp,

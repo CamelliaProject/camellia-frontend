@@ -3,6 +3,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminApi } from '../../services/api';
 import {
   Eye,
   UserPlus,
@@ -142,13 +143,29 @@ export default function SuperAdminDashboard() {
   });
   const [regErrors, setRegErrors] = useState<Record<string, string>>({});
   const [regSuccess, setRegSuccess] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+
+  const fetchPendingRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const res = await adminApi.getPendingRequests();
+      setPendingRequests(res.data.requests || []);
+    } catch (error) {
+      console.error('Failed to load pending requests:', error);
+      setPendingRequests([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    
     if (!user || user.role !== 'superadmin') {
       alert("You don't have permission to access the Super Admin dashboard.");
       navigate('/'); 
+      return;
     }
+    fetchPendingRequests();
   }, [user, navigate]);
 
   
@@ -373,6 +390,17 @@ export default function SuperAdminDashboard() {
     alert('Contact request marked as resolved.');
   };
 
+  const handleApprovePlantationRequest = async (requestId: string, adminUsername: string, adminPassword: string) => {
+    try {
+      const res = await adminApi.approvePlantationRequest(requestId, adminUsername, adminPassword);
+      alert(`Plantation approved! Plantation ID: ${res.data.plantationId}\nAdmin Username: ${adminUsername}`);
+      // Refresh pending requests
+      fetchPendingRequests();
+    } catch (error: any) {
+      alert(`Failed to approve request: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
   const { logOut } = useAuth();
   
   return (
@@ -578,7 +606,88 @@ export default function SuperAdminDashboard() {
             )}
 
             {activeTab === 'registerPlantation' && (
-              <div className="max-w-xl mx-auto">
+              <div className="space-y-8">
+                {/* Pending Requests Section */}
+                <div className="max-w-4xl mx-auto">
+                  <h2 className="text-3xl font-bold mb-6 text-center">
+                    Pending Plantation Requests
+                  </h2>
+                  {requestsLoading && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-600">Loading pending requests...</p>
+                    </div>
+                  )}
+                  {!requestsLoading && pendingRequests.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                      <p className="text-gray-600">No pending requests</p>
+                    </div>
+                  )}
+                  {!requestsLoading && pendingRequests.length > 0 && (
+                    <div className="space-y-4">
+                      {pendingRequests.map((request: any) => (
+                        <div key={request.id} className="border border-gray-300 rounded-lg p-6 bg-white hover:shadow-md transition">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <p className="text-sm text-gray-600">Plantation Name</p>
+                              <p className="font-semibold">{request.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Owner</p>
+                              <p className="font-semibold">{request.owner_name}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Email</p>
+                              <p className="font-semibold">{request.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Telephone</p>
+                              <p className="font-semibold">{request.telephone}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Business Reg</p>
+                              <p className="font-semibold">{request.business_reg}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Address</p>
+                              <p className="font-semibold">{request.address}</p>
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            <p className="text-sm text-gray-600">Description</p>
+                            <p className="text-gray-700">{request.description}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const username = prompt('Enter admin username:', `admin_${request.id}`);
+                                const password = prompt('Enter admin password:', Math.random().toString(36).slice(-8));
+                                if (username && password) {
+                                  handleApprovePlantationRequest(request.id, username, password);
+                                }
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('Reject this request?')) {
+                                  alert('Rejection not yet implemented');
+                                }
+                              }}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Register New Plantation Section */}
+                <div className="max-w-xl mx-auto border-t pt-8">
                 <h2 className="text-3xl font-bold mb-6 text-center">
                   Register New Plantation
                 </h2>
@@ -762,6 +871,7 @@ export default function SuperAdminDashboard() {
                     Register Plantation
                   </button>
                 </form>
+                </div>
               </div>
             )}
 

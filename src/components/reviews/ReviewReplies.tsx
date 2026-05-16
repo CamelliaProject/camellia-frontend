@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { MessageCircle, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import type { Review, ReviewReply } from '../../services/reviewService';
 import { ReviewService } from '../../services/reviewService';
 import { useAuth } from '../../context/AuthContext';
+import SignInModal from '../../components/layout/SignInModal';
 
 interface ReviewRepliesProps {
   review: Review;
@@ -18,15 +20,22 @@ export default function ReviewReplies({
   onReplyDeleted,
 }: ReviewRepliesProps) {
   const { user } = useAuth();
+  const location = useLocation();
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   const handleAddReply = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !replyText.trim()) {
-      alert('Please sign in and enter your reply.');
+    if (!user) {
+      setIsSignInOpen(true);
+      return;
+    }
+
+    if (!replyText.trim()) {
+      alert('Please enter your reply.');
       return;
     }
 
@@ -149,7 +158,7 @@ export default function ReviewReplies({
         <button
           onClick={() => {
             if (!user) {
-              alert('Please sign in to reply.');
+              setIsSignInOpen(true);
               return;
             }
             if (!canUserReply) {
@@ -198,6 +207,7 @@ export default function ReviewReplies({
           <p className="text-xs text-gray-500 mt-2">{replyText.length}/500</p>
         </form>
       )}
+    <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} redirectPath={location.pathname} />
     </div>
   );
 }

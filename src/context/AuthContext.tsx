@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { setApiAuthToken } from '../services/api';
 
 // Define the User interface
 interface User {
@@ -6,11 +7,12 @@ interface User {
   email: string;
   role: 'superadmin' | 'plantationadmin' | 'tourist';
   plantationId?: string;
+  token?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  signIn: (userData: Omit<User, 'role'> & { role?: 'superadmin' | 'plantationadmin' | 'tourist'; plantationId?: string }) => void;
+  signIn: (userData: Omit<User, 'role'> & { role?: 'superadmin' | 'plantationadmin' | 'tourist'; plantationId?: string; token?: string }) => void;
   logOut: () => void;
   isAuthenticated: boolean;
 }
@@ -20,10 +22,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     try {
-      const storedUser = localStorage.getItem('user');
+      const storedUser = localStorage.getItem('camellia_user');
       return storedUser ? JSON.parse(storedUser) : null;
     } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
+      console.error('Failed to parse user from localStorage', error);
       return null;
     }
   });
@@ -31,16 +33,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       if (user) {
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('camellia_user', JSON.stringify(user));
+        setApiAuthToken(user.token);
       } else {
-        localStorage.removeItem('user');
+        localStorage.removeItem('camellia_user');
+        setApiAuthToken();
       }
     } catch (error) {
-      console.error("Failed to save user to localStorage", error);
+      console.error('Failed to save user to localStorage', error);
     }
   }, [user]);
 
-  const signIn = (userData: Omit<User, 'role'> & { role?: 'superadmin' | 'plantationadmin' | 'tourist'; plantationId?: string }) => {
+  const signIn = (userData: Omit<User, 'role'> & { role?: 'superadmin' | 'plantationadmin' | 'tourist'; plantationId?: string; token?: string }) => {
     const userWithRole: User = {
       ...userData,
       role: userData.role || 'tourist',

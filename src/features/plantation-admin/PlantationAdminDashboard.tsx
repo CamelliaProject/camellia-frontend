@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminApi } from '../../services/api';
 import { PLANTATION_DATA } from '../tourist/PlantationDetail'; // Re-using existing mock data for now
 import PlantationDetailsManagement from './PlantationDetailsManagement';
 import PlantationMediaManagement from '../plantation-admin/PlantationMediaManagement';
@@ -25,11 +26,47 @@ export default function PlantationAdminDashboard() {
   const [showSetup, setShowSetup] = useState(false);
   const [plantation, setPlantation] = useState<any>(null);
   const [setupSuccess, setSetupSuccess] = useState(false);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [adminDataLoading, setAdminDataLoading] = useState(false);
 
+  useEffect(() => {
+    // Fetch plantation-specific bookings and reviews when plantation admin loads
+    if (plantationAdmin?.plantationId) {
+      fetchAdminData(plantationAdmin.plantationId);
+    }
+  }, [plantationAdmin?.plantationId]);
+
+  const fetchAdminData = async (plantationId: string) => {
+    setAdminDataLoading(true);
+    try {
+      // Fetch bookings for this plantation
+      const bookingsRes = await adminApi.getPlantationBookings(plantationId);
+      setBookings(bookingsRes.data.bookings || []);
+
+      // Fetch reviews for this plantation
+      const reviewsRes = await adminApi.getPlantationReviews(plantationId);
+      setReviews(reviewsRes.data.reviews || []);
+    } catch (error) {
+      console.error('Failed to load admin data:', error);
+      // Fall back to mock data if API calls fail
+    } finally {
+      setAdminDataLoading(false);
+    }
+  };
+
+  
   const isPlantationIncomplete = (plant: any) => {
     // Check if essential fields are missing or empty
-    return !plant || !plant.name || !plant.address || !plant.contact?.email || 
-           !plant.detailedDescription || !plant.highlights?.altitude || !plant.highlights?.area;
+    return (
+      !plant ||
+      !plant.name ||
+      !plant.address ||
+      !plant.contact?.email ||
+      !plant.detailedDescription ||
+      !plant.highlights?.altitude ||
+      !plant.highlights?.area
+    );
   };
 
   useEffect(() => {

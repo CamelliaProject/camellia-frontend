@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import SignInModal from '../../components/layout/SignInModal';
 import TouristDetailsModal, { type TouristDetails } from './TouristDetailsModal';
 import { PLANTATION_DATA } from './PlantationDetail';
 
@@ -19,6 +21,9 @@ export default function OnePageBooking() {
   const [adults, setAdults] = useState<number>(1);
   const [children, setChildren] = useState<number>(0);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
 
   if (!plantation) {
     return (
@@ -63,6 +68,10 @@ export default function OnePageBooking() {
 
   const handleProceed = () => {
     if (!selectedExperiences.length || !selectedDate) return;
+    if (!isAuthenticated) {
+      setIsSignInOpen(true);
+      return;
+    }
     setIsDetailsModalOpen(true);
   };
 
@@ -234,6 +243,7 @@ export default function OnePageBooking() {
       </main>
       <Footer />
 
+      <SignInModal isOpen={isSignInOpen} onClose={() => setIsSignInOpen(false)} redirectPath={location.pathname} />
       <TouristDetailsModal isOpen={isDetailsModalOpen} onClose={() => setIsDetailsModalOpen(false)} onSubmit={handleTouristDetailsSubmit} />
     </div>
   );

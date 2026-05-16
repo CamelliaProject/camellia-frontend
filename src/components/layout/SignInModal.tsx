@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
+  redirectPath?: string;
 }
 
 // User data type
@@ -20,7 +21,7 @@ interface UserData {
 const SUPER_ADMIN_USERNAME = 'superadmin';
 const SUPER_ADMIN_PASSWORD = 'super123';
 
-export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
+export default function SignInModal({ isOpen, onClose, redirectPath }: SignInModalProps) {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -125,7 +126,8 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
           navigate('/plantation-admin/dashboard');
         }
       } else {
-        navigate('/dashboard');
+        if (redirectPath) navigate(redirectPath);
+        else navigate('/dashboard');
       }
     }, 1000);
   };
@@ -333,7 +335,8 @@ export default function SignInModal({ isOpen, onClose }: SignInModalProps) {
       signIn(userData);
       setIsLoading(false);
       onClose();
-      navigate('/dashboard');
+      if (redirectPath) navigate(redirectPath);
+      else navigate('/dashboard');
     }, 1000);
   };
 

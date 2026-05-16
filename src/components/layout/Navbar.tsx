@@ -1,20 +1,10 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'; // Import useNavigate
-import { useState } from 'react';
-import SignInModal from './SignInModal';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-// Mock admin users (copied from PlantationAdminDashboard for Navbar's awareness)
-const MOCK_PLANTATION_ADMINS: Record<string, { username: string; plantationId: string }> = {
-  'pedroadmin': { username: 'pedroadmin', plantationId: '1' },
-  'bluefieldadmin': { username: 'bluefieldadmin', plantationId: '2' },
-};
-
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate(); // Initialize useNavigate
   const { user, logOut } = useAuth();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path ? 'text-[#2D6A4F] font-bold' : 'text-gray-600 hover:text-[#52B788]';
@@ -22,12 +12,14 @@ export default function Navbar() {
 
   const handleLogOut = () => {
     logOut();
-    navigate('/'); // Redirect to home after logout
+    navigate('/');
   };
 
-  // Determine if the logged-in user is a plantation admin
-  const isPlantationAdmin = user && MOCK_PLANTATION_ADMINS[user.username];
-  const dashboardPath = isPlantationAdmin ? '/plantation-admin/dashboard' : '/dashboard';
+  const dashboardPath = user?.role === 'superadmin'
+    ? '/super-admin/dashboard'
+    : user?.role === 'plantationadmin'
+    ? '/plantation-admin/dashboard'
+    : '/dashboard';
 
 
   return (
@@ -60,19 +52,22 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-[#2D6A4F] text-white px-10 py-3 rounded-md text-lg font-medium hover:bg-[#1B4332] transition"
-          >
-            Sign In
-          </button>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/login"
+              className="bg-[#2D6A4F] text-white px-10 py-3 rounded-md text-lg font-medium hover:bg-[#1B4332] transition"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/plantation-request"
+              className="bg-white border border-[#2D6A4F] text-[#2D6A4F] px-10 py-3 rounded-md text-lg font-medium hover:bg-[#ECF3EC] transition"
+            >
+              Register Plantation
+            </Link>
+          </div>
         )}
       </nav>
-
-      <SignInModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
     </>
   );
 }

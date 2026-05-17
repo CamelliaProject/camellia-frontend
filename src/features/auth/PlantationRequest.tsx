@@ -45,6 +45,7 @@ export default function PlantationRequestPage() {
         description: formData.description,
       });
       setSuccess('Your plantation registration request has been submitted. Super admin will review it soon.');
+      window.alert('Request sent successfully. Please wait until we contact you within two days. If you do not hear from us, please contact support.');
       setFormData({
         name: '',
         ownerName: '',
@@ -54,9 +55,18 @@ export default function PlantationRequestPage() {
         email: '',
         description: '',
       });
-    } catch (err) {
+    } catch (err: unknown) {
       setError('Unable to submit registration request. Please try again later.');
-      console.error(err);
+      const e = err as any;
+      if (e && e.isAxiosError) {
+        try {
+          console.error('Axios error:', e.toJSON ? e.toJSON() : e);
+        } catch (logErr) {
+          console.error('Axios error (fallback):', e);
+        }
+      } else {
+        console.error(e);
+      }
     } finally {
       setIsSubmitting(false);
     }

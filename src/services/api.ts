@@ -32,10 +32,10 @@ export const adminApi = {
 
   // Super Admin - Requests & Plantations
   getPendingRequests: () =>
-    api.get('/superadmin/plantations/requests'),
+    api.get('/plantation-requests'),
 
   approvePlantationRequest: (requestId: string, adminUsername: string, adminPassword: string) =>
-    api.post(`/superadmin/plantations/requests/${requestId}/approve`, { adminUsername, adminPassword }),
+    api.post(`/plantation-requests/${requestId}/approve`, { adminUsername, adminPassword }),
 };
 
 export default api;

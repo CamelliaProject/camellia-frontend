@@ -393,7 +393,8 @@ export default function SuperAdminDashboard() {
   const handleApprovePlantationRequest = async (requestId: string, adminUsername: string, adminPassword: string) => {
     try {
       const res = await adminApi.approvePlantationRequest(requestId, adminUsername, adminPassword);
-      alert(`Plantation approved! Plantation ID: ${res.data.plantationId}\nAdmin Username: ${adminUsername}`);
+      const approvedId = res.data.plantation?.id || requestId;
+      alert(`Plantation approved! Plantation ID: ${approvedId}\nAdmin Username: ${adminUsername}`);
       // Refresh pending requests
       fetchPendingRequests();
     } catch (error: any) {

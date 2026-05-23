@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut, type User as FirebaseUser } from 'firebase/auth';
-import { auth } from '../firebase';
+import { getAuth, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import apiClient from '../services/apiClient';
 
 interface User {
@@ -35,75 +34,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
   });
+
   const [loading, setLoading] = useState(true);
+  const auth = getAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
-          await handleFirebaseUser(firebaseUser);
+          const idToken = await firebaseUser.getIdToken();
+
+          try {
+            const syncResponse = await apiClient.post('/users/sync', {
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              email: firebaseUser.email,
+            });
+
+            const userData: User = {
+              id: syncResponse.data.id,
+              uid: firebaseUser.uid,
+              username: syncResponse.data.username,
+              name: syncResponse.data.name,
+              email: syncResponse.data.email,
+              role: syncResponse.data.role || 'tourist',
+              plantationId: syncResponse.data.plantation_id,
+              token: idToken,
+            };
+
+            setUser(userData);
+            localStorage.setItem('camellia_user', JSON.stringify(userData));
+            localStorage.setItem('firebaseAuthToken', idToken);
+
+            apiClient.defaults.headers.common.Authorization = `Bearer ${idToken}`;
+          } catch (syncError) {
+            console.error('Failed to sync user with backend:', syncError);
+            const userData: User = {
+              email: firebaseUser.email || 'unknown@example.com',
+              role: 'tourist',
+              token: idToken,
+              uid: firebaseUser.uid,
+              name: firebaseUser.displayName || 'User',
+            };
+            setUser(userData);
+            localStorage.setItem('firebaseAuthToken', idToken);
+            apiClient.defaults.headers.common.Authorization = `Bearer ${idToken}`;
+          }
         } else {
-          clearAuth();
+          setUser(null);
+          localStorage.removeItem('camellia_user');
+          localStorage.removeItem('firebaseAuthToken');
+          delete apiClient.defaults.headers.common.Authorization;
         }
       } catch (error) {
-        console.error('Auth state handling error:', error);
-        clearAuth();
+        console.error('Auth state change error:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
-
-  const handleFirebaseUser = async (firebaseUser: FirebaseUser) => {
-    const idToken = await firebaseUser.getIdToken();
-    const email = firebaseUser.email ?? 'unknown@example.com';
-    const name = firebaseUser.displayName ?? email.split('@')[0] ?? 'User';
-
-    try {
-      const response = await apiClient.post('/users/sync', {
-        uid: firebaseUser.uid,
-        name,
-        email,
-      });
-
-      const syncedUser: User = {
-        id: response.data?.id,
-        uid: firebaseUser.uid,
-        username: response.data?.username,
-        name: response.data?.name,
-        email: response.data?.email ?? email,
-        role: response.data?.role || 'tourist',
-        plantationId: response.data?.plantation_id,
-        token: idToken,
-      };
-
-      setUser(syncedUser);
-      localStorage.setItem('camellia_user', JSON.stringify(syncedUser));
-      localStorage.setItem('firebaseAuthToken', idToken);
-      apiClient.defaults.headers.common.Authorization = `Bearer ${idToken}`;
-    } catch (err) {
-      console.error('Failed to sync user with backend:', err);
-      const fallbackUser: User = {
-        uid: firebaseUser.uid,
-        email,
-        name,
-        role: 'tourist',
-        token: idToken,
-      };
-      setUser(fallbackUser);
-      localStorage.setItem('firebaseAuthToken', idToken);
-      apiClient.defaults.headers.common.Authorization = `Bearer ${idToken}`;
-    }
-  };
-
-  const clearAuth = () => {
-    setUser(null);
-    localStorage.removeItem('camellia_user');
-    localStorage.removeItem('firebaseAuthToken');
-    delete apiClient.defaults.headers.common.Authorization;
-  };
+  }, [auth]);
 
   const signIn = (userData: User) => {
     setUser(userData);
@@ -118,9 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await firebaseSignOut(auth);
     } catch (error) {
-      console.error('Firebase sign-out failed:', error);
+      console.error('Firebase sign out error:', error);
     }
-    clearAuth();
+    setUser(null);
+    localStorage.removeItem('camellia_user');
+    localStorage.removeItem('firebaseAuthToken');
+    delete apiClient.defaults.headers.common.Authorization;
   };
 
   const setAuthToken = (token: string) => {
@@ -133,10 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
   };
 
-  const isAuthenticated = !!user;
-
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, logOut, isAuthenticated, setAuthToken }}>
+    <AuthContext.Provider value={{ user, loading, signIn, logOut, isAuthenticated: !!user, setAuthToken }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,6 +2,30 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## Frontend tech stack
+
+- React with TypeScript for UI and type-safe components
+- Vite for fast development server and optimized builds
+- ESLint with TypeScript-aware rules for code quality
+- `@vitejs/plugin-react` or `@vitejs/plugin-react-swc` for React hot refresh
+- Modern component-based frontend structure under `src/`
+
+## Backend APIs this frontend likely needs
+
+Based on the app layout and feature set, the frontend will likely need these backend endpoints:
+
+- `POST /api/auth/login` / `POST /api/auth/logout` for user authentication
+- `GET /api/plantations` to list plantation data for tourists
+- `GET /api/plantations/:id` to return plantation details
+- `POST /api/bookings` to create a new booking request
+- `GET /api/bookings/:userId` or `GET /api/bookings` to retrieve user booking history
+- `POST /api/reviews` to submit plantation reviews
+- `GET /api/reviews/:plantationId` to fetch plantation reviews
+- `POST /api/uploads/image` or similar for image uploads to Cloudinary
+- `GET /api/admin/plantations` and other admin routes for plantation management
+
+These API routes should return JSON and handle auth/role security for tourists, plantation admins, and super-admins.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

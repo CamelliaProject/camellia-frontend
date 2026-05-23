@@ -35,76 +35,12 @@ export default function Dashboard() {
   const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false); // New state for booking details modal
   const [selectedBookingDetails, setSelectedBookingDetails] = useState<ExperienceBooking | null>(null); // New state for selected booking details
 
-  const allBookings: ExperienceBooking[] = [
-    {
-      id: 'CAM-556', 
-      bookingReference: 'CAM-556',
-      plantationName: 'Pedro Tea Estate',
-      date: 'Monday, November 17, 2025',
-      time: '11:00 AM',
-      guests: '1 Adult',
-      experiences: ['Tea Factory Tour'],
-      totalPaid: '$25',
-      status: 'upcoming'
-    },
-    {
-      id: 'CAM-456',
-      bookingReference: 'CAM-456',
-      plantationName: 'Mackwoods Estate',
-      date: 'Monday, October 15, 2024',
-      time: '09:00 AM',
-      guests: '2 Adults',
-      experiences: ['Tea Factory Tour'],
-      totalPaid: '$35',
-      status: 'completed'
-    },
-    {
-      id: 'CAM-457',
-      bookingReference: 'CAM-457',
-      plantationName: 'Bluefield Tea Garden',
-      date: 'Tuesday, September 10, 2024',
-      time: '01:00 PM',
-      guests: '1 Adult, 1 Child',
-      experiences: ['Waterfall Trek'],
-      totalPaid: '$62',
-      status: 'completed'
-    },
-    { 
-      id: 'CAM-458',
-      bookingReference: 'CAM-458',
-      plantationName: 'Haputale Estate',
-      date: 'Wednesday, August 21, 2024',
-      time: '10:00 AM',
-      guests: '2 Adults',
-      experiences: ['Heritage Tour'],
-      totalPaid: '$76',
-      status: 'completed'
-    },
-  ];
+  const allBookings: ExperienceBooking[] = [];
 
   const upcomingExperiences = allBookings.filter(b => b.status === 'upcoming');
   const pastExperiences = allBookings.filter(b => b.status === 'completed');
 
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: 1,
-      author: 'John Doi',
-      plantationName: 'Mackwoods Estate',
-      rating: 5,
-      reviewText: "The tea plucking experience was authentic and educational. Learned so much about the hard work that goes into every cup of tea.",
-      reviewDate: "October 20, 2024",
-      image: "/images/about.png"
-    },
-    {
-      id: 2,
-      author: 'Jane Doe',
-      plantationName: 'Pedro Tea Estate',
-      rating: 4,
-      reviewText: "Lovely views and great tea tasting. The guide was very friendly and informative. Would definitely visit again!",
-      reviewDate: "November 20, 2024",
-      image: ""
-    }
-  ]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   const handleOpenReviewModal = (booking: ExperienceBooking | null = null) => { 
     setSelectedBookingForReview(booking);

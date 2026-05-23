@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Wallet } from 'lucide-react';
+import apiClient from '../../services/apiClient';
 
 interface PaymentRecord {
   id: string;
@@ -7,17 +8,9 @@ interface PaymentRecord {
   plantationId: string;
   amount: string;
   currency: string;
-  status: 'paid' | 'refunded' | 'failed';
+  status: 'paid' | 'refunded' | 'failed' | string;
   date: string;
 }
-
-// Mock payments for demo purposes
-const MOCK_PAYMENTS: PaymentRecord[] = [
-  { id: 'P-1001', bookingReference: 'CAM-556', plantationId: '1', amount: '25', currency: '$', status: 'paid', date: '2025-11-17' },
-  { id: 'P-1002', bookingReference: 'CAM-557', plantationId: '1', amount: '33000', currency: 'Rs', status: 'paid', date: '2025-11-18' },
-  { id: 'P-1003', bookingReference: 'CAM-456', plantationId: '1', amount: '35', currency: '$', status: 'refunded', date: '2024-10-15' },
-  { id: 'P-1004', bookingReference: 'CAM-458', plantationId: '3', amount: '76', currency: '$', status: 'paid', date: '2024-08-21' },
-];
 
 interface PlantationPaymentsProps {
   plantationId: string;
@@ -26,12 +19,11 @@ interface PlantationPaymentsProps {
 export default function PlantationPayments({ plantationId }: PlantationPaymentsProps) {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const EXCHANGE_RATE_USD_TO_LKR = 365; // Example fixed rate — replace with live rate if needed
+  const EXCHANGE_RATE_USD_TO_LKR = 365;
 
   const parseAmount = (p: PaymentRecord) => {
     const n = Number(p.amount) || 0;
     if (p.currency === '$') return { usd: n, lkr: n * EXCHANGE_RATE_USD_TO_LKR };
-    // assume LKR if not dollar
     return { usd: p.currency === 'Rs' ? n / EXCHANGE_RATE_USD_TO_LKR : 0, lkr: n };
   };
 
@@ -48,27 +40,33 @@ export default function PlantationPayments({ plantationId }: PlantationPaymentsP
       return d >= start && d <= now;
     });
 
-    const totals = filtered.reduce(
-      (acc, p) => {
-        const a = parseAmount(p);
+    return filtered.reduce(
+      (acc, payment) => {
+        const a = parseAmount(payment);
         acc.lkr += a.lkr;
         acc.usd += a.usd;
         return acc;
       },
       { lkr: 0, usd: 0 }
     );
-
-    return totals;
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const stored: PaymentRecord[] = JSON.parse(localStorage.getItem('payments') || '[]');
-      const allPayments = [...MOCK_PAYMENTS, ...stored];
-      setPayments(allPayments.filter((p) => p.plantationId === plantationId));
-      setIsLoading(false);
-    }, 600);
+    const fetchPayments = async () => {
+      setIsLoading(true);
+      try {
+        const response = await apiClient.get('/payments');
+        const fetchedPayments: PaymentRecord[] = response.data?.data || [];
+        setPayments(fetchedPayments.filter((payment) => payment.plantationId === plantationId));
+      } catch (error) {
+        console.error('Failed to load payments:', error);
+        setPayments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchPayments();
   }, [plantationId]);
 
   const totalCollectedLKR = payments
@@ -129,22 +127,22 @@ export default function PlantationPayments({ plantationId }: PlantationPaymentsP
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((p) => {
-                    const parsed = parseAmount(p);
+                  {payments.map((payment) => {
+                    const parsed = parseAmount(payment);
                     return (
-                      <tr key={p.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-[#2D6A4F]">{p.id}</td>
-                        <td className="py-3 px-4 text-gray-700">{p.bookingReference}</td>
+                      <tr key={payment.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4 font-medium text-[#2D6A4F]">{payment.id}</td>
+                        <td className="py-3 px-4 text-gray-700">{payment.bookingReference}</td>
                         <td className="py-3 px-4 font-bold">
-                          {p.currency} {p.amount}
-                          {p.currency === '$' && (
+                          {payment.currency} {payment.amount}
+                          {payment.currency === '$' && (
                             <div className="text-xs text-gray-500">Rs {parsed.lkr.toLocaleString()}</div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-gray-700">{new Date(p.date).toLocaleDateString()}</td>
+                        <td className="py-3 px-4 text-gray-700">{new Date(payment.date).toLocaleDateString()}</td>
                         <td className="py-3 px-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${p.status === 'paid' ? 'bg-green-100 text-green-700' : p.status === 'refunded' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-                            {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${payment.status === 'paid' ? 'bg-green-100 text-green-700' : payment.status === 'refunded' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                           </span>
                         </td>
                       </tr>

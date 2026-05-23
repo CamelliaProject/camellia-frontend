@@ -63,7 +63,11 @@ export default function BookingConfirmationPage() {
               </div>
               <div>
                 <p className="font-semibold">Experiences</p>
-                <p className="text-lg">{experiences.join(', ')}</p>
+                <p className="text-lg">
+                  {Array.isArray(experiences)
+                    ? experiences.map((exp: any) => (typeof exp === 'string' ? exp : exp.name)).join(', ')
+                    : ''}
+                </p>
               </div>
               <div className="md:col-span-2">
                 <p className="font-semibold">Total Paid</p>

@@ -1,8 +1,56 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapPin, Phone, Mail, X } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import apiClient from '../../services/apiClient';
+
+function normalizePlantation(raw: any) {
+  return {
+    id: raw.id,
+    name: raw.name,
+    address: raw.address,
+    mainImage: raw.main_image_url || raw.mainImage || '',
+    galleryImages: raw.gallery || raw.galleryImages || [],
+    description: raw.description || raw.short_description || '',
+    detailedDescription: raw.detailed_description || raw.detailedDescription || raw.description || '',
+    features: raw.features || [],
+    highlights: {
+      altitude: raw.altitude || raw.highlights?.altitude || '',
+      area: raw.area || raw.highlights?.area || '',
+      visitors: raw.visitors || raw.highlights?.visitors || '',
+      established: raw.established_year || raw.highlights?.established || raw.established || '',
+    },
+    rating: raw.rating || 0,
+    reviews: raw.total_reviews || raw.reviews || 0,
+    price: raw.price || '',
+    duration: raw.duration || '',
+    bestTime: raw.best_time_to_visit || raw.bestTime || '',
+    contact: {
+      phone: raw.phone || raw.contact?.phone || '',
+      email: raw.email || raw.contact?.email || '',
+    },
+    activities: raw.activities || raw.activities || [],
+    experiences: (raw.experiences || []).map((exp: any) => ({
+      id: exp.id,
+      name: exp.name,
+      category: exp.category || exp.category || '',
+      description: exp.detailed_description || exp.description || '',
+      shortDescription: exp.short_description || exp.shortDescription || '',
+      announcement: exp.announcement || '',
+      priceUSD: {
+        adult: exp.price_usd_adult || exp.priceUSD?.adult || 0,
+        child: exp.price_usd_child || exp.priceUSD?.child || 0,
+      },
+      priceLKR: {
+        adult: exp.price_lkr_adult || exp.priceLKR?.adult || 0,
+        child: exp.price_lkr_child || exp.priceLKR?.child || 0,
+      },
+      timeSlots: exp.time_slots || exp.timeSlots || [],
+      images: exp.images || [],
+    })),
+  };
+}
 
 
 export const PLANTATION_DATA: Record<string, any> = {
@@ -641,7 +689,51 @@ export default function PlantationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const plantation = id ? PLANTATION_DATA[id] : null;
+  const [plantation, setPlantation] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      setPlantation(null);
+      return;
+    }
+
+    const fetchPlantation = async () => {
+      setIsLoading(true);
+      setLoadError('');
+      try {
+        const response = await apiClient.get(`/plantations/${id}`);
+        setPlantation(normalizePlantation(response.data?.data));
+      } catch (error) {
+        console.error('Failed to load plantation details:', error);
+        if (PLANTATION_DATA[id]) {
+          setPlantation(PLANTATION_DATA[id]);
+        } else {
+          setPlantation(null);
+          setLoadError('Unable to load plantation details.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchPlantation();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white font-sans text-[#1B4332]">
+        <Navbar />
+        <main className="py-16 px-12 text-center">
+          <h1 className="text-3xl font-bold mb-4">Loading plantation details...</h1>
+          <p className="text-gray-600">Please wait while we fetch the latest plantation information.</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!plantation) {
     return (
@@ -649,6 +741,7 @@ export default function PlantationDetail() {
         <Navbar />
         <main className="py-16 px-12 text-center">
           <h1 className="text-3xl font-bold mb-4">Plantation not found</h1>
+          {loadError ? <p className="text-red-600 mb-6">{loadError}</p> : null}
           <button
             onClick={() => navigate('/plantations')}
             className="bg-[#2D6A4F] text-white px-6 py-3 rounded-lg hover:bg-[#1B4332] transition"

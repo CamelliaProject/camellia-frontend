@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { PLANTATION_DATA } from './PlantationDetail';
+import { bookingApi } from '../../services/api';
 import { CheckCircle2, CreditCard, Calendar, Lock } from 'lucide-react'; 
 
 export default function PaymentPage() {
@@ -63,70 +63,41 @@ export default function PaymentPage() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      
       console.log("Processing payment for:", { bookingSummary, touristDetails, cardDetails });
+
+      const bookingPayload = {
+        plantation_id: bookingSummary.plantationId,
+        booking_date: bookingSummary.date,
+        booking_time: bookingSummary.time || '',
+        num_adults: bookingSummary.adults || 1,
+        num_children: bookingSummary.children || 0,
+        total_price_usd: bookingSummary.currency === 'USD' ? bookingSummary.totalPrice : null,
+        total_price_lkr: bookingSummary.currency === 'LKR' ? bookingSummary.totalPrice : null,
+        tourist_full_name: touristDetails.fullName,
+        tourist_email: touristDetails.email,
+        tourist_phone: touristDetails.phone || null,
+        tourist_country: touristDetails.country || null,
+        special_notes: touristDetails.notes || null,
+        experience_ids: Array.isArray(bookingSummary.experiences)
+          ? bookingSummary.experiences.map((exp: any) => exp.id).filter(Boolean)
+          : [],
+      };
+
+      const response = await bookingApi.create(bookingPayload);
+      const booking = response.data?.data;
+      const transactionId = booking?.booking_reference || `P-${Date.now()}`;
 
       setPaymentSuccess(true);
       setPaymentProcessing(false);
 
-    
-      try {
-        const payments = JSON.parse(localStorage.getItem('payments') || '[]');
-        const transactionId = `P-${Date.now()}`;
-        const plantationEntry = Object.entries(PLANTATION_DATA).find(([, p]: any) => p.name === bookingSummary.plantationName);
-        const plantationId = plantationEntry ? plantationEntry[0] : '';
-        const newPayment = {
-          id: transactionId,
-          bookingReference: transactionId,
-          plantationId,
-          amount: String(bookingSummary.totalPrice),
-          currency: bookingSummary.currency === 'LKR' ? 'Rs' : '$',
-          status: 'paid',
-          date: new Date().toISOString().split('T')[0],
-        };
-        payments.push(newPayment);
-        localStorage.setItem('payments', JSON.stringify(payments));
-       
-        try {
-          const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-          const bookingId = `B-${Date.now()}`;
-          const newBooking = {
-            id: bookingId,
-            bookingReference: bookingId,
-            plantationName: bookingSummary.plantationName,
-            plantationId,
-            date: bookingSummary.date || new Date().toISOString().split('T')[0],
-            time: bookingSummary.time || '',
-            guests: `${bookingSummary.adults || 0} Adults, ${bookingSummary.children || 0} Children`,
-            experiences: bookingSummary.experiences || [],
-            totalPaid: `${bookingSummary.currency === 'LKR' ? 'Rs' : '$'}${bookingSummary.totalPrice}`,
-            status: 'upcoming',
-            touristDetails: touristDetails,
-            adults: bookingSummary.adults || 0,
-            children: bookingSummary.children || 0,
-          };
-          bookings.push(newBooking);
-          localStorage.setItem('bookings', JSON.stringify(bookings));
-        } catch (err) {
-          console.error('Failed to persist booking:', err);
-        }
-
-        
-        navigate('/booking-confirmation', {
-          state: {
-            bookingSummary,
-            touristDetails,
-            transactionId,
-          },
-          replace: true 
-        });
-      } catch (err) {
-        console.error('Failed to persist payment:', err);
-        navigate('/booking-confirmation', {
-          state: { bookingSummary, touristDetails, transactionId: 'CAM-546' },
-          replace: true,
-        });
-      }
+      navigate('/booking-confirmation', {
+        state: {
+          bookingSummary,
+          touristDetails,
+          transactionId,
+        },
+        replace: true,
+      });
 
     } catch (err) {
       console.error("Payment failed:", err);

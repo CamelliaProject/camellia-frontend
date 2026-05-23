@@ -1,19 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Filter, CheckCircle, Clock, XCircle, X, Eye } from 'lucide-react'; 
+import { Filter, CheckCircle, Clock, XCircle, X, Eye } from 'lucide-react';
 import { PLANTATION_DATA } from '../tourist/PlantationDetail';
+import { adminApi } from '../../services/api';
 
-// Mock booking data 
 interface Booking {
   id: string;
   bookingReference: string;
-  plantationName: string;
-  plantationId: string; 
+  plantationId: string;
   date: string;
   time: string;
-  guests: string; 
+  guests: string;
   experiences: string[];
-  totalPaid: string; 
-  status: 'upcoming' | 'completed' | 'cancelled'; 
+  totalPaid: string;
+  status: 'upcoming' | 'completed' | 'cancelled' | string;
   touristDetails: {
     fullName: string;
     email: string;
@@ -23,115 +22,6 @@ interface Booking {
   adults?: number;
   children?: number;
 }
-
-// Mock ALL bookings for demonstration
-const MOCK_ALL_BOOKINGS: Booking[] = [
-  {
-    id: 'CAM-556',
-    bookingReference: 'CAM-556',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2025-11-17', 
-    time: '11:00 AM',
-    guests: '1 Adult',
-    experiences: ['Tea Factory Tour', 'Tea Tasting'],
-    totalPaid: '$25',
-    status: 'upcoming',
-    touristDetails: { fullName: 'Alice Wonderland', email: 'alice@example.com', phone: '123-456-7890', country: 'United States' }
-  },
-  {
-    id: 'CAM-557',
-    bookingReference: 'CAM-557',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2025-11-18',
-    time: '09:00 AM',
-    guests: '2 Adults, 2 Children',
-    experiences: ['Tea Leaf Picking', 'Picnic Lunch'],
-    totalPaid: 'Rs 33000',
-    status: 'upcoming',
-    touristDetails: { fullName: 'Nimal Perera', email: 'nimal@example.lk', phone: '077-123-4567', country: 'Sri Lanka' }
-  },
-  {
-    id: 'CAM-456',
-    bookingReference: 'CAM-456',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2024-10-15',
-    time: '09:00 AM',
-    guests: '2 Adults',
-    experiences: ['Tea Factory Tour'],
-    totalPaid: '$35',
-    status: 'completed',
-    touristDetails: { fullName: 'Bob Johnson', email: 'bob@example.com', phone: '987-654-3210', country: 'Canada' }
-  },
-  {
-    id: 'CAM-457',
-    bookingReference: 'CAM-457',
-    plantationName: 'Bluefield Tea Garden',
-    plantationId: '2',
-    date: '2024-09-10',
-    time: '01:00 PM',
-    guests: '1 Adult, 1 Child',
-    experiences: ['Waterfall Trek'],
-    totalPaid: '$62',
-    status: 'completed',
-    touristDetails: { fullName: 'Charlie Green', email: 'charlie@example.com', phone: '555-123-4567', country: 'Australia' }
-  },
-  {
-    id: 'CAM-458',
-    bookingReference: 'CAM-458',
-    plantationName: 'Haputale Estate',
-    plantationId: '3',
-    date: '2024-08-21',
-    time: '10:00 AM',
-    guests: '2 Adults',
-    experiences: ['Heritage Tour'],
-    totalPaid: '$76',
-    status: 'completed',
-    touristDetails: { fullName: 'David Lee', email: 'david@example.com', phone: '111-222-3333', country: 'Germany' }
-  },
-  {
-    id: 'CAM-558',
-    bookingReference: 'CAM-558',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2025-12-01',
-    time: '10:00 AM',
-    guests: '3 Adults',
-    experiences: ['Hiking'],
-    totalPaid: '$150',
-    status: 'upcoming',
-    touristDetails: { fullName: 'Eva Brown', email: 'eva@example.com', phone: '444-555-6666', country: 'United Kingdom' }
-  },
-  {
-    id: 'CAM-459',
-    bookingReference: 'CAM-459',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2024-07-05',
-    time: '02:00 PM',
-    guests: '1 Adult',
-    experiences: ['Tea Tasting'],
-    totalPaid: '$25',
-    status: 'completed',
-    touristDetails: { fullName: 'Frank White', email: 'frank@example.com', phone: '777-888-9999', country: 'France' }
-  },
-  {
-    id: 'CAM-460',
-    bookingReference: 'CAM-460',
-    plantationName: 'Pedro Tea Estate',
-    plantationId: '1',
-    date: '2024-06-20',
-    time: '10:00 AM',
-    guests: '2 Adults',
-    experiences: ['Tea Factory Tour'],
-    totalPaid: '$70',
-    status: 'cancelled',
-    touristDetails: { fullName: 'Grace Black', email: 'grace@example.com', phone: '000-111-2222', country: 'Spain' }
-  },
-];
-
 
 interface PlantationBookingManagementProps {
   plantationId: string;
@@ -147,33 +37,54 @@ const formatDate = (dateString: string) => {
       day: 'numeric',
     });
   } catch (e) {
-    console.error("Invalid date string:", dateString);
-    return dateString; 
+    console.error('Invalid date string:', dateString);
+    return dateString;
   }
 };
 
 export default function PlantationBookingManagement({ plantationId }: PlantationBookingManagementProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); 
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const USD_TO_LKR = 365;
-  
 
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      // Merge persisted bookings from localStorage with mock bookings
-      const stored: Booking[] = JSON.parse(localStorage.getItem('bookings') || '[]');
-      const allBookings = [...MOCK_ALL_BOOKINGS, ...stored];
-      const filteredBookings = allBookings.filter(
-        (booking) => booking.plantationId === plantationId
-      );
-      setBookings(filteredBookings);
-      setIsLoading(false);
-    }, 1000);
+    const fetchBookings = async () => {
+      setIsLoading(true);
+      try {
+        const response = await adminApi.getPlantationBookings(plantationId);
+        const fetched: Booking[] = (response.data?.bookings || []).map((item: any) => ({
+          id: item.id || item.booking_reference || item.created_at || 'unknown',
+          bookingReference: item.booking_reference || item.id || 'N/A',
+          plantationId: item.plantation_id || plantationId,
+          date: item.booking_date || item.date || '',
+          time: item.booking_time || item.time || '',
+          guests: item.guest_count ? `${item.guest_count} guest${item.guest_count === 1 ? '' : 's'}` : 'N/A',
+          experiences: item.experiences || [],
+          totalPaid: item.total_paid ? String(item.total_paid) : 'N/A',
+          status: item.status || 'upcoming',
+          touristDetails: {
+            fullName: item.tourist_username || item.tourist_email || 'Guest',
+            email: item.tourist_email || '',
+            phone: item.tourist_phone || '',
+            country: item.tourist_country || '',
+          },
+          adults: item.adults,
+          children: item.children,
+        }));
+
+        setBookings(fetched);
+      } catch (error) {
+        console.error('Failed to load bookings:', error);
+        setBookings([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchBookings();
   }, [plantationId]);
 
   const getFilteredAndSortedBookings = () => {

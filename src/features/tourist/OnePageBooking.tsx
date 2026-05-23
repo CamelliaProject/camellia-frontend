@@ -1,23 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import SignInModal from '../../components/layout/SignInModal';
 import TouristDetailsModal, { type TouristDetails } from './TouristDetailsModal';
-import { PLANTATION_DATA } from './PlantationDetail';
+import { plantationApi } from '../../services/api';
 
 const USD_TO_LKR = 330;
 
 export default function OnePageBooking() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const plantation = id ? PLANTATION_DATA[id] : null;
+  const [plantation, setPlantation] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const [country] = useState<string>('');
   const [isResident, setIsResident] = useState<boolean>(true);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
+  const [selectedExperienceIds, setSelectedExperienceIds] = useState<string[]>([]);
   const [adults, setAdults] = useState<number>(1);
   const [children, setChildren] = useState<number>(0);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -25,12 +27,51 @@ export default function OnePageBooking() {
   const location = useLocation();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
 
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      setLoadError('Plantation ID is missing.');
+      return;
+    }
+
+    const fetchPlantation = async () => {
+      setIsLoading(true);
+      setLoadError('');
+      try {
+        const response = await plantationApi.getById(id);
+        setPlantation(response.data?.data || null);
+      } catch (error) {
+        console.error('Failed to load plantation details:', error);
+        setLoadError('Unable to load plantation details.');
+        setPlantation(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchPlantation();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white font-sans text-[#1B4332]">
+        <Navbar />
+        <main className="py-16 px-12 text-center">
+          <h1 className="text-3xl font-bold mb-4">Loading plantation...</h1>
+          <p className="text-gray-600">Fetching the latest plantation information.</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!plantation) {
     return (
       <div className="min-h-screen bg-white font-sans text-[#1B4332]">
         <Navbar />
         <main className="py-16 px-12 text-center">
           <h1 className="text-3xl font-bold mb-4">Plantation not found</h1>
+          {loadError && <p className="text-red-600 mb-6">{loadError}</p>}
           <button
             onClick={() => navigate('/plantations')}
             className="bg-[#2D6A4F] text-white px-6 py-3 rounded-lg hover:bg-[#1B4332] transition"
@@ -45,17 +86,18 @@ export default function OnePageBooking() {
 
   const isLocalSriLankan = isResident;
   const currency = isLocalSriLankan ? 'LKR' : 'USD';
+  const selectedExperiences = plantation.experiences.filter((exp: any) => selectedExperienceIds.includes(exp.id));
 
-  const toggleExperience = (name: string) => {
-    setSelectedExperiences((prev) => (prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]));
+  const toggleExperience = (id: string) => {
+    setSelectedExperienceIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
   };
 
   // a date is required for booking.
 
   const computePrice = () => {
     let total = 0;
-    selectedExperiences.forEach((name) => {
-      const exp = plantation.experiences.find((e: any) => e.name === name);
+    selectedExperienceIds.forEach((selectedId) => {
+      const exp = plantation.experiences.find((e: any) => e.id === selectedId);
       if (!exp) return;
       const adult = exp.priceUSD.adult;
       const child = exp.priceUSD.child;
@@ -81,6 +123,7 @@ export default function OnePageBooking() {
     navigate('/payment', {
       state: {
         bookingSummary: {
+          plantationId: plantation.id,
           plantationName: plantation.name,
           experiences: selectedExperiences,
           date: selectedDate,
@@ -130,7 +173,7 @@ export default function OnePageBooking() {
                 <h2 className="text-xl font-semibold mb-3">Experiences & Prices</h2>
                 <div className="grid grid-cols-1 gap-3">
                   {plantation.experiences.map((exp: any, idx: number) => {
-                    const isSelected = selectedExperiences.includes(exp.name);
+                    const isSelected = selectedExperienceIds.includes(exp.id);
                     const displayAdult = isLocalSriLankan ? exp.priceUSD.adult * USD_TO_LKR : exp.priceUSD.adult;
                     const displayChild = isLocalSriLankan ? exp.priceUSD.child * USD_TO_LKR : exp.priceUSD.child;
                     const images = (exp.images && exp.images.length ? exp.images : (plantation.galleryImages || [])).slice(0, 3);
@@ -139,7 +182,7 @@ export default function OnePageBooking() {
                         <div className="flex justify-between items-start">
                           <div>
                             <label className="flex items-center gap-3 cursor-pointer">
-                              <input type="checkbox" checked={isSelected} onChange={() => toggleExperience(exp.name)} className="w-4 h-4" />
+                              <input type="checkbox" checked={isSelected} onChange={() => toggleExperience(exp.id)} className="w-4 h-4" />
                               <div>
                                   <div className="font-semibold">{exp.name}</div>
                                   {/* Small paragraph: prefer `shortDescription`, otherwise use first sentence of `description` */}
@@ -224,8 +267,8 @@ export default function OnePageBooking() {
                 <div className="text-gray-500">None</div>
               ) : (
                 <ul className="text-sm space-y-1">
-                  {selectedExperiences.map((s) => (
-                    <li key={s} className="flex justify-between"><span>{s}</span></li>
+                  {selectedExperiences.map((exp: any) => (
+                    <li key={exp.id} className="flex justify-between"><span>{exp.name}</span></li>
                   ))}
                 </ul>
               )}

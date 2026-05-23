@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminApi } from '../../services/api';
+import apiClient from '../../services/apiClient';
 import {
   Eye,
   UserPlus,
@@ -32,59 +33,6 @@ export interface Plantation {
   registeredYear: number; 
 }
 
-
-const MOCK_PLANTATIONS: Plantation[] = [
-  {
-    id: '1',
-    name: 'Pedro Tea Estate',
-    owner: 'Pedro Es',
-    businessReg: 'BRN-001-2020',
-    adminUsername: 'pedroadmin',
-    adminPassword: 'password123',
-    passwordChanged: false,
-    address: 'Pedro Tea Estate, Nuwara Eliya',
-    telephone: '0342256789',
-    email: 'pedro@estate.com',
-    isDisabled: false,
-    registeredYear: 2025,
-    image: 'src=images/pedro_tea_estate.jpg',
-    description: undefined
-  },
-  {
-    id: '2',
-    name: 'Blue Field Tea Garden',
-    owner: 'Bluefield Co.',
-    businessReg: 'BRN-001-2021',
-    adminUsername: 'bluefieldadmin',
-    adminPassword: 'password123',
-    passwordChanged: false,
-    address: 'Blue Field Tea Garden, Ramboda',
-    telephone: '0522267890',
-    email: 'bluefield@garden.com',
-    isDisabled: false,
-    registeredYear: 2025,
-    image: 'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800',
-    description: undefined
-  },
-  {
-    id: '3',
-    name: 'Haputale Estate',
-    owner: 'Haputale PLC',
-    businessReg: 'BRN-001-2018',
-    adminUsername: 'haputaleadmin',
-    adminPassword: 'password123',
-    passwordChanged: false,
-    address: 'Haputale, Sri Lanka',
-    telephone: '0771234567',
-    email: 'haputale@estate.com',
-    isDisabled: true, // Example of a disabled plantation
-    registeredYear: 2024,
-    image: '',
-    description: undefined
-  },
-];
-
-// Mock data for contact requests
 interface ContactRequest {
   id: string;
   name: string;
@@ -93,25 +41,6 @@ interface ContactRequest {
   message: string;
   status: 'pending' | 'resolved';
 }
-
-const MOCK_CONTACT_REQUESTS: ContactRequest[] = [
-  {
-    id: 'req1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    subject: 'Inquiry about bookings',
-    message: 'I have a question about booking an experience at your plantations.',
-    status: 'pending',
-  },
-  {
-    id: 'req2',
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    subject: 'Partnership opportunity',
-    message: 'We are interested in collaborating with Camellia Tea Tourism.',
-    status: 'resolved',
-  },
-];
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
@@ -122,12 +51,9 @@ export default function SuperAdminDashboard() {
   
   const [plantations, setPlantations] = useState<Plantation[]>(() => {
     const storedPlantations = localStorage.getItem('superAdminPlantations');
-    const baseList: Plantation[] = storedPlantations ? JSON.parse(storedPlantations) : MOCK_PLANTATIONS;
-    
-    return baseList.map((p) => ({ ...p, passwordChanged: p.passwordChanged || false }));
+    return storedPlantations ? JSON.parse(storedPlantations) : [];
   });
-  const [contactRequests, setContactRequests] =
-    useState<ContactRequest[]>(MOCK_CONTACT_REQUESTS);
+  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlantation, setSelectedPlantation] = useState<Plantation | null>(null);
@@ -159,12 +85,40 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const fetchPlantations = async () => {
+    try {
+      const response = await apiClient.get('/plantations');
+      const fetched: Plantation[] = (response.data?.data || []).map((item: any) => ({
+        id: String(item.id || item.plantation_id || ''),
+        name: item.name || 'Unnamed Plantation',
+        owner: item.owner || 'Unknown',
+        businessReg: item.business_reg || item.businessReg || '',
+        adminUsername: item.admin_username || '',
+        adminPassword: '',
+        passwordChanged: false,
+        address: item.address || '',
+        telephone: item.telephone || '',
+        email: item.email || '',
+        isDisabled: Boolean(item.is_disabled),
+        registeredYear: item.registered_year || new Date().getFullYear(),
+        image: item.main_image_url || item.image || '',
+        description: item.description || '',
+      }));
+      setPlantations(fetched);
+    } catch (error) {
+      console.error('Failed to load plantations:', error);
+      setPlantations([]);
+    }
+  };
+
   useEffect(() => {
     if (!user || user.role !== 'superadmin') {
       alert("You don't have permission to access the Super Admin dashboard.");
-      navigate('/'); 
+      navigate('/');
       return;
     }
+
+    void fetchPlantations();
     fetchPendingRequests();
   }, [user, navigate]);
 

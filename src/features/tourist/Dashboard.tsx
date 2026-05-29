@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ReviewModal from './ReviewModal';
-import BookingDetailsModal from './BookingDetailsModal'; 
+import BookingDetailsModal from './BookingDetailsModal';
+import { useAuth } from '../../context/AuthContext';
 
 interface ExperienceBooking {
   id: string;
@@ -28,41 +29,37 @@ interface Review {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'bookings' | 'reviews'>('bookings');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState<ExperienceBooking | null>(null);
-  const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false); // New state for booking details modal
-  const [selectedBookingDetails, setSelectedBookingDetails] = useState<ExperienceBooking | null>(null); // New state for selected booking details
+  const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false);
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState<ExperienceBooking | null>(null);
 
   const allBookings: ExperienceBooking[] = [];
-
   const upcomingExperiences = allBookings.filter(b => b.status === 'upcoming');
   const pastExperiences = allBookings.filter(b => b.status === 'completed');
-
   const [reviews, setReviews] = useState<Review[]>([]);
 
-  const handleOpenReviewModal = (booking: ExperienceBooking | null = null) => { 
+  const handleOpenReviewModal = (booking: ExperienceBooking | null = null) => {
     setSelectedBookingForReview(booking);
     setIsReviewModalOpen(true);
   };
 
   const handleReviewSubmit = (newReview: Omit<Review, 'id' | 'reviewDate' | 'author'> & { plantationName: string }) => {
-    
     const existingReview = reviews.find(r => r.plantationName === newReview.plantationName && r.author === 'Current User');
     if (existingReview) {
       alert(`You have already submitted a review for ${newReview.plantationName}.`);
-     
       return;
     }
-
     const newReviewWithId: Review = {
       ...newReview,
       id: reviews.length + 1,
       reviewDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-      author: 'Current User', 
+      author: 'Current User',
     };
-    setReviews((prev) => [...prev, newReviewWithId]);
+    setReviews(prev => [...prev, newReviewWithId]);
     setIsReviewModalOpen(false);
     setSelectedBookingForReview(null);
     setActiveTab('reviews');
@@ -73,213 +70,254 @@ export default function Dashboard() {
     setIsBookingDetailsModalOpen(true);
   };
 
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex gap-1">
-        {[...Array(5)].map((_, i) => (
-          <span key={i} className={i < rating ? 'text-yellow-400 text-lg' : 'text-gray-300 text-lg'}>
-            ★
-          </span>
-        ))}
-      </div>
-    );
-  };
+  const renderStars = (rating: number) => (
+    <div className="flex gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <span key={i} className={i < rating ? 'text-amber-400 text-base' : 'text-gray-200 text-base'}>★</span>
+      ))}
+    </div>
+  );
 
-  // Get unique plantation names from past experiences for the review modal dropdown
-  const experiencedPlantationNames = Array.from(new Set(pastExperiences.map(booking => booking.plantationName)));
+  const experiencedPlantationNames = Array.from(new Set(pastExperiences.map(b => b.plantationName)));
+
+  const displayName = user?.name || user?.username || 'Traveller';
+  const avatarLetter = displayName[0]?.toUpperCase() ?? 'T';
+
+  const stats = [
+    { label: 'Total Bookings', value: allBookings.length, color: 'bg-[#D8F3DC] text-[#1B4332]' },
+    { label: 'Upcoming', value: upcomingExperiences.length, color: 'bg-[#B7E4C7] text-[#1B4332]' },
+    { label: 'Completed', value: pastExperiences.length, color: 'bg-[#95D5B2] text-[#1B4332]' },
+    { label: 'Reviews', value: reviews.length, color: 'bg-amber-100 text-amber-800' },
+  ];
 
   return (
-    <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      {/* Header */}
+    <div className="min-h-screen bg-[#F5F7F5] font-sans text-[#1B4332]">
       <Navbar />
 
-      {/* Main Content */}
-      <main className="py-16 px-12">
-        <div className="max-w-5xl mx-auto">
-          {/* Page Title */}
-          <div className="mb-12">
-            <h1 className="text-5xl font-bold font-serif text-center mb-4">My Dashboard</h1>
-            <p className="text-gray-600 text-center">View your bookings and reviews from Camellia plantations</p>
+      {/* Profile banner */}
+      <div className="bg-gradient-to-br from-[#1B4332] via-[#2D6A4F] to-[#40916C] text-white">
+        <div className="max-w-6xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center md:items-end gap-6">
+          <div className="w-24 h-24 rounded-full bg-[#52B788] flex items-center justify-center text-4xl font-bold shadow-lg ring-4 ring-white/20 shrink-0">
+            {avatarLetter}
           </div>
-
-          {/* Tab Buttons */}
-          <div className="flex gap-4 mb-12 justify-center">
-            <button
-              onClick={() => setActiveTab('bookings')}
-              className={`px-8 py-3 rounded-full font-semibold transition ${
-                activeTab === 'bookings'
-                  ? 'bg-[#52B788] text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Booking History
-            </button>
-            <button
-              onClick={() => setActiveTab('reviews')}
-              className={`px-8 py-3 rounded-full font-semibold transition ${
-                activeTab === 'reviews'
-                  ? 'bg-[#52B788] text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              My Reviews
-            </button>
+          <div className="text-center md:text-left">
+            <p className="text-[#95D5B2] text-sm font-medium uppercase tracking-widest mb-1">My Account</p>
+            <h1 className="text-4xl font-bold leading-tight">{displayName}</h1>
+            {user?.email && <p className="text-[#B7E4C7] mt-1 text-sm">{user.email}</p>}
           </div>
+        </div>
+      </div>
 
-          {/* Content Sections */}
-          {activeTab === 'bookings' && (
-            <div className="space-y-12">
-              {/* Upcoming Experiences */}
-              <section>
-                <h2 className="text-3xl font-bold mb-6 text-[#1B4332]">Upcoming Experiences</h2>
-                {upcomingExperiences.length > 0 ? (
-                  <div className="space-y-4">
-                    {upcomingExperiences.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="bg-white border-l-4 border-[#52B788] rounded-r-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition"
-                        onClick={() => handleOpenBookingDetails(booking)}
-                      >
-                        <p className="font-semibold text-xl text-[#1B4332]">{booking.plantationName}</p>
-                        <p className="text-gray-600 text-sm mt-1">{booking.date} at {booking.time}</p>
-                        <p className="text-gray-500 text-xs mt-1">Ref: {booking.bookingReference}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600 text-lg">No upcoming experiences found.</p>
-                  </div>
-                )}
-              </section>
-
-              {/* Past Experiences */}
-              <section className="mt-12">
-                <h2 className="text-3xl font-bold mb-6 text-[#1B4332]">Past Experiences</h2>
-                {pastExperiences.length > 0 ? (
-                  <div className="space-y-4">
-                    {pastExperiences.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="bg-white border-l-4 border-[#2D6A4F] rounded-r-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition"
-                        onClick={() => handleOpenBookingDetails(booking)}
-                      >
-                        <p className="font-semibold text-xl text-[#1B4332]">{booking.plantationName}</p>
-                        <p className="text-gray-600 text-sm mt-1">{booking.date} at {booking.time}</p>
-                        <p className="text-gray-500 text-xs mt-1">Ref: {booking.bookingReference}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg">
-                    <p className="text-gray-600 text-lg">No past experiences yet.</p>
-                  </div>
-                )}
-              </section>
+      {/* Stats row */}
+      <div className="max-w-6xl mx-auto px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 -mt-6">
+          {stats.map(stat => (
+            <div key={stat.label} className={`${stat.color} rounded-2xl p-5 shadow-md text-center`}>
+              <p className="text-3xl font-bold">{stat.value}</p>
+              <p className="text-sm font-medium mt-1 opacity-80">{stat.label}</p>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
 
-          {activeTab === 'reviews' && (
-            <div className="space-y-8">
-              <h2 className="text-3xl font-bold mb-6 text-[#1B4332]">My Reviews</h2>
-              {reviews.length > 0 ? (
-                reviews.map((review) => (
-                  <div key={review.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition p-6">
-                    <div className="flex gap-6">
-                      {/* Avatar/Placeholder */}
-                      <div className="flex-shrink-0 w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 text-3xl font-bold">
+      {/* Main content */}
+      <main className="max-w-6xl mx-auto px-8 py-10">
+
+        {/* Tab bar */}
+        <div className="bg-white rounded-2xl shadow-sm p-1.5 flex gap-1 w-fit mb-8">
+          {([['bookings', 'Booking History'], ['reviews', 'My Reviews']] as const).map(([tab, label]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-8 py-2.5 rounded-xl font-semibold text-sm transition ${
+                activeTab === tab
+                  ? 'bg-[#2D6A4F] text-white shadow'
+                  : 'text-gray-500 hover:text-[#2D6A4F]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Bookings tab ── */}
+        {activeTab === 'bookings' && (
+          <div className="space-y-10">
+
+            {/* Upcoming */}
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-1 h-6 bg-[#52B788] rounded-full" />
+                <h2 className="text-xl font-bold">Upcoming Experiences</h2>
+                <span className="ml-auto bg-[#D8F3DC] text-[#1B4332] text-xs font-bold px-3 py-1 rounded-full">
+                  {upcomingExperiences.length}
+                </span>
+              </div>
+
+              {upcomingExperiences.length > 0 ? (
+                <div className="grid gap-3">
+                  {upcomingExperiences.map(booking => (
+                    <button
+                      key={booking.id}
+                      onClick={() => handleOpenBookingDetails(booking)}
+                      className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-5 text-left w-full hover:shadow-md hover:border-[#52B788] border border-transparent transition"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-[#D8F3DC] flex items-center justify-center text-2xl shrink-0">🌿</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#1B4332] truncate">{booking.plantationName}</p>
+                        <p className="text-gray-500 text-sm mt-0.5">{booking.date} · {booking.time}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="inline-block bg-[#D8F3DC] text-[#2D6A4F] text-xs font-semibold px-3 py-1 rounded-full">Upcoming</span>
+                        <p className="text-gray-400 text-xs mt-1">#{booking.bookingReference}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-[#B7E4C7]">
+                  <p className="text-4xl mb-3">🌱</p>
+                  <p className="text-gray-500 font-medium">No upcoming experiences</p>
+                  <button
+                    onClick={() => navigate('/plantations')}
+                    className="mt-4 text-[#2D6A4F] font-semibold text-sm underline underline-offset-2"
+                  >
+                    Browse plantations →
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* Past */}
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-1 h-6 bg-gray-300 rounded-full" />
+                <h2 className="text-xl font-bold">Past Experiences</h2>
+                <span className="ml-auto bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full">
+                  {pastExperiences.length}
+                </span>
+              </div>
+
+              {pastExperiences.length > 0 ? (
+                <div className="grid gap-3">
+                  {pastExperiences.map(booking => (
+                    <button
+                      key={booking.id}
+                      onClick={() => handleOpenBookingDetails(booking)}
+                      className="bg-white rounded-2xl shadow-sm p-5 flex items-center gap-5 text-left w-full hover:shadow-md border border-transparent hover:border-gray-200 transition"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-2xl shrink-0 opacity-60">🌿</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-[#1B4332] truncate">{booking.plantationName}</p>
+                        <p className="text-gray-400 text-sm mt-0.5">{booking.date} · {booking.time}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="inline-block bg-gray-100 text-gray-500 text-xs font-semibold px-3 py-1 rounded-full">Completed</span>
+                        <p className="text-gray-400 text-xs mt-1">#{booking.bookingReference}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-12 text-center border-2 border-dashed border-gray-200">
+                  <p className="text-gray-400">No past experiences yet.</p>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+
+        {/* ── Reviews tab ── */}
+        {activeTab === 'reviews' && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="w-1 h-6 bg-amber-400 rounded-full" />
+                <h2 className="text-xl font-bold">My Reviews</h2>
+              </div>
+              <button
+                onClick={() => handleOpenReviewModal(null)}
+                className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-2.5 px-6 rounded-xl transition text-sm"
+              >
+                + Write a Review
+              </button>
+            </div>
+
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.map(review => (
+                  <div key={review.id} className="bg-white rounded-2xl shadow-sm p-6">
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-full bg-[#D8F3DC] flex items-center justify-center text-[#2D6A4F] text-xl font-bold shrink-0">
                         {review.author[0]}
                       </div>
-
-                      {/* Content */}
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-start justify-between gap-4">
                           <div>
-                            <h3 className="text-xl font-bold text-[#1B4332]">{review.author}</h3>
-                            <p className="text-sm text-gray-500">{review.plantationName} - 📅 {review.reviewDate}</p>
+                            <p className="font-bold text-[#1B4332]">{review.plantationName}</p>
+                            <p className="text-gray-400 text-xs mt-0.5">{review.reviewDate}</p>
                           </div>
-                          <div className="text-right">
-                            {renderStars(review.rating)}
-                          </div>
+                          {renderStars(review.rating)}
                         </div>
-
-                        <p className="text-gray-700 leading-relaxed italic mb-4">"{review.reviewText}"</p>
+                        <p className="text-gray-600 mt-3 leading-relaxed italic text-sm">"{review.reviewText}"</p>
                         {review.image && (
-                          <img
-                            src={review.image}
-                            alt="Review"
-                            className="w-32 h-32 object-cover rounded-lg mt-2"
-                          />
+                          <img src={review.image} alt="Review" className="w-28 h-28 object-cover rounded-xl mt-3" />
                         )}
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <p className="text-gray-600 text-lg">No reviews yet.</p>
-                  <p className="text-gray-500 mt-2">Complete an experience and share your thoughts!</p>
-                </div>
-              )}
-
-              {/* Add New Review button in 'My Reviews' tab */}
-              <div className="text-center mt-8">
-                <button
-                  onClick={() => handleOpenReviewModal(null)} 
-                  className="bg-[#52B788] hover:bg-[#40916c] text-white font-semibold py-3 px-8 rounded-lg transition text-lg"
-                >
-                  Write a New Review
-                </button>
+                ))}
               </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="mt-16 flex gap-6 justify-center">
-            <button
-              onClick={() => navigate('/plantations')}
-              className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-3 px-8 rounded-lg transition"
-            >
-              Explore More Plantations
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 px-8 rounded-lg transition"
-            >
-              Back to Home
-            </button>
+            ) : (
+              <div className="bg-white rounded-2xl p-16 text-center border-2 border-dashed border-gray-200">
+                <p className="text-5xl mb-4">⭐</p>
+                <p className="text-gray-500 font-medium">No reviews yet</p>
+                <p className="text-gray-400 text-sm mt-1">Complete an experience and share your thoughts!</p>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Bottom actions */}
+        <div className="mt-14 flex flex-wrap gap-4 justify-center">
+          <button
+            onClick={() => navigate('/plantations')}
+            className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-3 px-8 rounded-xl transition"
+          >
+            Explore Plantations
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 font-semibold py-3 px-8 rounded-xl transition"
+          >
+            Back to Home
+          </button>
         </div>
       </main>
 
-      {/* Review Modal */}
+      <Footer />
+
       {isReviewModalOpen && (
         <ReviewModal
           isOpen={isReviewModalOpen}
           onClose={() => setIsReviewModalOpen(false)}
           onSubmit={handleReviewSubmit}
-         
           experiencedPlantations={experiencedPlantationNames}
-          initialSelectedPlantation={selectedBookingForReview?.plantationName || ''} 
+          initialSelectedPlantation={selectedBookingForReview?.plantationName || ''}
         />
       )}
 
-      {/* Booking Details Modal */}
       {isBookingDetailsModalOpen && selectedBookingDetails && (
         <BookingDetailsModal
           isOpen={isBookingDetailsModalOpen}
           onClose={() => setIsBookingDetailsModalOpen(false)}
           booking={selectedBookingDetails}
-        
-          onWriteReview={(bookingToReview) => {
-            setIsBookingDetailsModalOpen(false); 
+          onWriteReview={bookingToReview => {
+            setIsBookingDetailsModalOpen(false);
             handleOpenReviewModal(bookingToReview);
           }}
         />
       )}
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

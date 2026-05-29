@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react'; 
+import { plantationApi } from '../../services/api';
 
 
 interface Plantation {
@@ -78,10 +79,20 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     setIsLoading(true);
     setMessage('');
     
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log('Saving plantation details:', formData);
-    
     try {
+      await plantationApi.update(formData.id, {
+        name: formData.name,
+        address: formData.address,
+        description: formData.description,
+        detailed_description: formData.detailedDescription,
+        best_time_to_visit: formData.bestTime,
+        phone: formData.contact.phone,
+        email: formData.contact.email,
+        altitude: formData.highlights.altitude,
+        area: formData.highlights.area,
+        established_year: formData.highlights.established ? parseInt(formData.highlights.established, 10) : null,
+      });
+
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
       stored[formData.id] = formData;
       localStorage.setItem('plantations', JSON.stringify(stored));
@@ -96,12 +107,15 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
       } catch (e) {
       
       }
+
+      setMessage('Details updated successfully!');
+      setIsEditing(false);
     } catch (err) {
       console.error('Failed to persist plantation details:', err);
+      setMessage('Failed to update details. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setMessage('Details updated successfully!');
-    setIsEditing(false);
-    setIsLoading(false);
     
   };
 

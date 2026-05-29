@@ -40,13 +40,19 @@ export default function Navbar() {
         </div>
         {user ? (
           <div className="flex items-center gap-4">
-            <span className="text-gray-700 font-medium">Welcome, {user.username}!</span>
-            <Link to={dashboardPath} className="bg-[#2D6A4F] text-white px-10 py-3 rounded-md text-lg font-medium hover:bg-[#1B4332] transition">
+            <span className="text-gray-700 font-medium">Welcome, {user.username || user.name}!</span>
+            <Link to={dashboardPath} className="bg-[#2D6A4F] text-white px-8 py-3 rounded-md text-lg font-medium hover:bg-[#1B4332] transition">
               My Dashboard
+            </Link>
+            <Link
+              to="/plantation-request"
+              className="bg-white border border-[#2D6A4F] text-[#2D6A4F] px-8 py-3 rounded-md text-lg font-medium hover:bg-[#ECF3EC] transition"
+            >
+              Register Plantation
             </Link>
             <button
               onClick={handleLogOut}
-              className="bg-gray-400 text-white px-6 py-3 rounded-md text-lg font-medium hover:bg-gray-500 transition"
+              className="bg-gray-100 text-gray-600 px-6 py-3 rounded-md text-lg font-medium hover:bg-gray-200 transition"
             >
               Log Out
             </button>

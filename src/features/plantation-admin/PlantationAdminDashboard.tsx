@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { adminApi } from '../../services/api';
+import { adminApi, plantationApi } from '../../services/api';
 import { PLANTATION_DATA } from '../tourist/PlantationDetail'; // Re-using existing mock data for now
 import PlantationDetailsManagement from './PlantationDetailsManagement';
 import PlantationMediaManagement from '../plantation-admin/PlantationMediaManagement';
@@ -70,51 +70,57 @@ export default function PlantationAdminDashboard() {
   };
 
   useEffect(() => {
-    
-    // For this mock, check localStorage list and also enforce password-change requirement.
-    if (user) {
-      const plantations: any[] = JSON.parse(
-        localStorage.getItem('superAdminPlantations') || '[]'
-      );
-      const found = plantations.find((p) => p.adminUsername === user.username);
-      if (found) {
-        setPlantationAdmin({
-          username: found.adminUsername,
-          email: user.email,
-          plantationId: found.id,
-        });
-        if (!found.passwordChanged) {
-          // force them to update their password first
-          navigate('/plantation-admin/change-password');
-        }
-
-        // Base plantation data from mock dataset
-        let plantData = PLANTATION_DATA[found.id];
-
-        // Also check localStorage for updated plantation data and merge any partial updates
-        try {
-          const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
-          if (storedPlantations[found.id]) {
-            plantData = {
-              ...plantData,
-              ...storedPlantations[found.id],
-            };
-          }
-        } catch (e) {
-          console.error('Failed to load plantation from localStorage:', e);
-        }
-
-        setPlantation(plantData);
-
-        // If plantation details are incomplete, show setup form
-        if (isPlantationIncomplete(plantData)) {
-          setShowSetup(true);
-        }
-      } else {
-        // If logged in but not a plantation admin, redirect or show error
-        alert("You don't have permission to access the admin dashboard.");
-        navigate('/dashboard'); // Redirect to tourist dashboard or home
+    if (user && user.role === 'plantationadmin') {
+      if (!user.plantationId) {
+        alert("Your account is not associated with any plantation.");
+        navigate('/');
+        return;
       }
+      
+      setPlantationAdmin({
+        username: user.username || user.email,
+        email: user.email,
+        plantationId: user.plantationId,
+      });
+
+      // Try to load plantation data from backend or local storage
+      const loadPlantationData = async () => {
+        try {
+          const response = await plantationApi.getById(user.plantationId!);
+          const plantData = response.data?.data;
+          setPlantation(plantData);
+
+          if (isPlantationIncomplete(plantData)) {
+            setShowSetup(true);
+          }
+        } catch (error) {
+          console.error("Failed to load plantation from backend:", error);
+          // Fallback to local storage if API fails (e.g. detailed_description is null and getById fails)
+          let plantData = PLANTATION_DATA[user.plantationId!] || {};
+          try {
+            const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
+            if (storedPlantations[user.plantationId!]) {
+              plantData = {
+                ...plantData,
+                ...storedPlantations[user.plantationId!],
+              };
+            }
+          } catch (e) {
+             // ignore
+          }
+          setPlantation(plantData);
+          if (isPlantationIncomplete(plantData)) {
+            setShowSetup(true);
+          }
+        }
+      };
+
+      loadPlantationData();
+      
+    } else if (user) {
+      // If logged in but not a plantation admin, redirect or show error
+      alert("You don't have permission to access the admin dashboard.");
+      navigate('/dashboard'); // Redirect to tourist dashboard or home
     } else {
       // If not logged in, redirect to sign-in or home
       navigate('/');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../services/api';
 
 export default function PlantationAdminLogin() {
   const navigate = useNavigate();
@@ -9,7 +10,7 @@ export default function PlantationAdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
@@ -23,8 +24,26 @@ export default function PlantationAdminLogin() {
       return;
     }
 
-    signIn({ username, email: `${username}@camellia.com`, role: 'plantationadmin', plantationId: '1', token: undefined });
-    navigate('/plantation-admin/dashboard');
+    try {
+      // 1. Authenticate with backend to get local JWT token
+      const response = await authApi.adminLogin({ username, password });
+      const { token, user } = response.data;
+
+      // 2. Update AuthContext with verified user
+      signIn({ 
+        id: user.id,
+        username: user.username,
+        email: user.email, 
+        role: user.role, 
+        plantationId: user.plantationId, 
+        token: token 
+      });
+
+      navigate('/plantation-admin/dashboard');
+    } catch (err: any) {
+      console.error('Admin login failed:', err);
+      setError(err.response?.data?.error || 'Invalid username or password.');
+    }
   };
 
   return (

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
+import { plantationApi } from '../../services/api';
 
 interface SetupFormData {
   name: string;
@@ -116,49 +117,62 @@ export default function PlantationSetup({ plantationId, onSetupComplete }: Plant
     }
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Create complete plantation object
-    const completePlantation = {
-      id: plantationId,
-      name: formData.name,
-      address: formData.address,
-      description: formData.description,
-      detailedDescription: formData.detailedDescription,
-      bestTime: formData.bestTime,
-      
-      contact: {
+    try {
+      await plantationApi.update(plantationId, {
+        name: formData.name,
+        address: formData.address,
+        description: formData.description,
+        detailed_description: formData.detailedDescription,
+        best_time_to_visit: formData.bestTime,
         phone: formData.phone,
         email: formData.email,
-      },
-      highlights: {
         altitude: formData.altitude,
         area: formData.area,
-        established: formData.established,
-        visitors: '0',
-      },
-      rating: 0,
-      reviews: 0,
-      features: [],
-      activities: [],
-      experiences: [],
-      price: '',
-      duration: '',
-    };
+        established_year: formData.established ? parseInt(formData.established, 10) : null,
+      });
 
-    // Save to localStorage
-    try {
+      // Create complete plantation object
+      const completePlantation = {
+        id: plantationId,
+        name: formData.name,
+        address: formData.address,
+        description: formData.description,
+        detailedDescription: formData.detailedDescription,
+        bestTime: formData.bestTime,
+        
+        contact: {
+          phone: formData.phone,
+          email: formData.email,
+        },
+        highlights: {
+          altitude: formData.altitude,
+          area: formData.area,
+          established: formData.established,
+          visitors: '0',
+        },
+        rating: 0,
+        reviews: 0,
+        features: [],
+        activities: [],
+        experiences: [],
+        price: '',
+        duration: '',
+      };
+
+      // Save to localStorage
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
       stored[plantationId] = completePlantation;
       localStorage.setItem('plantations', JSON.stringify(stored));
+
+      onSetupComplete(completePlantation);
+      navigate('/plantation-admin/dashboard');
     } catch (err) {
       console.error('Failed to save plantation details:', err);
+      setErrors({ submit: 'Failed to save details to the server. Please try again.' });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-    onSetupComplete(completePlantation);
-    navigate('/plantation-admin/dashboard');
   };
 
   return (

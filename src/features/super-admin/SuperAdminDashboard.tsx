@@ -1,20 +1,14 @@
-
-
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import {
-  Eye,
-  UserPlus,
-  Mail,
-  CheckCircle,
-  BarChart2,
-  LogOut,
-  LayoutDashboard
+  Eye, Mail, CheckCircle, BarChart2, LogOut, LayoutDashboard, Clock,
 } from 'lucide-react';
-import PlantationDetailModal from './PlantationDetailModal'; 
+import PlantationDetailModal from './PlantationDetailModal';
+
+// ── Types ───────────────────────────────────────────────────────────────────
 
 export interface Plantation {
   image: string;
@@ -23,14 +17,14 @@ export interface Plantation {
   name: string;
   owner: string;
   businessReg: string;
-  adminUsername: string; 
-  adminPassword?: string; 
-  passwordChanged?: boolean; 
-  address: string; 
-  telephone: string; 
+  adminUsername: string;
+  passwordChanged: boolean;
+  address: string;
+  telephone: string;
   email: string;
-  isDisabled: boolean; 
-  registeredYear: number; 
+  isDisabled: boolean;
+  isPublished: boolean;
+  registeredYear: number;
 }
 
 interface ContactRequest {
@@ -42,907 +36,651 @@ interface ContactRequest {
   status: 'pending' | 'resolved';
 }
 
+interface ApprovalResult {
+  plantationName: string;
+  email: string;
+  username: string;
+  password: string;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export default function SuperAdminDashboard() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    'plantations' | 'registerPlantation' | 'contactRequests'
-  >('plantations');
-  
-  const [plantations, setPlantations] = useState<Plantation[]>(() => {
-    const storedPlantations = localStorage.getItem('superAdminPlantations');
-    return storedPlantations ? JSON.parse(storedPlantations) : [];
-  });
-  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+  const navigate  = useNavigate();
+  const { user, logOut } = useAuth();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'plantations' | 'requests' | 'contactRequests'>('plantations');
+
+  // Plantations
+  const [plantations, setPlantations] = useState<Plantation[]>([]);
   const [selectedPlantation, setSelectedPlantation] = useState<Plantation | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  
-  const [newPlantation, setNewPlantation] = useState({
-    name: '',
-    owner: '',
-    businessReg: '',
-    address: '',
-    telephone: '',
-    email: '',
-  });
-  const [regErrors, setRegErrors] = useState<Record<string, string>>({});
-  const [regSuccess, setRegSuccess] = useState(false);
+  // Pending requests
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
+
+  // Contact requests (local only for now)
+  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+
+  // Approval credentials modal
+  const [approvalResult, setApprovalResult] = useState<ApprovalResult | null>(null);
+
+  // Rejection modal
+  const [rejectingId, setRejectingId]     = useState<string | null>(null);
+  const [rejectReason, setRejectReason]   = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
+
+  // Approve in-progress set (to disable button while calling API)
+  const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+
+  // ── Data fetchers ─────────────────────────────────────────────────────────
+
+  const fetchPlantations = async () => {
+    try {
+      const res = await adminApi.getAllPlantations();
+      const fetched: Plantation[] = (res.data?.data || []).map((item: any) => ({
+        id:              String(item.id || ''),
+        name:            item.name || 'Unnamed Plantation',
+        owner:           item.owner || 'Unknown',
+        businessReg:     item.business_reg || item.businessReg || '',
+        adminUsername:   item.admin_username || '',
+        passwordChanged: Boolean(item.password_changed),
+        address:         item.address || '',
+        telephone:       item.telephone || item.phone || '',
+        email:           item.email || '',
+        isDisabled:      Boolean(item.is_disabled),
+        isPublished:     Boolean(item.is_published),
+        registeredYear:  item.registered_year || new Date(item.created_at).getFullYear(),
+        image:           item.main_image_url || item.image || '',
+        description:     item.description || '',
+      }));
+      setPlantations(fetched);
+    } catch {
+      setPlantations([]);
+    }
+  };
 
   const fetchPendingRequests = async () => {
     setRequestsLoading(true);
     try {
       const res = await adminApi.getPendingRequests();
       setPendingRequests(res.data.requests || []);
-    } catch (error) {
-      console.error('Failed to load pending requests:', error);
+    } catch (err: any) {
+      console.error('[Dashboard] fetchPendingRequests failed:', err?.response?.status, err?.response?.data || err?.message);
       setPendingRequests([]);
     } finally {
       setRequestsLoading(false);
     }
   };
 
-  const fetchPlantations = async () => {
-    try {
-      const response = await apiClient.get('/plantations');
-      const fetched: Plantation[] = (response.data?.data || []).map((item: any) => ({
-        id: String(item.id || item.plantation_id || ''),
-        name: item.name || 'Unnamed Plantation',
-        owner: item.owner || 'Unknown',
-        businessReg: item.business_reg || item.businessReg || '',
-        adminUsername: item.admin_username || '',
-        adminPassword: '',
-        passwordChanged: false,
-        address: item.address || '',
-        telephone: item.telephone || '',
-        email: item.email || '',
-        isDisabled: Boolean(item.is_disabled),
-        registeredYear: item.registered_year || new Date().getFullYear(),
-        image: item.main_image_url || item.image || '',
-        description: item.description || '',
-      }));
-      setPlantations(fetched);
-    } catch (error) {
-      console.error('Failed to load plantations:', error);
-      setPlantations([]);
-    }
-  };
-
   useEffect(() => {
     if (!user || user.role !== 'superadmin') {
-      alert("You don't have permission to access the Super Admin dashboard.");
       navigate('/');
       return;
     }
-
     void fetchPlantations();
-    fetchPendingRequests();
+    void fetchPendingRequests();
   }, [user, navigate]);
 
-  
-  useEffect(() => {
-    localStorage.setItem('superAdminPlantations', JSON.stringify(plantations));
-  }, [plantations]);
+  // ── Plantation management ─────────────────────────────────────────────────
 
-  
-  const setStoredPassword = (username: string, password: string) => {
-    const map = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
-    map[username] = password;
-    localStorage.setItem('plantationPasswords', JSON.stringify(map));
+  const handleViewDetails = (p: Plantation) => {
+    setSelectedPlantation(p);
+    setIsModalOpen(true);
   };
 
-  
-  useEffect(() => {
-   
-    const existingMap = JSON.parse(localStorage.getItem('plantationPasswords') || '{}');
-    let updated = false;
-    plantations.forEach((p) => {
-      if (p.adminUsername && p.adminPassword && !existingMap[p.adminUsername]) {
-        existingMap[p.adminUsername] = p.adminPassword;
-        updated = true;
-      }
-    });
-    if (updated) {
-      localStorage.setItem('plantationPasswords', JSON.stringify(existingMap));
+  const handleUpdatePlantation = (updated: Plantation) => {
+    setPlantations(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setSelectedPlantation(updated);
+  };
+
+
+  // ── Approve / Reject ──────────────────────────────────────────────────────
+
+  const handleApprove = async (requestId: string) => {
+    setApprovingIds(prev => new Set(prev).add(requestId));
+    try {
+      const res = await adminApi.approvePlantationRequest(requestId);
+      const { plantation, adminUser } = res.data.data;
+      setApprovalResult({
+        plantationName: plantation.name,
+        email:          plantation.email,
+        username:       adminUser.username,
+        password:       adminUser.plainPassword,
+      });
+      void fetchPendingRequests();
+      void fetchPlantations();
+    } catch (err: any) {
+      alert(`Approval failed: ${err?.response?.data?.error || err.message}`);
+    } finally {
+      setApprovingIds(prev => { const s = new Set(prev); s.delete(requestId); return s; });
     }
-  }, []);
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectingId) return;
+    setRejectLoading(true);
+    try {
+      await adminApi.rejectPlantationRequest(rejectingId, rejectReason);
+      setRejectingId(null);
+      setRejectReason('');
+      void fetchPendingRequests();
+    } catch (err: any) {
+      alert(`Rejection failed: ${err?.response?.data?.error || err.message}`);
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
+  // ── Chart ─────────────────────────────────────────────────────────────────
+
+  const chartData = (() => {
+    const years = plantations.map(p => p.registeredYear);
+    const cur   = new Date().getFullYear();
+    const min   = Math.min(...years, cur - 2);
+    const max   = Math.max(...years, cur);
+    return Array.from({ length: max - min + 1 }, (_, i) => {
+      const y = min + i;
+      return { year: y, count: years.filter(yr => yr === y).length };
+    });
+  })();
+
+  const maxCount = Math.max(...chartData.map(d => d.count), 1);
+
+  // ── Guard ─────────────────────────────────────────────────────────────────
 
   if (!user || user.role !== 'superadmin') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-xl text-gray-700">Access Denied or Redirecting...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Access denied.</p>
       </div>
     );
   }
 
-  // --- Chart Data Preparation ---
-  const getChartData = () => {
-    const years = Array.from(new Set(plantations.map(p => p.registeredYear))).sort((a,b) => a - b);
-    const currentYear = new Date().getFullYear();
-    const minYear = Math.min(...years, currentYear - 2); 
-    const maxYear = Math.max(...years, currentYear + 2); 
-    
-    const allYears = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
+  // ── Render ────────────────────────────────────────────────────────────────
 
-    const data = allYears.map(year => ({
-      year: year,
-      plantations: plantations.filter(p => p.registeredYear === year).length
-    }));
-
-    return data;
-  };
-
-  const chartData = getChartData();
-
-  // --- Plantation Management Functions ---
-  const handleViewDetails = (plantation: Plantation) => {
-    setSelectedPlantation(plantation);
-    setIsModalOpen(true);
-  };
-
-  const handleUpdatePlantation = (updatedPlantation: Plantation) => {
-    const original = plantations.find((p) => p.id === updatedPlantation.id);
-    
-    setPlantations((prev) =>
-      prev.map((p) => (p.id === updatedPlantation.id ? updatedPlantation : p))
-    );
-   
-    setSelectedPlantation(updatedPlantation);
-
-    
-    if (original && !original.passwordChanged && updatedPlantation.passwordChanged) {
-      const clearedPlantation = { ...updatedPlantation, adminPassword: '' };
-      setPlantations((prev) =>
-        prev.map((p) => (p.id === updatedPlantation.id ? clearedPlantation : p))
-      );
-      setSelectedPlantation(clearedPlantation);
-    }
-
-   
-    if (original && original.adminUsername !== updatedPlantation.adminUsername) {
-      const map: Record<string, string> = JSON.parse(
-        localStorage.getItem('plantationPasswords') || '{}'
-      );
-      if (map[original.adminUsername]) {
-        map[updatedPlantation.adminUsername] = map[original.adminUsername];
-        delete map[original.adminUsername];
-        localStorage.setItem('plantationPasswords', JSON.stringify(map));
-      }
-    }
-
-    
-    if (updatedPlantation.adminPassword && !updatedPlantation.passwordChanged) {
-      setStoredPassword(updatedPlantation.adminUsername, updatedPlantation.adminPassword);
-    }
-  };
-
-  const handleGenerateCredentials = (plantation: Plantation) => {
-    if (plantation.passwordChanged) {
-      alert('Cannot generate new credentials after the administrator has changed their password.');
-      return;
-    }
-
-    const generatedUsername = `admin_${plantation.id}`;
-    const generatedPassword = Math.random().toString(36).slice(-8); 
-
-    
-    const updatedPlantation: Plantation = {
-      ...plantation,
-      adminUsername: generatedUsername,
-      adminPassword: generatedPassword,
-      passwordChanged: false,
-    };
-    handleUpdatePlantation(updatedPlantation); 
-   
-    setStoredPassword(generatedUsername, generatedPassword);
-
-    alert(
-      `NEW Credentials for ${plantation.name}:\nUsername: ${generatedUsername}\nPassword: ${generatedPassword}\n\nYou can copy these credentials from the plantation details. Once the administrator changes their password, you will no longer be able to see it.`
-    );
-  };
-
-  // --- Register Plantation Form Handlers ---
-  const handleRegChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewPlantation((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    if (regErrors[name]) {
-      setRegErrors((prev) => ({
-        ...prev,
-        [name]: '',
-      }));
-    }
-  };
-
-  const validateRegForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!newPlantation.name.trim())
-      newErrors.name = 'Plantation Name is required';
-    if (!newPlantation.owner.trim()) newErrors.owner = 'Owner Name is required';
-    if (!newPlantation.businessReg.trim())
-      newErrors.businessReg = 'Business Registration Number is required';
-    if (!newPlantation.address.trim()) newErrors.address = 'Address is required';
-    if (!newPlantation.telephone.trim())
-      newErrors.telephone = 'Telephone Number is required';
-    else if (!/^[\d\s\-\+\(\)]+$/.test(newPlantation.telephone)) {
-      newErrors.telephone = 'Please enter a valid telephone number';
-    }
-    if (!newPlantation.email.trim()) newErrors.email = 'Email Address is required';
-    else if (!/\S+@\S+\.\S+/.test(newPlantation.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    return newErrors;
-  };
-
-  const handleRegisterPlantation = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const errors = validateRegForm();
-    if (Object.keys(errors).length > 0) {
-      setRegErrors(errors);
-      return;
-    }
-
-    const newId = (plantations.length + 1).toString();
-    const currentYear = new Date().getFullYear();
-    const generatedUsername = `admin_${newId}`;
-    const generatedPassword = Math.random().toString(36).slice(-8);
-
-    const newPlantationEntry: Plantation = {
-      id: newId,
-      name: newPlantation.name,
-      owner: newPlantation.owner,
-      businessReg: newPlantation.businessReg,
-      adminUsername: generatedUsername,
-      adminPassword: generatedPassword, 
-      passwordChanged: false,
-      address: newPlantation.address,
-      telephone: newPlantation.telephone,
-      email: newPlantation.email,
-      isDisabled: false, 
-      registeredYear: currentYear,
-      image: '',
-      description: undefined
-    };
-    // store password in map as well for login validation
-    setStoredPassword(generatedUsername, generatedPassword);
-
-    setPlantations((prev) => [...prev, newPlantationEntry]);
-    setRegSuccess(true);
-
-    // Display credentials once
-    alert(
-      `NEW plantation registered. Credentials for ${newPlantationEntry.name}:\n` +
-        `Username: ${generatedUsername}\nPassword: ${generatedPassword}\n\n` +
-        'You can copy these credentials from the plantation details. Once the administrator changes their password, you will no longer be able to see it.'
-    );
-
-    setNewPlantation({
-      name: '',
-      owner: '',
-      businessReg: '',
-      address: '',
-      telephone: '',
-      email: '',
-    });
-    setRegErrors({});
-
-    setTimeout(() => setRegSuccess(false), 3000);
-  };
-
-  // --- Contact Request Management Functions ---
-  const handleResolveRequest = (id: string) => {
-    setContactRequests((prev) =>
-      prev.map((req) => (req.id === id ? { ...req, status: 'resolved' } : req))
-    );
-    alert('Contact request marked as resolved.');
-  };
-
-  const handleApprovePlantationRequest = async (requestId: string, adminUsername: string, adminPassword: string) => {
-    try {
-      const res = await adminApi.approvePlantationRequest(requestId, adminUsername, adminPassword);
-      const approvedId = res.data.plantation?.id || requestId;
-      alert(`Plantation approved! Plantation ID: ${approvedId}\nAdmin Username: ${adminUsername}`);
-      // Refresh pending requests
-      fetchPendingRequests();
-    } catch (error: any) {
-      alert(`Failed to approve request: ${error.response?.data?.error || error.message}`);
-    }
-  };
-
-  const { logOut } = useAuth();
-  
   return (
     <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
+
       {/* Sidebar */}
       <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
         <div className="p-6 border-b border-[#2D6A4F]">
           <div className="flex items-center gap-3">
-            <LayoutDashboard className="h-8 w-8 text-green-300" />
-            <h1 className="text-2xl font-bold font-serif whitespace-nowrap">Super Admin</h1>
+            <LayoutDashboard className="h-7 w-7 text-green-300" />
+            <h1 className="text-xl font-bold font-serif">Super Admin</h1>
           </div>
-          <p className="text-green-200 text-xs mt-2 pl-11">Camellia Platform</p>
+          <p className="text-green-300 text-xs mt-1 pl-10">Camellia Platform</p>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <button
-            onClick={() => setActiveTab('plantations')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'plantations'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <BarChart2 size={20} /> Plantations
-          </button>
-          <button
-            onClick={() => setActiveTab('registerPlantation')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'registerPlantation'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <UserPlus size={20} /> Register
-          </button>
-          <button
-            onClick={() => setActiveTab('contactRequests')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'contactRequests'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <Mail size={20} /> Contact Requests
-          </button>
+
+        <nav className="flex-1 p-4 space-y-1">
+          {[
+            { key: 'plantations',    icon: <BarChart2 size={18} />, label: 'Plantations',        badge: null },
+            { key: 'requests',       icon: <Clock size={18} />,     label: 'Pending Requests',   badge: pendingRequests.length || null },
+            { key: 'contactRequests',icon: <Mail size={18} />,      label: 'Contact Requests',   badge: null },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === tab.key
+                  ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                  : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+              }`}
+            >
+              <span className="flex items-center gap-3">{tab.icon}{tab.label}</span>
+              {tab.badge ? (
+                <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {tab.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
         </nav>
-        
+
         <div className="p-4 border-t border-[#2D6A4F]">
+          <div className="px-4 py-2 mb-2">
+            <p className="text-green-200 text-xs">Signed in as</p>
+            <p className="text-white text-sm font-semibold truncate">{user.username || user.name}</p>
+          </div>
           <button
             onClick={() => logOut()}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
           >
-            <LogOut size={20} /> Log Out
+            <LogOut size={18} /> Log Out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-8 md:p-12 overflow-x-hidden">
-        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Main */}
+      <main className="flex-1 p-8 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto space-y-6">
+
           {/* Header */}
-          <header className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
+          <header className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex justify-between items-center">
             <div>
-              <h2 className="text-3xl font-bold text-[#1B4332] font-serif">
-                {activeTab === 'plantations' && 'Plantations Overview'}
-                {activeTab === 'registerPlantation' && 'Register Plantation'}
+              <h2 className="text-2xl font-bold text-[#1B4332] font-serif">
+                {activeTab === 'plantations'    && 'Plantations Overview'}
+                {activeTab === 'requests'        && 'Pending Plantation Requests'}
                 {activeTab === 'contactRequests' && 'Contact Requests'}
               </h2>
-              <p className="text-gray-500 text-sm mt-1">Manage the Camellia ecosystem</p>
+              <p className="text-gray-400 text-xs mt-0.5">Camellia Platform Management</p>
             </div>
-            <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-full border border-green-100">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-sm font-semibold text-green-800">System Active</span>
+            <div className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full border border-green-100">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-semibold text-green-800">System Active</span>
             </div>
           </header>
 
-          {/* Tab Content */}
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
-            {activeTab === 'plantations' && (
-              <div>
-                <h2 className="text-3xl font-bold mb-6 text-center">
-                  Total Plantations <span className="text-[#2D6A4F]">({plantations.length})</span>
-                </h2>
-
-                {/* Bar Chart */}
-                <div className="bg-white rounded-lg p-6 mb-8 shadow">
-                  <h3 className="text-lg font-semibold text-center mb-4">Plantations Registered Per Year</h3>
-                  <div className="h-64 flex items-end justify-around p-4 text-sm text-gray-600 border-b border-l border-gray-300 relative">
-                    {/* Y-axis label */}
-                    <span className="absolute -left-20 bottom-1/2 -rotate-90 origin-center text-xs font-semibold">Number of Plantations</span>
-                    
-                    {/* Y-axis ticks (simplified) */}
-                    <div className="absolute left-0 h-full w-px bg-gray-300"></div>
-                    <div className="absolute left-0 bottom-0 w-full h-px bg-gray-300"></div>
-
-                    {chartData.map((dataPoint, index) => (
-                      <div key={index} className="relative h-full w-1/5 flex flex-col justify-end items-center mx-2">
-                        <div
-                          className="w-full rounded-t-md bg-[#2D6A4F] transition-all duration-300"
-                          style={{ height: `${(dataPoint.plantations / Math.max(...chartData.map(d => d.plantations), 1)) * 90}%` }} // Scale height
-                        ></div>
-                        {dataPoint.plantations > 0 && (
-                          <span className="absolute top-0 -mt-6 text-xs font-bold text-[#1B4332]">
-                            {dataPoint.plantations}
-                          </span>
-                        )}
-                        <span className="mt-2 text-xs font-semibold">{dataPoint.year}</span>
-                      </div>
-                    ))}
-                    {/* X-axis label */}
-                    <span className="absolute bottom-[-30px] left-1/2 -translate-x-1/2 text-xs font-semibold">Year</span>
+          {/* ── Plantations tab ───────────────────────────────────────────── */}
+          {activeTab === 'plantations' && (
+            <div className="space-y-6">
+              {/* Stats */}
+              <div className="grid grid-cols-4 gap-4">
+                {[
+                  { label: 'Total Plantations', value: plantations.length },
+                  { label: 'Active',             value: plantations.filter(p => p.isPublished && !p.isDisabled).length },
+                  { label: 'Pending Setup',      value: plantations.filter(p => !p.isPublished).length },
+                  { label: 'Pending Requests',   value: pendingRequests.length },
+                ].map(s => (
+                  <div key={s.label} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 text-center">
+                    <p className="text-3xl font-bold text-[#1B4332]">{s.value}</p>
+                    <p className="text-gray-400 text-sm mt-1">{s.label}</p>
                   </div>
-                </div>
+                ))}
+              </div>
 
-
-                <div className="overflow-x-auto bg-white rounded-lg shadow p-4">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          ID
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Plantation Name
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Owner
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Business Reg
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Admin Username
-                        </th>
-                         <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Status
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {plantations.map((plantation) => (
-                        <tr key={plantation.id} className={plantation.isDisabled ? 'bg-gray-100 text-gray-500' : ''}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            #{plantation.id}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {plantation.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {plantation.owner}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {plantation.businessReg}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {plantation.adminUsername}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${plantation.isDisabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                              {plantation.isDisabled ? 'Disabled' : 'Active'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleViewDetails(plantation)}
-                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                              >
-                                <Eye className="h-4 w-4 mr-1" /> View
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {/* Bar chart */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-base font-semibold mb-5">Plantations Registered Per Year</h3>
+                <div className="flex items-end gap-4 h-40">
+                  {chartData.map(d => (
+                    <div key={d.year} className="flex flex-col items-center gap-1 flex-1">
+                      <span className="text-xs font-bold text-[#1B4332]">{d.count > 0 ? d.count : ''}</span>
+                      <div
+                        className="w-full bg-[#2D6A4F] rounded-t-md transition-all"
+                        style={{ height: `${(d.count / maxCount) * 100}%`, minHeight: d.count ? 4 : 0 }}
+                      />
+                      <span className="text-xs text-gray-400">{d.year}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {activeTab === 'registerPlantation' && (
-              <div className="space-y-8">
-                {/* Pending Requests Section */}
-                <div className="max-w-4xl mx-auto">
-                  <h2 className="text-3xl font-bold mb-6 text-center">
-                    Pending Plantation Requests
-                  </h2>
-                  {requestsLoading && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-600">Loading pending requests...</p>
-                    </div>
-                  )}
-                  {!requestsLoading && pendingRequests.length === 0 && (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <p className="text-gray-600">No pending requests</p>
-                    </div>
-                  )}
-                  {!requestsLoading && pendingRequests.length > 0 && (
-                    <div className="space-y-4">
-                      {pendingRequests.map((request: any) => (
-                        <div key={request.id} className="border border-gray-300 rounded-lg p-6 bg-white hover:shadow-md transition">
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <p className="text-sm text-gray-600">Plantation Name</p>
-                              <p className="font-semibold">{request.name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Owner</p>
-                              <p className="font-semibold">{request.owner_name}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Email</p>
-                              <p className="font-semibold">{request.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Telephone</p>
-                              <p className="font-semibold">{request.telephone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Business Reg</p>
-                              <p className="font-semibold">{request.business_reg}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-600">Address</p>
-                              <p className="font-semibold">{request.address}</p>
-                            </div>
+              {/* Plantations table */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['Plantation', 'Owner', 'Admin Username', 'Status', 'Actions'].map(h => (
+                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {plantations.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center text-gray-400">No plantations yet</td>
+                      </tr>
+                    )}
+                    {plantations.map(p => (
+                      <tr key={p.id} className={p.isDisabled ? 'bg-gray-50 text-gray-400' : ''}>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            {p.image ? (
+                              <img src={p.image} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-xs font-bold text-green-700">
+                                {p.name[0]}
+                              </div>
+                            )}
+                            <span className="font-medium text-sm">{p.name}</span>
                           </div>
-                          <div className="mb-4">
-                            <p className="text-sm text-gray-600">Description</p>
-                            <p className="text-gray-700">{request.description}</p>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-600">{p.owner}</td>
+                        <td className="px-5 py-4 text-sm font-mono text-gray-600">
+                          <span>{p.adminUsername || '—'}</span>
+                          {p.passwordChanged && (
+                            <span className="ml-2 text-xs text-green-600 font-sans font-medium">✓ Password set</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          {p.isDisabled ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">Disabled</span>
+                          ) : p.isPublished ? (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pending Setup</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <button
+                            onClick={() => handleViewDetails(p)}
+                            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                          >
+                            <Eye size={14} /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ── Requests tab ──────────────────────────────────────────────── */}
+          {activeTab === 'requests' && (
+            <div>
+              {requestsLoading && (
+                <div className="flex justify-center py-16">
+                  <svg className="w-8 h-8 animate-spin text-[#2D6A4F]" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                </div>
+              )}
+
+              {!requestsLoading && pendingRequests.length === 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-20 text-center">
+                  <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No pending requests</p>
+                  <p className="text-gray-400 text-sm mt-1">New plantation registrations will appear here</p>
+                </div>
+              )}
+
+              <div className="space-y-5">
+                {pendingRequests.map((req: any) => (
+                  <div key={req.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    {/* Card top — image + heading */}
+                    <div className="flex gap-5 p-6 pb-4">
+                      {/* Plantation image */}
+                      <div className="shrink-0">
+                        {req.plantation_image_url ? (
+                          <img
+                            src={req.plantation_image_url}
+                            alt={req.name}
+                            className="w-24 h-24 rounded-xl object-cover border border-gray-100"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center">
+                            <span className="text-3xl">🌿</span>
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                const username = prompt('Enter admin username:', `admin_${request.id}`);
-                                const password = prompt('Enter admin password:', Math.random().toString(36).slice(-8));
-                                if (username && password) {
-                                  handleApprovePlantationRequest(request.id, username, password);
-                                }
-                              }}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm('Reject this request?')) {
-                                  alert('Rejection not yet implemented');
-                                }
-                              }}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                            >
-                              Reject
-                            </button>
+                        )}
+                      </div>
+
+                      {/* Main info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3 flex-wrap">
+                          <div>
+                            <h3 className="text-lg font-bold text-[#1B4332]">{req.name}</h3>
+                            <p className="text-sm text-gray-500">Owner: {req.owner_name}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              req.subscription_type === 'pro'
+                                ? 'bg-amber-100 text-amber-700'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {req.subscription_type === 'pro' ? '⭐ Pro Pack' : 'Starter Pack'}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(req.created_at).toLocaleDateString('en-LK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
                           </div>
                         </div>
-                      ))}
+
+                        {req.description && (
+                          <p className="text-sm text-gray-500 mt-2 line-clamp-2">{req.description}</p>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Details grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 px-6 pb-4">
+                      <Detail label="Business Reg" value={req.business_registration} />
+                      <Detail label="Email"         value={req.email} />
+                      <Detail label="Telephone"     value={req.telephone} />
+                      <Detail label="Address"       value={req.address} span={2} />
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Proof Document</p>
+                        {req.proof_document_url ? (
+                          <a
+                            href={req.proof_document_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-[#1B4332] font-medium underline underline-offset-2 hover:text-[#2D6A4F] flex items-center gap-1"
+                          >
+                            View Document
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">No document</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action bar */}
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+                      <button
+                        onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
+                        className="px-5 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleApprove(req.id)}
+                        disabled={approvingIds.has(req.id)}
+                        className="px-5 py-2 rounded-lg bg-[#1B4332] text-white text-sm font-semibold hover:bg-[#2D6A4F] transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {approvingIds.has(req.id) ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Approving…
+                          </>
+                        ) : 'Approve'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Contact Requests tab ──────────────────────────────────────── */}
+          {activeTab === 'contactRequests' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-100">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Name', 'Email', 'Subject', 'Message', 'Status', 'Actions'].map(h => (
+                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {contactRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-16 text-center text-gray-400">No contact requests</td>
+                    </tr>
                   )}
-                </div>
+                  {contactRequests.map(r => (
+                    <tr key={r.id}>
+                      <td className="px-5 py-4 text-sm font-medium">{r.name}</td>
+                      <td className="px-5 py-4 text-sm text-gray-600">{r.email}</td>
+                      <td className="px-5 py-4 text-sm text-gray-600">{r.subject}</td>
+                      <td className="px-5 py-4 text-sm text-gray-600 max-w-xs truncate">{r.message}</td>
+                      <td className="px-5 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>{r.status}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {r.status === 'pending' && (
+                          <button
+                            onClick={() => setContactRequests(prev => prev.map(x => x.id === r.id ? { ...x, status: 'resolved' } : x))}
+                            className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                          >
+                            Resolve
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-                {/* Register New Plantation Section */}
-                <div className="max-w-xl mx-auto border-t pt-8">
-                <h2 className="text-3xl font-bold mb-6 text-center">
-                  Register New Plantation
-                </h2>
-                {regSuccess && (
-                  <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
-                    <p className="font-semibold">
-                      Plantation registered successfully!
-                    </p>
-                  </div>
-                )}
-                <form onSubmit={handleRegisterPlantation} className="space-y-6">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-semibold mb-2"
-                    >
-                      Plantation Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={newPlantation.name}
-                      onChange={handleRegChange}
-                      placeholder="Pedro Tea Estate"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                        regErrors.name
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-green-500'
-                      }`}
-                    />
-                    {regErrors.name && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {regErrors.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="owner"
-                      className="block text-sm font-semibold mb-2"
-                    >
-                      Owner Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="owner"
-                      name="owner"
-                      value={newPlantation.owner}
-                      onChange={handleRegChange}
-                      placeholder="Rajesh Perera"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                        regErrors.owner
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-green-500'
-                      }`}
-                    />
-                    {regErrors.owner && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {regErrors.owner}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="businessReg"
-                      className="block text-sm font-semibold mb-2"
-                    >
-                      Business Registration Number{' '}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="businessReg"
-                      name="businessReg"
-                      value={newPlantation.businessReg}
-                      onChange={handleRegChange}
-                      placeholder="BRN-001-2020"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                        regErrors.businessReg
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-green-500'
-                      }`}
-                    />
-                    {regErrors.businessReg && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {regErrors.businessReg}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="address"
-                      className="block text-sm font-semibold mb-2"
-                    >
-                      Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="address"
-                      value={newPlantation.address}
-                      onChange={handleRegChange}
-                      placeholder="Pedro Tea Estate,Nuwara Eliya"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                        regErrors.address
-                          ? 'border-red-500 focus:ring-red-500'
-                          : 'border-gray-300 focus:ring-green-500'
-                      }`}
-                    />
-                    {regErrors.address && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {regErrors.address}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="telephone"
-                        className="block text-sm font-semibold mb-2"
-                      >
-                        Telephone Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        id="telephone"
-                        name="telephone"
-                        value={newPlantation.telephone}
-                        onChange={handleRegChange}
-                        placeholder="0342256789"
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                          regErrors.telephone
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-green-500'
-                        }`}
-                      />
-                      {regErrors.telephone && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {regErrors.telephone}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className="block text-sm font-semibold mb-2"
-                      >
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={newPlantation.email}
-                        onChange={handleRegChange}
-                        placeholder="raj@gmail.com"
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition ${
-                          regErrors.email
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-green-500'
-                        }`}
-                      />
-                      {regErrors.email && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {regErrors.email}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-3 px-6 rounded-lg transition duration-200 mt-6"
-                  >
-                    Register Plantation
-                  </button>
-                </form>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'contactRequests' && (
-              <div>
-                <h2 className="text-3xl font-bold mb-6 text-center">
-                  Contact Requests ({contactRequests.filter(req => req.status === 'pending').length} pending)
-                </h2>
-                <div className="overflow-x-auto bg-white rounded-lg shadow p-4">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          ID
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Name
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Email
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Subject
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Message
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Status
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {contactRequests.map((request) => (
-                        <tr key={request.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {request.id}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {request.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {request.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {request.subject}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 max-w-xs overflow-hidden text-ellipsis">
-                            {request.message}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                request.status === 'resolved'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}
-                            >
-                              {request.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {request.status === 'pending' && (
-                              <button
-                                onClick={() => handleResolveRequest(request.id)}
-                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                              >
-                                Resolve
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </main>
 
+      {/* ── Plantation detail modal ──────────────────────────────────────── */}
       {selectedPlantation && (
         <PlantationDetailModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           plantation={selectedPlantation}
           onUpdate={handleUpdatePlantation}
-          onGenerateNewCredentials={handleGenerateCredentials}
         />
+      )}
+
+      {/* ── Approval credentials modal ───────────────────────────────────── */}
+      {approvalResult && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-[#1B4332]">Plantation Approved!</h3>
+              <p className="text-gray-500 text-sm mt-1">
+                <strong>{approvalResult.plantationName}</strong> is now live on the platform.
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-2xl p-5 mb-5 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Generated Credentials</p>
+              <CredentialRow label="Username" value={approvalResult.username} />
+              <CredentialRow label="Password" value={approvalResult.password} secret />
+            </div>
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-6 flex items-start gap-2">
+              <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                Credentials have been emailed to <strong>{approvalResult.email}</strong>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setApprovalResult(null)}
+              className="w-full py-3 rounded-2xl bg-[#1B4332] text-white font-semibold hover:bg-[#2D6A4F] transition"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rejection reason modal ───────────────────────────────────────── */}
+      {rejectingId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h3 className="text-xl font-bold text-[#1B4332] mb-2">Reject Registration</h3>
+            <p className="text-gray-500 text-sm mb-5">
+              Provide a reason — it will be included in the rejection email to the applicant.
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              rows={4}
+              placeholder="e.g. The uploaded document is not a valid business registration certificate. Please resubmit with the correct document."
+              className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+            />
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                className="flex-1 py-2.5 rounded-2xl border border-gray-300 text-gray-600 font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectConfirm}
+                disabled={rejectLoading}
+                className="flex-1 py-2.5 rounded-2xl bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
+              >
+                {rejectLoading ? 'Rejecting…' : 'Reject Request'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
+// ── Small helpers ─────────────────────────────────────────────────────────────
+
+function Detail({ label, value, span }: { label: string; value: string; span?: number }) {
+  return (
+    <div className={span === 2 ? 'col-span-2' : ''}>
+      <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+      <p className="text-sm font-medium text-gray-700 truncate">{value || '—'}</p>
+    </div>
+  );
+}
+
+function CredentialRow({ label, value, secret }: { label: string; value: string; secret?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const [show, setShow]     = useState(!secret);
+
+  function copy() {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-sm font-mono font-bold text-[#1B4332] truncate">
+          {show ? value : '•'.repeat(value.length)}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {secret && (
+          <button onClick={() => setShow(s => !s)} className="text-gray-400 hover:text-gray-600 p-1">
+            {show ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            )}
+          </button>
+        )}
+        <button
+          onClick={copy}
+          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition ${
+            copied ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+          }`}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}

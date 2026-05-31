@@ -9,7 +9,6 @@ interface PlantationDetailModalProps {
   onClose: () => void;
   plantation: Plantation;
   onUpdate: (updatedPlantation: Plantation) => void;
-  onGenerateNewCredentials: (plantation: Plantation) => void;
 }
 
 export default function PlantationDetailModal({
@@ -17,18 +16,15 @@ export default function PlantationDetailModal({
   onClose,
   plantation,
   onUpdate,
-  onGenerateNewCredentials,
 }: PlantationDetailModalProps) {
   const [formData, setFormData] = useState<Plantation>(plantation);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    setFormData(plantation); 
-    setIsEditing(false); 
+    setFormData(plantation);
+    setIsEditing(false);
     setErrors({});
-    setShowPassword(false);
   }, [plantation, isOpen]);
 
   if (!isOpen) return null;
@@ -49,10 +45,8 @@ export default function PlantationDetailModal({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.name.trim()) newErrors.name = 'Plantation Name is required';
     if (!formData.owner.trim()) newErrors.owner = 'Owner Name is required';
-    if (!formData.businessReg.trim()) newErrors.businessReg = 'Business Registration Number is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
     if (!formData.telephone.trim()) {
       newErrors.telephone = 'Telephone Number is required';
@@ -62,14 +56,6 @@ export default function PlantationDetailModal({
     if (!formData.email.trim()) newErrors.email = 'Email Address is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
-    }
-    if (!formData.adminUsername.trim()) newErrors.adminUsername = 'Admin Username is required';
-    
-    if (!formData.passwordChanged) {
-      if (!formData.adminPassword?.trim()) newErrors.adminPassword = 'Admin Password is required';
-      else if (formData.adminPassword && formData.adminPassword.length < 6) {
-        newErrors.adminPassword = 'Password must be at least 6 characters';
-      }
     }
     return newErrors;
   };
@@ -95,13 +81,6 @@ export default function PlantationDetailModal({
       setFormData(updatedPlantation);
       onUpdate(updatedPlantation);
       alert(`${formData.name} has been ${updatedPlantation.isDisabled ? 'disabled' : 'enabled'}.`);
-    }
-  };
-
-  const handleGenerateAndSetNewCredentials = () => {
-    const confirmation = window.confirm('Are you sure you want to generate NEW credentials? This will overwrite existing ones.');
-    if (confirmation) {
-      onGenerateNewCredentials(formData);
     }
   };
 
@@ -159,21 +138,8 @@ export default function PlantationDetailModal({
                 value={formData.businessReg}
                 onChange={handleChange}
                 readOnly={!isEditing}
-                className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.businessReg ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} border-gray-300`}
               />
-              {errors.businessReg && <p className="text-red-500 text-xs mt-1">{errors.businessReg}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-1">Registered Year</label>
-              <input
-                type="number"
-                name="registeredYear"
-                value={formData.registeredYear}
-                onChange={handleChange}
-                readOnly={!isEditing}
-                className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.registeredYear ? 'border-red-500' : 'border-gray-300'}`}
-              />
-              {errors.registeredYear && <p className="text-red-500 text-xs mt-1">{errors.registeredYear}</p>}
             </div>
           </div>
 
@@ -220,76 +186,37 @@ export default function PlantationDetailModal({
           {/* Admin Credentials */}
           <h3 className="text-xl font-bold mt-6 mb-2 text-[#1B4332]">Admin Credentials</h3>
           {formData.passwordChanged ? (
-            // After password changed - show locked state
-            <div className="p-4 bg-red-50 border border-red-300 rounded-md">
-              <p className="text-sm text-red-800 font-semibold">⚠️ Credentials Locked</p>
-              <p className="text-xs text-red-700 mt-2">
-                The plantation administrator has changed their password. Credentials cannot be modified or viewed anymore.
-              </p>
+            <div className="p-4 bg-green-50 border border-green-200 rounded-md flex items-start gap-3">
+              <svg className="w-5 h-5 text-green-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div>
+                <p className="text-sm text-green-800 font-semibold">Account Secured</p>
+                <p className="text-xs text-green-700 mt-1">
+                  The plantation administrator has set their own password. For security, credentials are no longer visible.
+                </p>
+              </div>
             </div>
           ) : (
-            // Before password changed - show editable credentials
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Username</label>
-                  <input
-                    type="text"
-                    name="adminUsername"
-                    value={formData.adminUsername}
-                    onChange={handleChange}
-                    readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminUsername ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.adminUsername && <p className="text-red-500 text-xs mt-1">{errors.adminUsername}</p>}
-                </div>
-                <div className="relative">
-                  <label className="block text-sm font-semibold mb-1">Password</label>
-                  <div className="flex gap-2">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="adminPassword"
-                      value={formData.adminPassword || ''}
-                      onChange={handleChange}
-                      readOnly={!isEditing}
-                      className={`flex-1 px-3 py-2 border rounded-md ${!isEditing ? 'bg-gray-100' : 'bg-white'} ${errors.adminPassword ? 'border-red-500' : 'border-gray-300'}`}
-                    />
-                    {!isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-semibold"
-                      >
-                        {showPassword ? 'Hide' : 'Show'}
-                      </button>
-                    )}
-                  </div>
-                  {errors.adminPassword && <p className="text-red-500 text-xs mt-1">{errors.adminPassword}</p>}
-                </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-semibold mb-1">Username</label>
+                <input
+                  type="text"
+                  value={formData.adminUsername || '—'}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 font-mono text-sm"
+                />
               </div>
-              {!isEditing && !formData.passwordChanged && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const credentials = `Username: ${formData.adminUsername}\nPassword: ${formData.adminPassword}`;
-                    navigator.clipboard.writeText(credentials);
-                    alert('Credentials copied to clipboard!');
-                  }}
-                  className="mt-3 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
-                >
-                  Copy Credentials
-                </button>
-              )}
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={handleGenerateAndSetNewCredentials}
-                  className="mt-2 text-sm text-blue-600 hover:underline"
-                >
-                  Generate New Credentials
-                </button>
-              )}
-            </>
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p className="text-xs text-amber-800">
+                  The initial password was sent to the admin via email. It is not stored in plain text and cannot be viewed here.
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Disable/Enable Toggle */}

@@ -58,7 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleFirebaseUser = async (firebaseUser: FirebaseUser) => {
     const idToken = await firebaseUser.getIdToken();
-    const email = firebaseUser.email ?? 'unknown@example.com';
+
+    // Custom-token sign-ins (admin login) produce a Firebase user with no email.
+    // Don't call /users/sync for these — the signIn() call in the login component
+    // already set the correct user/role. Just refresh the stored token and return.
+    if (!firebaseUser.email) {
+      localStorage.setItem('firebaseAuthToken', idToken);
+      apiClient.defaults.headers.common.Authorization = `Bearer ${idToken}`;
+      return;
+    }
+
+    const email = firebaseUser.email;
     const name = firebaseUser.displayName ?? email.split('@')[0] ?? 'User';
 
     try {

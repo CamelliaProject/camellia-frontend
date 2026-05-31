@@ -10,6 +10,7 @@ export function setApiAuthToken(token?: string) {
 
 export const authApi = {
   adminLogin: (data: Record<string, any>) => apiClient.post('/auth/admin-login', data),
+  changePassword: (newPassword: string) => apiClient.put('/auth/change-password', { newPassword }),
 };
 
 export const adminApi = {
@@ -27,12 +28,19 @@ export const adminApi = {
   addReviewReply: (plantationId: string, reviewId: string, text: string) =>
     apiClient.post(`/admin/reviews/${plantationId}/${reviewId}/reply`, { text }),
 
-  // Super Admin - Requests & Plantations
+  // Super Admin - All plantations (with publish & credential status)
+  getAllPlantations: () =>
+    apiClient.get('/admin/plantations'),
+
+  // Super Admin - Requests
   getPendingRequests: () =>
     apiClient.get('/plantation-requests'),
 
-  approvePlantationRequest: (requestId: string, adminUsername: string, adminPassword: string) =>
-    apiClient.post(`/plantation-requests/${requestId}/approve`, { adminUsername, adminPassword }),
+  approvePlantationRequest: (requestId: string) =>
+    apiClient.post(`/plantation-requests/${requestId}/approve`),
+
+  rejectPlantationRequest: (requestId: string, reason: string) =>
+    apiClient.post(`/plantation-requests/${requestId}/reject`, { reason }),
 };
 
 export const plantationApi = {
@@ -40,6 +48,7 @@ export const plantationApi = {
   getById: (id: string) => apiClient.get(`/plantations/${id}`),
   create: (data: FormData | Record<string, any>) => apiClient.post('/plantations', data),
   update: (id: string, data: FormData | Record<string, any>) => apiClient.put(`/plantations/${id}`, data),
+  publish: (id: string) => apiClient.put(`/plantations/${id}/publish`),
 };
 
 export const bookingApi = {

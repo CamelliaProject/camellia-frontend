@@ -20,11 +20,15 @@ export default function PlantationDetailModal({
   const [formData, setFormData] = useState<Plantation>(plantation);
   const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [credentialsCopied, setCredentialsCopied] = useState(false);
 
   useEffect(() => {
     setFormData(plantation);
     setIsEditing(false);
     setErrors({});
+    setShowPassword(false);
+    setCredentialsCopied(false);
   }, [plantation, isOpen]);
 
   if (!isOpen) return null;
@@ -193,29 +197,56 @@ export default function PlantationDetailModal({
               <div>
                 <p className="text-sm text-green-800 font-semibold">Account Secured</p>
                 <p className="text-xs text-green-700 mt-1">
-                  The plantation administrator has set their own password. For security, credentials are no longer visible.
+                  The plantation administrator has set their own password. Credentials are no longer visible.
                 </p>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-semibold mb-1">Username</label>
-                <input
-                  type="text"
-                  value={formData.adminUsername || '—'}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 font-mono text-sm"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Username</label>
+                  <input
+                    type="text"
+                    value={formData.adminUsername || '—'}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Password</label>
+                  <div className="flex gap-2">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.adminPassword || ''}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-100 font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(s => !s)}
+                      className="px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-xs font-semibold transition"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex items-start gap-2">
-                <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <p className="text-xs text-amber-800">
-                  The initial password was sent to the admin via email. It is not stored in plain text and cannot be viewed here.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Username: ${formData.adminUsername}\nPassword: ${formData.adminPassword}`);
+                  setCredentialsCopied(true);
+                  setTimeout(() => setCredentialsCopied(false), 2000);
+                }}
+                className={`w-full py-2 px-4 rounded-lg text-sm font-semibold transition ${
+                  credentialsCopied
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-[#1B4332] text-white hover:bg-[#2D6A4F]'
+                }`}
+              >
+                {credentialsCopied ? '✓ Copied to clipboard' : 'Copy Credentials'}
+              </button>
             </div>
           )}
 

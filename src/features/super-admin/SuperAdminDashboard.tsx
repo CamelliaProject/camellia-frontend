@@ -18,6 +18,7 @@ export interface Plantation {
   owner: string;
   businessReg: string;
   adminUsername: string;
+  adminPassword: string;
   passwordChanged: boolean;
   address: string;
   telephone: string;
@@ -82,9 +83,10 @@ export default function SuperAdminDashboard() {
       const fetched: Plantation[] = (res.data?.data || []).map((item: any) => ({
         id:              String(item.id || ''),
         name:            item.name || 'Unnamed Plantation',
-        owner:           item.owner || 'Unknown',
-        businessReg:     item.business_reg || item.businessReg || '',
+        owner:           item.owner_name || item.owner || '',
+        businessReg:     item.business_registration || item.business_reg || '',
         adminUsername:   item.admin_username || '',
+        adminPassword:   item.admin_password || '',
         passwordChanged: Boolean(item.password_changed),
         address:         item.address || '',
         telephone:       item.telephone || item.phone || '',

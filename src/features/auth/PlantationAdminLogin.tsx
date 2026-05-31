@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
@@ -11,7 +11,9 @@ interface FieldErrors {
 
 export default function PlantationAdminLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
+  const authRequired = (location.state as any)?.authRequired === true;
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -93,6 +95,16 @@ export default function PlantationAdminLogin() {
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+          {/* Auth-required notice */}
+          {authRequired && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+              <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a7 7 0 1114 0v2a2 2 0 012 2v5a2 2 0 01-2 2H3a2 2 0 01-2-2v-5a2 2 0 012-2h2zm8-2v2H7V7a5 5 0 0110 0z" clipRule="evenodd" />
+              </svg>
+              <p className="text-amber-800 text-sm">Please sign in to access the admin panel.</p>
+            </div>
+          )}
+
           {/* Username */}
           <div>
             <label className="block text-sm font-semibold text-[#1B4332] mb-2">

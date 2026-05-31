@@ -62,6 +62,7 @@ export default function PlantationAdminLogin() {
         role: userData.role,
         plantationId: userData.plantationId,
         token: idToken,
+        passwordChanged: userData.passwordChanged,
       });
 
       navigate('/plantation-admin/dashboard');

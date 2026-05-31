@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
 
 export default function ChangePassword() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword]   = useState('');
   const [confirm, setConfirm]     = useState('');
@@ -35,6 +35,7 @@ export default function ChangePassword() {
     setIsLoading(true);
     try {
       await authApi.changePassword(password);
+      updateUser({ passwordChanged: true });
       navigate('/plantation-admin/dashboard');
     } catch (err: any) {
       setServerError(err?.response?.data?.error || 'Failed to update password. Please try again.');

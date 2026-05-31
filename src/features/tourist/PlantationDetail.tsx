@@ -6,6 +6,7 @@ import Footer from '../../components/layout/Footer';
 import apiClient from '../../services/apiClient';
 
 function normalizePlantation(raw: any) {
+  const rawReviews: any[] = Array.isArray(raw.reviews) ? raw.reviews : [];
   return {
     id: raw.id,
     name: raw.name,
@@ -19,10 +20,10 @@ function normalizePlantation(raw: any) {
       altitude: raw.altitude || raw.highlights?.altitude || '',
       area: raw.area || raw.highlights?.area || '',
       visitors: raw.visitors || raw.highlights?.visitors || '',
-      established: raw.established_year || raw.highlights?.established || raw.established || '',
+      established: raw.established_year ? String(raw.established_year) : (raw.highlights?.established || raw.established || ''),
     },
     rating: raw.rating || 0,
-    reviews: raw.total_reviews || raw.reviews || 0,
+    reviews: typeof raw.total_reviews === 'number' ? raw.total_reviews : rawReviews.length,
     price: raw.price || '',
     duration: raw.duration || '',
     bestTime: raw.best_time_to_visit || raw.bestTime || '',
@@ -30,11 +31,21 @@ function normalizePlantation(raw: any) {
       phone: raw.phone || raw.contact?.phone || '',
       email: raw.email || raw.contact?.email || '',
     },
-    activities: raw.activities || raw.activities || [],
+    activities: raw.activities || [],
+    reviewsList: rawReviews.map((r: any) => ({
+      id: r.id,
+      author: r.tourist_username || 'Guest',
+      rating: r.rating || 5,
+      date: r.created_at
+        ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : '',
+      text: r.content || r.title || '',
+      verified: r.is_verified || false,
+    })),
     experiences: (raw.experiences || []).map((exp: any) => ({
       id: exp.id,
       name: exp.name,
-      category: exp.category || exp.category || '',
+      category: exp.category || '',
       description: exp.detailed_description || exp.description || '',
       shortDescription: exp.short_description || exp.shortDescription || '',
       announcement: exp.announcement || '',
@@ -785,12 +796,21 @@ export default function PlantationDetail() {
       <Navbar />
 
       {/* Main Image */}
-      <div className="relative h-96 w-full overflow-hidden">
-        <img
-          src={plantation.mainImage}
-          alt={plantation.name}
-          className="w-full h-full object-cover brightness-75"
-        />
+      <div className="relative h-96 w-full overflow-hidden bg-[#1B4332]">
+        {plantation.mainImage ? (
+          <img
+            src={plantation.mainImage}
+            alt={plantation.name}
+            className="w-full h-full object-cover brightness-75"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : (
+          <img
+            src="/images/tea-plantation-default.jpg"
+            alt={plantation.name}
+            className="w-full h-full object-cover brightness-75"
+          />
+        )}
         <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/20"></div>
       </div>
 
@@ -812,33 +832,37 @@ export default function PlantationDetail() {
           </div>
 
           {/* Gallery - 3 Images in a Row */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold mb-8">Photo Gallery</h2>
-            <div className="grid grid-cols-3 gap-6">
-              {plantation.galleryImages.slice(0, 3).map((image: string, idx: number) => (
-                <img
-                  key={idx}
-                  src={image}
-                  alt={`Gallery ${idx + 1}`}
-                  onClick={() => setSelectedImage(image)}
-                  className="w-full h-48 object-cover rounded-lg shadow-md hover:shadow-lg transition cursor-pointer hover:opacity-80"
-                />
-              ))}
+          {plantation.galleryImages.length > 0 && (
+            <div className="mb-16">
+              <h2 className="text-3xl font-bold mb-8">Photo Gallery</h2>
+              <div className="grid grid-cols-3 gap-6">
+                {plantation.galleryImages.slice(0, 3).map((image: string, idx: number) => (
+                  <img
+                    key={idx}
+                    src={image}
+                    alt={`Gallery ${idx + 1}`}
+                    onClick={() => setSelectedImage(image)}
+                    className="w-full h-48 object-cover rounded-lg shadow-md hover:shadow-lg transition cursor-pointer hover:opacity-80"
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Features */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold mb-8">Experience Highlights</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {plantation.features.map((feature: any, idx: number) => (
-                <div key={idx} className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition border-l-4 border-[#2D6A4F]">
-                  <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </div>
-              ))}
+          {plantation.features.length > 0 && (
+            <div className="mb-16">
+              <h2 className="text-3xl font-bold mb-8">Experience Highlights</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                {plantation.features.map((feature: any, idx: number) => (
+                  <div key={idx} className="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition border-l-4 border-[#2D6A4F]">
+                    <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                    <p className="text-gray-600">{feature.description}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Highlights Info */}
           <div className="mb-16 bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white p-8 rounded-lg">
@@ -865,15 +889,19 @@ export default function PlantationDetail() {
 
           {/* Activities */}
           <div className="mb-16">
-            <h2 className="text-3xl font-bold mb-8">Available Activities</h2>
-            <div className="grid md:grid-cols-3 gap-4">
-              {plantation.activities.map((activity: string, idx: number) => (
-                <div key={idx} className="bg-[#B7E4C7] text-[#1B4332] px-6 py-3 rounded-full text-center font-semibold">
-                  {activity}
+            {plantation.activities.length > 0 && (
+              <>
+                <h2 className="text-3xl font-bold mb-8">Available Activities</h2>
+                <div className="grid md:grid-cols-3 gap-4 mb-8">
+                  {plantation.activities.map((activity: string, idx: number) => (
+                    <div key={idx} className="bg-[#B7E4C7] text-[#1B4332] px-6 py-3 rounded-full text-center font-semibold">
+                      {activity}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-center mt-8">
+              </>
+            )}
+            <div className="flex justify-center">
               <button
                 onClick={() => navigate(`/plantation/${id}/booking`)}
                 className="bg-[#52B788] hover:bg-[#40916c] text-white font-bold py-3 px-12 rounded-lg transition text-lg"
@@ -884,10 +912,12 @@ export default function PlantationDetail() {
           </div>
 
           {/* Details Grid */}
-          <div className="mb-16 bg-gray-50 p-8 rounded-lg text-center">
-            <h2 className="text-2xl font-bold mb-4">Best Time to Visit</h2>
-            <p className="text-2xl font-semibold text-[#2D6A4F]">{plantation.bestTime}</p>
-          </div>
+          {plantation.bestTime && (
+            <div className="mb-16 bg-gray-50 p-8 rounded-lg text-center">
+              <h2 className="text-2xl font-bold mb-4">Best Time to Visit</h2>
+              <p className="text-2xl font-semibold text-[#2D6A4F]">{plantation.bestTime}</p>
+            </div>
+          )}
 
           {/* Rating and Reviews */}
           <div className="mb-16 text-center">
@@ -900,42 +930,46 @@ export default function PlantationDetail() {
                   </span>
                 ))}
               </div>
-              <span className="text-3xl font-bold">{plantation.rating}</span>
+              <span className="text-3xl font-bold">{Number(plantation.rating).toFixed(1)}</span>
             </div>
             <p className="text-lg text-gray-600 mb-8">Based on {plantation.reviews} visitor reviews</p>
 
             {/* Individual Reviews */}
-            <div className="space-y-6 max-w-3xl mx-auto mb-8">
-              {plantation.reviewsList.slice(0, 2).map((review: any) => (
-                <div key={review.id} className="bg-gray-50 p-6 rounded-lg text-left border border-gray-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-bold text-lg">{review.author}</h3>
-                      <p className="text-sm text-gray-500">{review.date}</p>
+            {plantation.reviewsList && plantation.reviewsList.length > 0 ? (
+              <>
+                <div className="space-y-6 max-w-3xl mx-auto mb-8">
+                  {plantation.reviewsList.slice(0, 2).map((review: any) => (
+                    <div key={review.id} className="bg-gray-50 p-6 rounded-lg text-left border border-gray-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold text-lg">{review.author}</h3>
+                          <p className="text-sm text-gray-500">{review.date}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-gray-700">{review.text}</p>
+                      {review.verified && (
+                        <p className="text-xs text-green-600 mt-3">✓ Verified Guest</p>
+                      )}
                     </div>
-                    <div className="flex gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-gray-700">{review.text}</p>
-                  {review.verified && (
-                    <p className="text-xs text-green-600 mt-3">✓ Verified Guest</p>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
-
-            {/* More Reviews Button */}
-            <button
-              onClick={() => navigate(`/plantation/${id}/reviews`)}
-              className="text-[#2D6A4F] hover:text-[#1B4332] font-semibold text-lg underline"
-            >
-              View All {plantation.reviews} Reviews →
-            </button>
+                <button
+                  onClick={() => navigate(`/plantation/${id}/reviews`)}
+                  className="text-[#2D6A4F] hover:text-[#1B4332] font-semibold text-lg underline"
+                >
+                  View All {plantation.reviews} Reviews →
+                </button>
+              </>
+            ) : (
+              <p className="text-gray-500 italic">No reviews yet. Be the first to share your experience!</p>
+            )}
           </div>
 
           {/* Contact Information */}

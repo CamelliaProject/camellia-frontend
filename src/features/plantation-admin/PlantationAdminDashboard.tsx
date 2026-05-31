@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminApi, plantationApi } from '../../services/api';
-import { PLANTATION_DATA } from '../tourist/PlantationDetail'; // Re-using existing mock data for now
 import PlantationDetailsManagement from './PlantationDetailsManagement';
 import PlantationMediaManagement from '../plantation-admin/PlantationMediaManagement';
 import PlantationExperienceManagement from './PlantationExperienceManagement';
@@ -18,13 +17,44 @@ interface PlantationAdminUser {
 }
 
 
+// Map flat DB row → nested format that PlantationDetailsManagement expects
+function mapDbToNested(raw: any) {
+  return {
+    id:                  raw.id,
+    name:                raw.name                || '',
+    address:             raw.address             || '',
+    description:         raw.description         || '',
+    detailedDescription: raw.detailed_description || raw.detailedDescription || '',
+    bestTime:            raw.best_time_to_visit  || raw.bestTime || '',
+    contact: {
+      phone: raw.phone || raw.contact?.phone || '',
+      email: raw.email || raw.contact?.email || '',
+    },
+    highlights: {
+      altitude:    raw.altitude    || raw.highlights?.altitude    || '',
+      area:        raw.area        || raw.highlights?.area        || '',
+      visitors:    raw.highlights?.visitors || '0',
+      established: raw.established_year
+        ? String(raw.established_year)
+        : (raw.highlights?.established || ''),
+    },
+    activities: raw.activities || [],
+    gallery:    raw.gallery    || [],
+    experiences:raw.experiences || [],
+    main_image_url: raw.main_image_url || '',
+    rating:  raw.rating  || 0,
+  };
+}
+
 export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
-  const { user, logOut } = useAuth(); 
+  const { user, logOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings' | 'payments'>('details');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
   const [showSetup, setShowSetup] = useState(false);
-  const [plantation, setPlantation] = useState<any>(null);
+  const [rawPlantation, setRawPlantation] = useState<any>(null);   // flat DB row
+  const [plantation, setPlantation] = useState<any>(null);          // nested for components
+  const [plantationLoading, setPlantationLoading] = useState(true);
   const [setupSuccess, setSetupSuccess] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -56,108 +86,84 @@ export default function PlantationAdminDashboard() {
   };
 
   
-  const isPlantationIncomplete = (plant: any) => {
-    // Check if essential fields are missing or empty
-    return (
-      !plant ||
-      !plant.name ||
-      !plant.address ||
-      !plant.contact?.email ||
-      !plant.detailedDescription ||
-      !plant.highlights?.altitude ||
-      !plant.highlights?.area
-    );
-  };
+  const isPlantationIncomplete = (raw: any) => !raw?.detailed_description;
 
   useEffect(() => {
     if (user && user.role === 'plantationadmin') {
+      // First login: force password change before anything else
+      if (!user.passwordChanged) {
+        setPlantationLoading(false);
+        navigate('/plantation-admin/change-password');
+        return;
+      }
+
       if (!user.plantationId) {
         alert("Your account is not associated with any plantation.");
         navigate('/');
         return;
       }
-      
+
       setPlantationAdmin({
         username: user.username || user.email,
         email: user.email,
         plantationId: user.plantationId,
       });
 
-      // Try to load plantation data from backend or local storage
       const loadPlantationData = async () => {
         try {
           const response = await plantationApi.getById(user.plantationId!);
-          const plantData = response.data?.data;
-          setPlantation(plantData);
-
-          if (isPlantationIncomplete(plantData)) {
+          const raw = response.data?.data;
+          setRawPlantation(raw);
+          if (isPlantationIncomplete(raw)) {
             setShowSetup(true);
+          } else {
+            setPlantation(mapDbToNested(raw));
           }
         } catch (error) {
-          console.error("Failed to load plantation from backend:", error);
-          // Fallback to local storage if API fails (e.g. detailed_description is null and getById fails)
-          let plantData = PLANTATION_DATA[user.plantationId!] || {};
-          try {
-            const storedPlantations = JSON.parse(localStorage.getItem('plantations') || '{}');
-            if (storedPlantations[user.plantationId!]) {
-              plantData = {
-                ...plantData,
-                ...storedPlantations[user.plantationId!],
-              };
-            }
-          } catch (e) {
-             // ignore
-          }
-          setPlantation(plantData);
-          if (isPlantationIncomplete(plantData)) {
-            setShowSetup(true);
-          }
+          console.error('Failed to load plantation from backend:', error);
+          setShowSetup(true);
+        } finally {
+          setPlantationLoading(false);
         }
       };
 
       loadPlantationData();
-      
+
     } else if (user) {
-      // If logged in but not a plantation admin, redirect or show error
-      alert("You don't have permission to access the admin dashboard.");
-      navigate('/dashboard'); // Redirect to tourist dashboard or home
+      navigate('/dashboard');
     } else {
-      // If not logged in, redirect to sign-in or home
       navigate('/');
     }
   }, [user, navigate]);
 
-  const handleSetupComplete = (completePlantation: any) => {
-    // Merge with default mock data so we retain gallery images / main image, etc.
-    const mergedPlantation = {
-      ...PLANTATION_DATA[plantationAdmin?.plantationId || ''],
-      ...completePlantation,
-    };
-
+  const handleSetupComplete = (raw: any) => {
+    setRawPlantation(raw);
+    setPlantation(mapDbToNested(raw));
     setShowSetup(false);
-    setPlantation(mergedPlantation);
+    setPlantationLoading(false);
     setSetupSuccess(true);
     setActiveTab('details');
-
-    // Hide success message after 3 seconds
     setTimeout(() => setSetupSuccess(false), 3000);
   };
 
 
-  if (!user || !plantationAdmin) {
-    // Optionally show a loading spinner or a message
+  // Loading state — covers both the auth/setup check AND the plantation fetch
+  if (!user || !plantationAdmin || plantationLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-xl text-gray-700">Loading dashboard or redirecting...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7F5]">
+        <svg className="w-10 h-10 animate-spin text-[#2D6A4F]" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
       </div>
     );
   }
 
-  // Show setup form if plantation details are incomplete
   if (showSetup) {
     return (
-      <PlantationSetup 
-        plantationId={plantationAdmin.plantationId} 
+      <PlantationSetup
+        plantationId={plantationAdmin.plantationId}
+        existingData={rawPlantation}
         onSetupComplete={handleSetupComplete}
       />
     );

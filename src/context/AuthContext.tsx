@@ -12,12 +12,14 @@ interface User {
   role: 'superadmin' | 'plantationadmin' | 'tourist';
   plantationId?: string;
   token?: string;
+  passwordChanged?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (userData: User) => void;
+  updateUser: (patch: Partial<User>) => void;
   logOut: () => void;
   isAuthenticated: boolean;
   setAuthToken: (token: string) => void;
@@ -124,6 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = (patch: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      localStorage.setItem('camellia_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -146,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, logOut, isAuthenticated, setAuthToken }}>
+    <AuthContext.Provider value={{ user, loading, signIn, updateUser, logOut, isAuthenticated, setAuthToken }}>
       {children}
     </AuthContext.Provider>
   );

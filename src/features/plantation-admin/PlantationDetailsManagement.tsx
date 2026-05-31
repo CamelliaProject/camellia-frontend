@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react'; 
+import { useState, useRef } from 'react';
+import { MapPin, Info, DollarSign, CalendarCheck, Activity } from 'lucide-react';
 import { plantationApi } from '../../services/api';
 
 
@@ -10,6 +10,7 @@ interface Plantation {
   description: string;
   detailedDescription: string;
   bestTime: string;
+  main_image_url?: string;
   contact: {
     phone: string;
     email: string;
@@ -20,7 +21,7 @@ interface Plantation {
     visitors: string;
     established: string;
   };
-  activities: string[]; 
+  activities: string[];
 }
 
 interface PlantationDetailsManagementProps {
@@ -32,7 +33,17 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [newActivity, setNewActivity] = useState(''); 
+  const [newActivity, setNewActivity] = useState('');
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string>(plantation.main_image_url || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMainImageFile(file);
+    setMainImagePreview(URL.createObjectURL(file));
+  }; 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,45 +89,34 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
-    
-    try {
-      await plantationApi.update(formData.id, {
-        name: formData.name,
-        address: formData.address,
-        description: formData.description,
-        detailed_description: formData.detailedDescription,
-        best_time_to_visit: formData.bestTime,
-        phone: formData.contact.phone,
-        email: formData.contact.email,
-        altitude: formData.highlights.altitude,
-        area: formData.highlights.area,
-        established_year: formData.highlights.established ? parseInt(formData.highlights.established, 10) : null,
-      });
 
-      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
-      stored[formData.id] = formData;
-      localStorage.setItem('plantations', JSON.stringify(stored));
-      
-      try {
-        const mod = await import('../tourist/PlantationDetail');
-        
-        const modAny = mod as any;
-        if (modAny && modAny.PLANTATION_DATA && modAny.PLANTATION_DATA[formData.id]) {
-          modAny.PLANTATION_DATA[formData.id] = { ...modAny.PLANTATION_DATA[formData.id], ...formData };
-        }
-      } catch (e) {
-      
+    try {
+      const payload = new FormData();
+      payload.append('name',                 formData.name);
+      payload.append('address',              formData.address);
+      payload.append('description',          formData.description);
+      payload.append('detailed_description', formData.detailedDescription);
+      payload.append('best_time_to_visit',   formData.bestTime);
+      payload.append('phone',                formData.contact.phone);
+      payload.append('email',                formData.contact.email);
+      payload.append('altitude',             formData.highlights.altitude);
+      payload.append('area',                 formData.highlights.area);
+      if (formData.highlights.established) {
+        payload.append('established_year', formData.highlights.established);
       }
+      if (mainImageFile) payload.append('mainImage', mainImageFile);
+
+      await plantationApi.update(formData.id, payload);
 
       setMessage('Details updated successfully!');
       setIsEditing(false);
+      setMainImageFile(null);
     } catch (err) {
-      console.error('Failed to persist plantation details:', err);
+      console.error('Failed to update plantation details:', err);
       setMessage('Failed to update details. Please try again.');
     } finally {
       setIsLoading(false);
     }
-    
   };
 
   return (
@@ -134,7 +134,11 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
       </div>
 
       {message && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-6">
+        <div className={`px-4 py-3 rounded-md mb-6 border ${
+          message.startsWith('Failed') || message.startsWith('Error')
+            ? 'bg-red-50 border-red-300 text-red-700'
+            : 'bg-green-100 border-green-400 text-green-700'
+        }`}>
           {message}
         </div>
       )}
@@ -202,6 +206,38 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788] disabled:bg-gray-100 resize-y"
               ></textarea>
             </div>
+          </div>
+        </div>
+
+        {/* Main Image */}
+        <div className="border-b border-gray-200 pb-6">
+          <h3 className="text-2xl font-bold text-[#2D6A4F] mb-4 flex items-center gap-2">
+            <Info size={20} /> Main Image
+          </h3>
+          <div className="flex items-start gap-6">
+            <div className="w-40 h-28 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+              {mainImagePreview ? (
+                <img src={mainImagePreview} alt="Main" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-2">No image</div>
+              )}
+            </div>
+            {isEditing && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-[#52B788] hover:bg-[#40916c] text-white rounded-lg text-sm font-semibold transition"
+                >
+                  {mainImagePreview ? 'Change Image' : 'Upload Image'}
+                </button>
+                <p className="text-xs text-gray-500 mt-2">JPG, PNG, WEBP — saved to cloud</p>
+                {mainImageFile && (
+                  <p className="text-xs text-green-600 mt-1">New image selected: {mainImageFile.name}</p>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -378,9 +414,11 @@ export default function PlantationDetailsManagement({ plantation }: PlantationDe
               type="button"
               onClick={() => {
                 setIsEditing(false);
-                setFormData(plantation); // Reset to original data
+                setFormData(plantation);
+                setMainImageFile(null);
+                setMainImagePreview(plantation.main_image_url || '');
                 setMessage('');
-                setNewActivity(''); // Clear new activity input on cancel
+                setNewActivity('');
               }}
               className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-lg transition"
             >

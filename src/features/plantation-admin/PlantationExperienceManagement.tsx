@@ -45,7 +45,9 @@ function mapDbToUi(raw: any): Experience {
       adult: Number(raw.price_lkr_adult ?? raw.priceLKR?.adult ?? 0),
       child: Number(raw.price_lkr_child ?? raw.priceLKR?.child ?? 0),
     },
-    images: raw.images || [],
+    images: Array.isArray(raw.images) ? raw.images
+           : raw.image_url ? [raw.image_url]
+           : [],
   };
 }
 
@@ -312,38 +314,20 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
       fd.append('price_lkr_child', String(experience.priceLKR.child));
       fd.append('is_active', 'true');
 
+      // Append all selected images — backend accepts upload.array('images', 10)
+      imageFiles.forEach(f => fd.append('images', f));
+
       if (experience.id) {
-        // Update existing — send first new image if any
-        if (imageFiles[0]) fd.append('image', imageFiles[0]);
         const res = await experienceApi.update(experience.id, fd);
         const updated = mapDbToUi(res.data?.data || experience);
         updated.id = experience.id;
-
-        // Upload remaining images one at a time
-        for (let i = 1; i < imageFiles.length; i++) {
-          const imgFd = new FormData();
-          imgFd.append('image', imageFiles[i]);
-          await experienceApi.update(experience.id, imgFd);
-        }
-
         setLocalExperiences(prev => prev.map(e => e.id === experience.id ? updated : e));
         showMessage('Experience updated successfully!', 'success');
+        onSaved?.();
       } else {
-        // Create new
         fd.append('plantation_id', plantation.id);
-        if (imageFiles[0]) fd.append('image', imageFiles[0]);
         const res = await experienceApi.create(fd);
         const created = mapDbToUi(res.data?.data || {});
-
-        // Upload remaining images
-        if (created.id) {
-          for (let i = 1; i < imageFiles.length; i++) {
-            const imgFd = new FormData();
-            imgFd.append('image', imageFiles[i]);
-            await experienceApi.update(created.id, imgFd);
-          }
-        }
-
         setLocalExperiences(prev => [...prev, created]);
         showMessage('Experience added successfully!', 'success');
         onSaved?.();

@@ -2,7 +2,10 @@ import { useEffect, useState, useMemo } from 'react';
 import {
   Wallet, TrendingUp, Calendar, Users, Tag,
   CheckCircle, Clock, Loader2, Search, ArrowUpDown,
+  Globe, MapPin, DollarSign,
 } from 'lucide-react';
+
+const USD_TO_LKR = 330;
 import { adminApi } from '../../services/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -112,7 +115,8 @@ export default function PlantationPayments({ plantationId }: Props) {
       if (r.totalLKR) lkr += r.totalLKR;
       if (r.totalUSD) usd += r.totalUSD;
     });
-    return { lkr, usd, count: periodRows.length };
+    const combined = lkr + usd * USD_TO_LKR;
+    return { lkr, usd, combined, count: periodRows.length };
   }, [periodRows]);
 
   const allTimeTotals = useMemo(() => {
@@ -121,7 +125,7 @@ export default function PlantationPayments({ plantationId }: Props) {
       if (r.totalLKR) lkr += r.totalLKR;
       if (r.totalUSD) usd += r.totalUSD;
     });
-    return { lkr, usd };
+    return { lkr, usd, combined: lkr + usd * USD_TO_LKR };
   }, [rows]);
 
   // ── Filtered + sorted table rows (completed only) ─────────────────────
@@ -166,22 +170,50 @@ export default function PlantationPayments({ plantationId }: Props) {
         <h2 className="text-2xl font-bold text-[#1B4332]">Payments & Revenue</h2>
       </div>
 
-      {/* ── All-time summary ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Total Revenue (LKR)', value: `Rs ${allTimeTotals.lkr.toLocaleString()}`, color: 'bg-[#D8F3DC] text-[#1B4332]', icon: <TrendingUp size={18} /> },
-          { label: 'Total Revenue (USD)', value: `$ ${allTimeTotals.usd.toLocaleString()}`,  color: 'bg-[#B7E4C7] text-[#1B4332]', icon: <TrendingUp size={18} /> },
-          { label: 'Completed Bookings', value: completedCount,                               color: 'bg-green-100 text-green-800', icon: <CheckCircle size={18} /> },
-        ].map(card => (
-          <div key={card.label} className={`${card.color} rounded-2xl p-5`}>
-            <div className="flex items-center gap-2 mb-2 opacity-70">{card.icon}<span className="text-xs font-semibold">{card.label}</span></div>
-            <p className="text-2xl font-bold">{card.value}</p>
+      {/* ── All-time Total Revenue ── */}
+      <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white rounded-2xl p-6 mb-6">
+        <div className="flex items-center gap-2 mb-5">
+          <TrendingUp size={18} className="opacity-80" />
+          <span className="text-sm font-semibold uppercase tracking-widest opacity-80">All-Time Total Revenue</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Local (LKR) */}
+          <div className="bg-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2 opacity-80">
+              <MapPin size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wide">Local Revenue</span>
+              <span className="text-xs opacity-60">(Sri Lankan Tourists · LKR)</span>
+            </div>
+            <p className="text-3xl font-bold">Rs {allTimeTotals.lkr.toLocaleString()}</p>
           </div>
-        ))}
+          {/* Foreign (USD) */}
+          <div className="bg-white/10 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2 opacity-80">
+              <Globe size={14} />
+              <span className="text-xs font-semibold uppercase tracking-wide">Foreign Revenue</span>
+              <span className="text-xs opacity-60">(International Tourists · USD)</span>
+            </div>
+            <p className="text-3xl font-bold">$ {allTimeTotals.usd.toLocaleString()}</p>
+          </div>
+        </div>
+        {/* Combined total */}
+        <div className="mt-4 pt-4 border-t border-white/20 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm opacity-80">
+            <CheckCircle size={15} />
+            <span>{completedCount} completed booking{completedCount !== 1 ? 's' : ''} in total</span>
+          </div>
+          <div className="bg-white/10 rounded-xl px-4 py-2 flex items-center gap-3">
+            <DollarSign size={16} className="opacity-80" />
+            <div>
+              <p className="text-xs opacity-70 font-semibold uppercase tracking-wide">Total Revenue (LKR equiv.)</p>
+              <p className="text-xl font-bold">Rs {allTimeTotals.combined.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Period tabs ── */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-1.5 flex gap-1 w-fit mb-6">
+      <div className="bg-white border border-gray-100 rounded-2xl p-1.5 flex gap-1 w-fit mb-5">
         {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
           <button
             key={p}
@@ -193,19 +225,44 @@ export default function PlantationPayments({ plantationId }: Props) {
         ))}
       </div>
 
-      {/* ── Period summary cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* ── Period revenue breakdown ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Local */}
         <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-2xl p-5">
-          <p className="text-xs text-gray-500 font-semibold mb-1">{PERIOD_LABELS[period]} — LKR</p>
-          <p className="text-3xl font-bold text-[#2D6A4F]">Rs {totals.lkr.toLocaleString()}</p>
+          <div className="flex items-center gap-2 mb-2 text-[#2D6A4F] opacity-80">
+            <MapPin size={14} />
+            <span className="text-xs font-semibold uppercase tracking-wide">Local · LKR</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-1">{PERIOD_LABELS[period]}</p>
+          <p className="text-xl font-bold text-[#2D6A4F]">Rs {totals.lkr.toLocaleString()}</p>
         </div>
+        {/* Foreign */}
         <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-2xl p-5">
-          <p className="text-xs text-gray-500 font-semibold mb-1">{PERIOD_LABELS[period]} — USD</p>
-          <p className="text-3xl font-bold text-[#2D6A4F]">$ {totals.usd.toLocaleString()}</p>
+          <div className="flex items-center gap-2 mb-2 text-[#2D6A4F] opacity-80">
+            <Globe size={14} />
+            <span className="text-xs font-semibold uppercase tracking-wide">Foreign · USD</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-1">{PERIOD_LABELS[period]}</p>
+          <p className="text-xl font-bold text-[#2D6A4F]">$ {totals.usd.toLocaleString()}</p>
         </div>
+        {/* Combined total */}
+        <div className="bg-[#1B4332] text-white rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-2 opacity-80">
+            <DollarSign size={14} />
+            <span className="text-xs font-semibold uppercase tracking-wide">Total Revenue</span>
+          </div>
+          <p className="text-xs opacity-60 mb-1">{PERIOD_LABELS[period]} · LKR equiv.</p>
+          <p className="text-xl font-bold">Rs {totals.combined.toLocaleString()}</p>
+          <p className="text-xs opacity-50 mt-1">Local + Foreign (×{USD_TO_LKR})</p>
+        </div>
+        {/* Bookings */}
         <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-2xl p-5">
-          <p className="text-xs text-gray-500 font-semibold mb-1">{PERIOD_LABELS[period]} — Bookings</p>
-          <p className="text-3xl font-bold text-[#2D6A4F]">{totals.count}</p>
+          <div className="flex items-center gap-2 mb-2 text-[#2D6A4F] opacity-80">
+            <CheckCircle size={14} />
+            <span className="text-xs font-semibold uppercase tracking-wide">Bookings</span>
+          </div>
+          <p className="text-xs text-gray-500 mb-1">{PERIOD_LABELS[period]}</p>
+          <p className="text-xl font-bold text-[#2D6A4F]">{totals.count}</p>
         </div>
       </div>
 

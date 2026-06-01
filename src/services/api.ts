@@ -21,6 +21,10 @@ export const adminApi = {
   updateBookingStatus: (plantationId: string, bookingId: string, status: string) =>
     apiClient.put(`/admin/bookings/${plantationId}/${bookingId}`, { status }),
 
+  // Plantation Admin - Payments (derived from bookings)
+  getPlantationPayments: (plantationId: string) =>
+    apiClient.get(`/admin/payments/${plantationId}`),
+
   // Plantation Admin - Reviews
   getPlantationReviews: (plantationId: string) =>
     apiClient.get(`/admin/reviews/${plantationId}`),

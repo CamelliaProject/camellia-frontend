@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminApi, plantationApi } from '../../services/api';
@@ -55,6 +56,7 @@ export default function PlantationAdminDashboard() {
   const [rawPlantation, setRawPlantation] = useState<any>(null);   // flat DB row
   const [plantation, setPlantation] = useState<any>(null);          // nested for components
   const [plantationLoading, setPlantationLoading] = useState(true);
+  const plantationIdRef = React.useRef<string | null>(null);
   const [setupSuccess, setSetupSuccess] = useState(false);
   const [bookings, setBookings] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -88,6 +90,19 @@ export default function PlantationAdminDashboard() {
   
   const isPlantationIncomplete = (raw: any) => !raw?.detailed_description;
 
+  const refreshPlantation = useCallback(async () => {
+    const pid = plantationIdRef.current;
+    if (!pid) return;
+    try {
+      const response = await plantationApi.getById(pid);
+      const raw = response.data?.data;
+      setRawPlantation(raw);
+      setPlantation(mapDbToNested(raw));
+    } catch (error) {
+      console.error('Failed to refresh plantation:', error);
+    }
+  }, []);
+
   useEffect(() => {
     if (user && user.role === 'plantationadmin') {
       // First login: force password change before anything else
@@ -102,6 +117,8 @@ export default function PlantationAdminDashboard() {
         navigate('/');
         return;
       }
+
+      plantationIdRef.current = user.plantationId;
 
       setPlantationAdmin({
         username: user.username || user.email,
@@ -127,7 +144,7 @@ export default function PlantationAdminDashboard() {
         }
       };
 
-      loadPlantationData();
+      void loadPlantationData();
 
     } else if (user) {
       navigate('/dashboard');
@@ -308,10 +325,10 @@ export default function PlantationAdminDashboard() {
               <PlantationDetailsManagement plantation={plantation} />
             )}
             {activeTab === 'media' && (
-              <PlantationMediaManagement plantation={plantation} />
+              <PlantationMediaManagement plantation={plantation} onSaved={refreshPlantation} />
             )}
             {activeTab === 'experiences' && (
-              <PlantationExperienceManagement plantation={plantation} />
+              <PlantationExperienceManagement plantation={plantation} onSaved={refreshPlantation} />
             )}
             {activeTab === 'bookings' && (
               <PlantationBookingManagement plantationId={plantationAdmin.plantationId} />

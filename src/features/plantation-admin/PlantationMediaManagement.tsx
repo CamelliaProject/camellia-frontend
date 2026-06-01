@@ -1,197 +1,141 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Trash2, Camera, GalleryHorizontal } from 'lucide-react';
-
-interface Experience {
-  name: string;
-  category?: string;
-  description?: string;
-  shortDescription?: string;
-  images?: string[];
-  priceUSD?: { adult: number; child: number };
-  priceLKR?: { adult: number; child: number };
-  timeSlots?: Array<{ date: string; time: string; capacity: number; booked: number }>;
-}
+import { plantationApi } from '../../services/api';
 
 interface Plantation {
   id: string;
   name: string;
-  mainImage: string;
-  galleryImages: string[];
-  experiences?: Experience[];
+  main_image_url?: string;
+  mainImage?: string;
+  galleryImages?: string[];
+  gallery?: string[];
 }
 
 interface PlantationMediaManagementProps {
   plantation: Plantation;
+  onSaved?: () => void;
 }
 
-export default function PlantationMediaManagement({ plantation }: PlantationMediaManagementProps) {
-  const [mainImagePreview, setMainImagePreview] = useState<string>(plantation.mainImage || '');
-  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(plantation.galleryImages || []);
-  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [experienceImages, setExperienceImages] = useState<Record<string, string[]>>(() => {
-    
-    try {
-      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
-      const storedExperiences = stored[plantation.id]?.experiences;
-      if (storedExperiences) {
-        return storedExperiences.reduce((acc: Record<string, string[]>, exp: any) => {
-          acc[exp.name] = exp.images || [];
-          return acc;
-        }, {});
-      }
-    } catch (e) {
-      
-    }
-    return plantation.experiences?.reduce((acc, exp) => {
-      acc[exp.name] = exp.images || [];
-      return acc;
-    }, {} as Record<string, string[]>) || {};
-  });
+export default function PlantationMediaManagement({ plantation, onSaved }: PlantationMediaManagementProps) {
+  // Normalise field names — backend sends both shapes
+  const initialGallery: string[] = plantation.galleryImages || plantation.gallery || [];
+  const initialMainImage: string = plantation.main_image_url || plantation.mainImage || '';
 
-  
-  useEffect(() => {
-    setMainImagePreview(plantation.mainImage || '');
-    setGalleryPreviews(plantation.galleryImages || []);
-  }, [plantation.mainImage, plantation.galleryImages]);
+  const [mainImagePreview, setMainImagePreview] = useState<string>(initialMainImage);
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+
+  // Existing gallery URLs (from DB). Used to detect what the admin removes.
+  const [originalGallery, setOriginalGallery] = useState<string[]>(initialGallery);
+  // Current gallery display: starts as DB URLs, new ones appended as blob URLs.
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>(initialGallery);
+  // File objects for newly selected images (not yet uploaded).
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const galleryImageInputRef = useRef<HTMLInputElement>(null);
-  const experienceImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  // Sync if plantation prop changes (e.g. parent reloads data)
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
-      const storedExperiences = stored[plantation.id]?.experiences;
-      if (storedExperiences) {
-        const images: Record<string, string[]> = {};
-        storedExperiences.forEach((exp: any) => {
-          images[exp.name] = exp.images || [];
-        });
-        setExperienceImages(images);
-      }
-    } catch (e) {
-    
-    }
+    const gallery = plantation.galleryImages || plantation.gallery || [];
+    const main = plantation.main_image_url || plantation.mainImage || '';
+    setOriginalGallery(gallery);
+    setGalleryPreviews(gallery);
+    setMainImagePreview(main);
+    setMainImageFile(null);
+    setNewGalleryFiles([]);
   }, [plantation.id]);
 
+  const showMessage = (text: string, type: 'success' | 'error') => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
+  // ── Main image handlers ────────────────────────────────────────────────
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setMainImagePreview(reader.result as string);
-       
-      };
-      reader.readAsDataURL(file);
-      setMessage('');
-    }
+    if (!file) return;
+    setMainImageFile(file);
+    setMainImagePreview(URL.createObjectURL(file));
   };
 
+  // ── Gallery handlers ───────────────────────────────────────────────────
   const handleGalleryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      setNewGalleryFiles((prev) => [...prev, ...files]);
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setGalleryPreviews((prev) => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
-      e.target.value = ''; 
-      setMessage('');
+    if (!files.length) return;
+    setNewGalleryFiles(prev => [...prev, ...files]);
+    files.forEach(file => {
+      setGalleryPreviews(prev => [...prev, URL.createObjectURL(file)]);
+    });
+    e.target.value = '';
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    const url = galleryPreviews[index];
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
+
+    // If this is a newly added file (blob URL), remove from newGalleryFiles too
+    if (url.startsWith('blob:')) {
+      const newFileIndex = galleryPreviews
+        .slice(0, index)
+        .filter(u => u.startsWith('blob:')).length;
+      setNewGalleryFiles(prev => prev.filter((_, i) => i !== newFileIndex));
     }
   };
 
-  const handleRemoveGalleryImage = (indexToRemove: number, isNewFile: boolean = false) => {
-    if (isNewFile) {
-      
-      setNewGalleryFiles((prev) => prev.filter((_, idx) => idx !== (indexToRemove - (galleryPreviews.length - newGalleryFiles.length))));
-      setGalleryPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
-    } else {
-     
-      setGalleryPreviews((prev) => prev.filter((_, idx) => idx !== indexToRemove));
-      
-    }
-    setMessage('');
-  };
-
-  const handleExperienceImageChange = (e: React.ChangeEvent<HTMLInputElement>, experienceName: string) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setExperienceImages((prev) => ({
-            ...prev,
-            [experienceName]: [...(prev[experienceName] || []), reader.result as string],
-          }));
-        };
-        reader.readAsDataURL(file);
-      });
-      e.target.value = '';
-      setMessage('');
-    }
-  };
-
-  const handleRemoveExperienceImage = (experienceName: string, indexToRemove: number) => {
-    setExperienceImages((prev) => ({
-      ...prev,
-      [experienceName]: (prev[experienceName] || []).filter((_, idx) => idx !== indexToRemove),
-    }));
-    setMessage('');
-  };
-
+  // ── Submit ─────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage('');
+    setMessage(null);
 
-    // Simulate image uploads and updates
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    console.log('Uploading main image:', mainImagePreview);
-    console.log('Updating gallery:', galleryPreviews);
-    console.log('New files to upload:', newGalleryFiles);
-
-    
-
-    setMessage('Media updated successfully!');
-    setIsLoading(false);
-    
     try {
-      const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
-      const existing = stored[plantation.id] || {};
-      existing.mainImage = mainImagePreview;
-      existing.galleryImages = galleryPreviews;
-      
-      if (existing.experiences) {
-        existing.experiences = existing.experiences.map((exp: any) => ({
-          ...exp,
-          images: experienceImages[exp.name] || exp.images || [],
-        }));
+      // 1. Upload new main image if the admin changed it
+      if (mainImageFile) {
+        const fd = new FormData();
+        fd.append('mainImage', mainImageFile);
+        await plantationApi.update(plantation.id, fd);
       }
-      stored[plantation.id] = existing;
-      localStorage.setItem('plantations', JSON.stringify(stored));
-      try {
-        
-        const mod = await import('../tourist/PlantationDetail') as any;
-        if (mod && mod.PLANTATION_DATA && mod.PLANTATION_DATA[plantation.id]) {
-          mod.PLANTATION_DATA[plantation.id].mainImage = mainImagePreview;
-          mod.PLANTATION_DATA[plantation.id].galleryImages = galleryPreviews;
-       
-          if (mod.PLANTATION_DATA[plantation.id].experiences) {
-            mod.PLANTATION_DATA[plantation.id].experiences = mod.PLANTATION_DATA[plantation.id].experiences.map((exp: any) => ({
-              ...exp,
-              images: experienceImages[exp.name] || exp.images || [],
-            }));
-          }
-        }
-      } catch (e) {}
+
+      // 2. Delete gallery images the admin removed
+      const removedUrls = originalGallery.filter(url => !galleryPreviews.includes(url));
+      for (const url of removedUrls) {
+        await plantationApi.deleteGalleryImage(plantation.id, url);
+      }
+
+      // 3. Upload new gallery images
+      if (newGalleryFiles.length > 0) {
+        const fd = new FormData();
+        newGalleryFiles.forEach(file => fd.append('images', file));
+        const res = await plantationApi.addGalleryImages(plantation.id, fd);
+        const uploadedUrls: string[] = res.data?.data || [];
+
+        // Replace blob URLs in the preview with real Cloudinary URLs
+        setGalleryPreviews(prev => {
+          let uploadIdx = 0;
+          return prev.map(url => {
+            if (url.startsWith('blob:') && uploadIdx < uploadedUrls.length) {
+              return uploadedUrls[uploadIdx++];
+            }
+            return url;
+          });
+        });
+      }
+
+      // Refresh internal baseline so subsequent saves work correctly
+      setOriginalGallery(galleryPreviews.filter(u => !u.startsWith('blob:')));
+      setNewGalleryFiles([]);
+      setMainImageFile(null);
+
+      showMessage('Media saved successfully!', 'success');
+      onSaved?.();
     } catch (err) {
-      console.error('Failed to persist media changes:', err);
+      console.error('Failed to save media:', err);
+      showMessage('Failed to save media. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -200,13 +144,13 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
       <h2 className="text-3xl font-bold text-[#1B4332] mb-6">Manage Media Gallery</h2>
 
       {message && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-md mb-6">
-          {message}
+        <div className={`px-4 py-3 rounded-md mb-6 border ${message.type === 'error' ? 'bg-red-50 border-red-300 text-red-700' : 'bg-green-100 border-green-400 text-green-700'}`}>
+          {message.text}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-10">
-        {/* Main Image */}
+        {/* ── Main Image ── */}
         <div className="border-b border-gray-200 pb-8">
           <h3 className="text-2xl font-bold text-[#2D6A4F] mb-6 flex items-center gap-2">
             <Camera size={24} /> Main Plantation Image
@@ -214,9 +158,9 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
           <div className="flex flex-col items-center gap-6">
             <div className="relative w-full md:w-2/3 lg:w-1/2 h-64 border-2 border-dashed border-gray-300 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
               {mainImagePreview ? (
-                <img src={mainImagePreview} alt="Main Preview" className="w-full h-full object-cover" />
+                <img src={mainImagePreview} alt="Main" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-gray-400">No Image Selected</span>
+                <span className="text-gray-400 text-sm">No image selected</span>
               )}
               <button
                 type="button"
@@ -226,149 +170,75 @@ export default function PlantationMediaManagement({ plantation }: PlantationMedi
               >
                 <Upload size={20} />
               </button>
-              <input
-                type="file"
-                ref={mainImageInputRef}
-                accept="image/*"
-                onChange={handleMainImageChange}
-                className="hidden"
-              />
+              <input ref={mainImageInputRef} type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
             </div>
-            <p className="text-sm text-gray-500">
-              This image will be featured prominently on your plantation's page.
-            </p>
+            {mainImageFile && (
+              <p className="text-sm text-green-600">New image selected: <strong>{mainImageFile.name}</strong> — will be saved on submit.</p>
+            )}
+            <p className="text-sm text-gray-500">This image appears prominently on the plantation listing and detail page.</p>
           </div>
         </div>
 
-        {/* Gallery Images */}
+        {/* ── Gallery Images ── */}
         <div>
           <h3 className="text-2xl font-bold text-[#2D6A4F] mb-6 flex items-center gap-2">
             <GalleryHorizontal size={24} /> Gallery Images
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-            {galleryPreviews.map((imageSrc, index) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
+            {galleryPreviews.map((src, index) => (
               <div key={index} className="relative group w-full h-36 rounded-lg overflow-hidden shadow-sm border border-gray-200">
-                <img src={imageSrc} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                <img src={src} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                {src.startsWith('blob:') && (
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">New</div>
+                )}
                 <button
                   type="button"
-                  onClick={() => handleRemoveGalleryImage(index, index >= (plantation.galleryImages?.length || 0))} // Check if it's a newly added file
-                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remove Image"
+                  onClick={() => handleRemoveGalleryImage(index)}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  title="Remove"
                 >
                   <Trash2 size={16} />
                 </button>
               </div>
             ))}
-            {/* Upload Button for New Gallery Images */}
-            <div className="flex items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
-              <input
-                type="file"
-                ref={galleryImageInputRef}
-                accept="image/*"
-                multiple
-                onChange={handleGalleryImageChange}
-                className="hidden"
-              />
+
+            {/* Add more button */}
+            <div className="flex items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition">
+              <input ref={galleryImageInputRef} type="file" accept="image/*" multiple onChange={handleGalleryImageChange} className="hidden" />
               <button
                 type="button"
                 onClick={() => galleryImageInputRef.current?.click()}
                 className="flex flex-col items-center text-gray-600 hover:text-[#2D6A4F]"
               >
                 <Upload size={32} />
-                <span className="mt-2 text-sm font-medium">Add More Photos</span>
+                <span className="mt-2 text-sm font-medium">Add Photos</span>
               </button>
             </div>
           </div>
           <p className="text-sm text-gray-500">
-            Upload images to showcase your plantation's beauty and attractions.
+            {newGalleryFiles.length > 0
+              ? `${newGalleryFiles.length} new image${newGalleryFiles.length > 1 ? 's' : ''} queued for upload.`
+              : 'Upload photos to showcase your plantation.'}
           </p>
         </div>
 
-        <div className="flex justify-end pt-6">
+        <div className="flex justify-end pt-4">
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-2 px-6 rounded-lg transition disabled:bg-gray-400"
+            className="bg-[#2D6A4F] hover:bg-[#1B4332] disabled:bg-gray-400 text-white font-semibold py-2 px-8 rounded-lg transition flex items-center gap-2"
           >
-            {isLoading ? 'Saving Media...' : 'Save Media Changes'}
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Saving…
+              </>
+            ) : 'Save Media'}
           </button>
         </div>
-
-        {/* Experience Gallery Images */}
-        {plantation.experiences && plantation.experiences.length > 0 && (
-          <div className="border-t border-gray-200 pt-8 mt-8">
-            <h3 className="text-2xl font-bold text-[#2D6A4F] mb-6 flex items-center gap-2">
-              <GalleryHorizontal size={24} /> Experience Gallery Images
-            </h3>
-            <p className="text-sm text-gray-600 mb-6">Manage images for your experiences.</p>
-            <div className="space-y-8">
-              {plantation.experiences.map((experience) => (
-                <div key={experience.name} className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                  <h4 className="text-lg font-bold text-[#2D6A4F] mb-4">{experience.name}</h4>
-                  {(experienceImages[experience.name]?.length || 0) > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-6">
-                      {experienceImages[experience.name]?.map((imageSrc, index) => (
-                        <div key={index} className="relative group w-full h-36 rounded-lg overflow-hidden shadow-sm border border-gray-200">
-                          <img src={imageSrc} alt={`${experience.name} ${index + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveExperienceImage(experience.name, index)}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                            title="Remove Image"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ))}
-                      {/* Upload Button */}
-                      <div className="flex items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition">
-                        <input
-                          ref={(el) => {
-                            if (el) experienceImageInputRefs.current[experience.name] = el;
-                          }}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={(e) => handleExperienceImageChange(e, experience.name)}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => experienceImageInputRefs.current[experience.name]?.click()}
-                          className="flex flex-col items-center text-gray-600 hover:text-[#2D6A4F] w-full h-full justify-center"
-                        >
-                          <Upload size={28} />
-                          <span className="mt-2 text-sm font-medium">Add Images</span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-50 transition mb-6">
-                      <input
-                        ref={(el) => {
-                          if (el) experienceImageInputRefs.current[experience.name] = el;
-                        }}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => handleExperienceImageChange(e, experience.name)}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => experienceImageInputRefs.current[experience.name]?.click()}
-                        className="flex flex-col items-center text-gray-600 hover:text-[#2D6A4F] w-full h-full justify-center"
-                      >
-                        <Upload size={32} />
-                        <span className="mt-2 text-sm font-medium">Add Images for this Experience</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </form>
     </div>
   );

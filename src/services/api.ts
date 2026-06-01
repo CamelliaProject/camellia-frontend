@@ -49,6 +49,9 @@ export const plantationApi = {
   create: (data: FormData | Record<string, any>) => apiClient.post('/plantations', data),
   update: (id: string, data: FormData | Record<string, any>) => apiClient.put(`/plantations/${id}`, data),
   publish: (id: string) => apiClient.put(`/plantations/${id}/publish`),
+  addGalleryImages: (id: string, data: FormData) => apiClient.post(`/plantations/${id}/gallery`, data),
+  deleteGalleryImage: (id: string, imageUrl: string) =>
+    apiClient.delete(`/plantations/${id}/gallery`, { data: { image_url: imageUrl } }),
 };
 
 export const bookingApi = {
@@ -60,8 +63,10 @@ export const bookingApi = {
 
 export const experienceApi = {
   getByPlantation: (plantationId: string) => apiClient.get(`/experiences/plantation/${plantationId}`),
+  getSlots: (id: string) => apiClient.get(`/experiences/${id}/slots`),
   create: (data: FormData | Record<string, any>) => apiClient.post('/experiences', data),
   update: (id: string, data: FormData | Record<string, any>) => apiClient.put(`/experiences/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/experiences/${id}`),
   createSlot: (id: string, data: Record<string, any>) => apiClient.post(`/experiences/${id}/slots`, data),
 };
 

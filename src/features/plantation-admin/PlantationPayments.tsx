@@ -18,7 +18,8 @@ interface PaymentRow {
   totalUSD: number | null;
   numAdults: number;
   numChildren: number;
-  status: 'upcoming' | 'completed';
+  status: 'upcoming' | 'completed' | 'cancelled';
+  cancelledBy: 'tourist' | null;
   bookingDate: string;
   createdAt: string;
   experiences: string[];
@@ -48,6 +49,7 @@ function mapRow(raw: any): PaymentRow {
     numAdults: raw.num_adults ?? 1,
     numChildren: raw.num_children ?? 0,
     status: raw.status ?? 'upcoming',
+    cancelledBy: raw.cancelled_by === 'tourist' ? 'tourist' : null,
     bookingDate: raw.booking_date || '',
     createdAt: raw.created_at || '',
     experiences: Array.isArray(raw.experience_names) ? raw.experience_names : [],
@@ -109,6 +111,7 @@ export default function PlantationPayments({ plantationId }: Props) {
   );
 
   // ── Revenue totals ────────────────────────────────────────────────────
+  // Includes upcoming + completed — backend already excludes cancelled.
   const totals = useMemo(() => {
     let lkr = 0; let usd = 0;
     periodRows.forEach(r => {
@@ -128,9 +131,10 @@ export default function PlantationPayments({ plantationId }: Props) {
     return { lkr, usd, combined: lkr + usd * USD_TO_LKR };
   }, [rows]);
 
-  // ── Filtered + sorted table rows (completed only) ─────────────────────
+  // ── Filtered + sorted table rows (completed + tourist-cancelled) ──────
   const displayed = useMemo(() => {
-    let list = periodRows.filter(r => r.status === 'completed');
+    // Show completed visits and tourist-cancelled (non-refunded, still count as revenue)
+    let list = periodRows.filter(r => r.status === 'completed' || r.cancelledBy === 'tourist');
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(r =>
@@ -307,8 +311,14 @@ export default function PlantationPayments({ plantationId }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold text-[#1B4332]">{r.touristName}</p>
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${r.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {r.status}
+                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                      r.status === 'completed'        ? 'bg-green-100 text-green-800'  :
+                      r.cancelledBy === 'tourist'     ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-blue-100 text-blue-800'
+                    }`}>
+                      {r.status === 'completed'    ? 'Completed'                  :
+                       r.cancelledBy === 'tourist' ? 'Cancelled by Customer'      :
+                                                     'Upcoming'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{r.touristEmail}</p>

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   CheckCircle, Clock, XCircle, X, Eye, Search,
   User, Mail, Phone, Globe, Users, Calendar, Tag,
-  Wallet, StickyNote, Loader2, ArrowUpDown,
+  Wallet, StickyNote, Loader2, ArrowUpDown, AlertTriangle,
 } from 'lucide-react';
 import { adminApi } from '../../services/api';
 
@@ -18,6 +18,7 @@ interface Booking {
   totalUSD: number | null;
   totalLKR: number | null;
   status: 'upcoming' | 'completed' | 'cancelled';
+  cancelledBy: 'admin' | 'tourist' | null;
   tourist: {
     fullName: string;
     email: string;
@@ -55,6 +56,7 @@ function mapRow(raw: any): Booking {
     totalUSD: raw.total_price_usd != null ? Number(raw.total_price_usd) : null,
     totalLKR: raw.total_price_lkr != null ? Number(raw.total_price_lkr) : null,
     status: raw.status ?? 'upcoming',
+    cancelledBy: raw.cancelled_by || null,
     tourist: {
       fullName: raw.tourist_full_name || raw.tourist_username || 'Guest',
       email: raw.tourist_email || '',
@@ -64,6 +66,15 @@ function mapRow(raw: any): Booking {
     },
     specialNotes: raw.special_notes || '',
   };
+}
+
+function daysUntil(dateStr: string): number {
+  if (!dateStr) return Infinity;
+  const booking = new Date(dateStr);
+  booking.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((booking.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -78,22 +89,115 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
   cancelled: <XCircle size={14} />,
 };
 
+function cancelledLabel(cancelledBy: 'admin' | 'tourist' | null): string {
+  if (cancelledBy === 'admin')   return 'Cancelled by Plantation';
+  if (cancelledBy === 'tourist') return 'Cancelled by Customer';
+  return 'Cancelled';
+}
+
+function cancelledStyle(cancelledBy: 'admin' | 'tourist' | null): string {
+  if (cancelledBy === 'tourist') return 'bg-orange-100 text-orange-700';
+  return 'bg-red-100 text-red-700';
+}
+
+// ── Cancel Reason Modal ────────────────────────────────────────────────────
+interface CancelReasonModalProps {
+  bookingRef: string;
+  onConfirm: (reason: string) => void;
+  onClose: () => void;
+  submitting: boolean;
+}
+
+function CancelReasonModal({ bookingRef, onConfirm, onClose, submitting }: CancelReasonModalProps) {
+  const [reason, setReason] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="text-red-500" />
+            <h3 className="font-bold text-gray-900">Cancel Booking</h3>
+          </div>
+          <button onClick={onClose} disabled={submitting} className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 transition">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-gray-600">
+            You are about to cancel booking <span className="font-semibold text-gray-900">#{bookingRef}</span>.
+            An email will be sent to the guest explaining the cancellation and confirming their refund will be processed within 24 hours.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Reason for cancellation <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g. Unforeseen plantation closure, extreme weather conditions…"
+              rows={4}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+            />
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
+            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+            The guest will be notified by email and their refund will be processed within 24 hours.
+          </div>
+        </div>
+
+        <div className="flex gap-3 p-5 border-t border-gray-100">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold py-2.5 rounded-xl transition text-sm"
+          >
+            Go Back
+          </button>
+          <button
+            onClick={() => onConfirm(reason)}
+            disabled={submitting || !reason.trim()}
+            className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-xl transition text-sm"
+          >
+            {submitting ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+            Confirm Cancellation
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Detail Modal ───────────────────────────────────────────────────────────
 interface DetailModalProps {
   booking: Booking;
   onClose: () => void;
-  onStatusChange: (id: string, status: 'completed' | 'cancelled') => Promise<void>;
+  onStatusChange: (id: string, status: 'completed' | 'cancelled', reason?: string) => Promise<void>;
 }
 
 function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
   const [updating, setUpdating] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
-  const handleStatus = async (status: 'completed' | 'cancelled') => {
-    const label = status === 'completed' ? 'mark as Completed' : 'cancel';
-    if (!window.confirm(`Are you sure you want to ${label} this booking?`)) return;
+  const days = daysUntil(booking.date);
+  const canCancel = days >= 7;
+
+  const handleComplete = async () => {
+    if (!window.confirm('Are you sure you want to mark this booking as Completed?')) return;
     setUpdating(true);
-    await onStatusChange(booking.id, status);
+    await onStatusChange(booking.id, 'completed');
     setUpdating(false);
+    onClose();
+  };
+
+  const handleCancelConfirm = async (reason: string) => {
+    setUpdating(true);
+    await onStatusChange(booking.id, 'cancelled', reason);
+    setUpdating(false);
+    setShowCancelModal(false);
     onClose();
   };
 
@@ -125,8 +229,11 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
             <h2 className="text-xl font-bold text-[#1B4332]">{booking.bookingReference}</h2>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full capitalize ${STATUS_STYLES[booking.status]}`}>
-              {STATUS_ICON[booking.status]} {booking.status}
+            <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${
+              booking.status === 'cancelled' ? cancelledStyle(booking.cancelledBy) : STATUS_STYLES[booking.status]
+            }`}>
+              {STATUS_ICON[booking.status]}
+              {booking.status === 'cancelled' ? cancelledLabel(booking.cancelledBy) : booking.status}
             </span>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-400 transition">
               <X size={18} />
@@ -205,22 +312,41 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
 
         {/* Footer actions */}
         {booking.status === 'upcoming' && (
-          <div className="p-5 border-t border-gray-100 flex gap-3">
-            <button
-              onClick={() => handleStatus('completed')}
-              disabled={updating}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#1B4332] disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-xl transition text-sm"
-            >
-              {updating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
-              Mark Completed
-            </button>
-            <button
-              onClick={() => handleStatus('cancelled')}
-              disabled={updating}
-              className="flex-1 flex items-center justify-center gap-2 border-2 border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 font-semibold py-2.5 rounded-xl transition text-sm"
-            >
-              <XCircle size={15} /> Cancel Booking
-            </button>
+          <div className="p-5 border-t border-gray-100 space-y-3">
+            <div className="flex gap-3">
+              <button
+                onClick={handleComplete}
+                disabled={updating}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#2D6A4F] hover:bg-[#1B4332] disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-xl transition text-sm"
+              >
+                {updating ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+                Mark Completed
+              </button>
+              <div className="flex-1 relative group">
+                <button
+                  onClick={() => canCancel && setShowCancelModal(true)}
+                  disabled={updating || !canCancel}
+                  className={`w-full flex items-center justify-center gap-2 border-2 font-semibold py-2.5 rounded-xl transition text-sm
+                    ${canCancel
+                      ? 'border-red-300 text-red-600 hover:bg-red-50'
+                      : 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'}`}
+                >
+                  <XCircle size={15} /> Cancel Booking
+                </button>
+                {!canCancel && (
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 text-center opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                    Cancellations must be made at least 7 days before the booking date.
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                  </div>
+                )}
+              </div>
+            </div>
+            {!canCancel && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                <AlertTriangle size={13} className="shrink-0" />
+                This booking is {days} day{days === 1 ? '' : 's'} away — cancellation is only allowed 7 or more days before the booking date.
+              </p>
+            )}
           </div>
         )}
 
@@ -232,6 +358,15 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
           </div>
         )}
       </div>
+
+      {showCancelModal && (
+        <CancelReasonModal
+          bookingRef={booking.bookingReference}
+          onConfirm={handleCancelConfirm}
+          onClose={() => setShowCancelModal(false)}
+          submitting={updating}
+        />
+      )}
     </div>
   );
 }
@@ -267,8 +402,8 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
   }, [plantationId]);
 
   // ── Status update ────────────────────────────────────────────────────────
-  const handleStatusChange = async (id: string, status: 'completed' | 'cancelled') => {
-    await adminApi.updateBookingStatus(plantationId, id, status);
+  const handleStatusChange = async (id: string, status: 'completed' | 'cancelled', reason?: string) => {
+    await adminApi.updateBookingStatus(plantationId, id, status, reason);
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
   };
 
@@ -380,8 +515,11 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold text-[#1B4332] truncate">{b.tourist.fullName}</p>
-                    <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${STATUS_STYLES[b.status]}`}>
-                      {STATUS_ICON[b.status]} {b.status}
+                    <span className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                      b.status === 'cancelled' ? cancelledStyle(b.cancelledBy) : STATUS_STYLES[b.status]
+                    }`}>
+                      {STATUS_ICON[b.status]}
+                      {b.status === 'cancelled' ? cancelledLabel(b.cancelledBy) : b.status}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{b.tourist.email} {b.tourist.country ? `· ${b.tourist.country}` : ''}</p>

@@ -59,6 +59,7 @@ function mapBooking(raw: any): ExperienceBooking {
     plantationId: raw.plantation_id,
     plantationName: raw.plantation_name || 'Unknown Plantation',
     date: raw.booking_date || '',
+    cancelledBy: raw.cancelled_by || null,
     guests: guestParts.join(', '),
     experiences: experienceNames,
     totalPaid,
@@ -187,10 +188,20 @@ export default function Dashboard() {
 
 
   const STATUS_BADGE: Record<string, string> = {
-    upcoming: 'bg-blue-100 text-blue-800',
+    upcoming:  'bg-blue-100 text-blue-800',
     completed: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-700',
   };
+
+  function badgeStyle(b: ExperienceBooking) {
+    if (b.status !== 'cancelled') return STATUS_BADGE[b.status] || 'bg-gray-100 text-gray-500';
+    return b.cancelledBy === 'tourist' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
+  }
+
+  function badgeLabel(b: ExperienceBooking) {
+    if (b.status !== 'cancelled') return b.status;
+    return b.cancelledBy === 'admin' ? 'Cancelled by Plantation' : 'Cancelled by You';
+  }
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] font-sans text-[#1B4332]">
@@ -332,8 +343,8 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="text-right shrink-0">
-                            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full capitalize ${STATUS_BADGE[b.status] || 'bg-gray-100 text-gray-500'}`}>
-                              {b.status}
+                            <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${badgeStyle(b)}`}>
+                              {badgeLabel(b)}
                             </span>
                             <p className="text-gray-500 font-semibold text-sm mt-1">{b.totalPaid}</p>
                             <p className="text-gray-400 text-xs mt-0.5">#{b.bookingReference}</p>

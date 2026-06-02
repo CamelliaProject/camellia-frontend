@@ -20,6 +20,11 @@ import {
 
 const USD_TO_LKR = 330;
 const TODAY = new Date().toISOString().split('T')[0];
+const TOMORROW = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+})();
 const MAX_DATE = (() => {
   const d = new Date();
   d.setMonth(d.getMonth() + 6);
@@ -457,8 +462,10 @@ export default function OnePageBooking() {
     scrollTop();
   };
 
+  const isDateTooSoon = selectedDate === TODAY;
+
   const goToDetails = () => {
-    if (!selectedDate) return;
+    if (!selectedDate || isDateTooSoon) return;
     setStep('details');
     scrollTop();
   };
@@ -644,12 +651,21 @@ export default function OnePageBooking() {
                     </label>
                     <input
                       type="date"
-                      min={TODAY}
+                      min={TOMORROW}
                       max={MAX_DATE}
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#52B788] text-gray-800"
+                      className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 text-gray-800 transition
+                        ${isDateTooSoon
+                          ? 'border-amber-400 focus:ring-amber-300'
+                          : 'border-gray-300 focus:ring-[#52B788]'}`}
                     />
+                    {isDateTooSoon && (
+                      <div className="mt-2 flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm">
+                        <AlertCircle size={15} className="shrink-0" />
+                        Bookings must be made at least 1 day in advance. Please select a future date.
+                      </div>
+                    )}
                   </div>
 
                   {/* Guest counts */}
@@ -669,7 +685,7 @@ export default function OnePageBooking() {
                     </button>
                     <button
                       type="button"
-                      disabled={!selectedDate}
+                      disabled={!selectedDate || isDateTooSoon}
                       onClick={goToDetails}
                       className="flex-1 flex items-center justify-center gap-2 bg-[#52B788] hover:bg-[#40916c] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
                     >

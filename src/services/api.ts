@@ -18,8 +18,8 @@ export const adminApi = {
   getPlantationBookings: (plantationId: string) =>
     apiClient.get(`/admin/bookings/${plantationId}`),
 
-  updateBookingStatus: (plantationId: string, bookingId: string, status: string) =>
-    apiClient.put(`/admin/bookings/${plantationId}/${bookingId}`, { status }),
+  updateBookingStatus: (plantationId: string, bookingId: string, status: string, reason?: string) =>
+    apiClient.put(`/admin/bookings/${plantationId}/${bookingId}`, { status, reason }),
 
   // Plantation Admin - Payments (derived from bookings)
   getPlantationPayments: (plantationId: string) =>
@@ -98,6 +98,9 @@ export const paymentApi = {
   create: (data: Record<string, any>) => apiClient.post('/payments', data),
   getAll: () => apiClient.get('/payments'),
   updateStatus: (id: string, status: string) => apiClient.patch(`/payments/${id}/status`, { status }),
+  payhereInitiate: (data: Record<string, any>) => apiClient.post('/payments/payhere/initiate', data),
+  payheresSavePayment: (bookingReference: string, paymentId: string) =>
+    apiClient.post('/payments/payhere/save-payment', { booking_reference: bookingReference, payment_id: paymentId }),
 };
 
 export default apiClient;

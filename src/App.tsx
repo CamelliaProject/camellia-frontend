@@ -11,6 +11,7 @@ import Contact from './features/tourist/Contact';
 import Dashboard from './features/tourist/Dashboard';
 import PaymentPage from './features/tourist/PaymentPage';
 import BookingConfirmationPage from './features/tourist/BookingConfirmationPage';
+import PaymentReturnPage from './features/tourist/PaymentReturnPage';
 import PlantationAdminDashboard from './features/plantation-admin/PlantationAdminDashboard';
 import ChangePassword from './features/plantation-admin/ChangePassword';
 import SuperAdminDashboard from './features/super-admin/SuperAdminDashboard';
@@ -88,6 +89,7 @@ function App() {
         <Route path="/superadmin" element={<SuperAdminLogin />} />
         <Route path="/plantation-request" element={<PlantationRequestPage />} />
         <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/payment-return" element={<PaymentReturnPage />} />
         <Route path="/booking-confirmation" element={<BookingConfirmationPage />} />
       </Routes>
     </Router>

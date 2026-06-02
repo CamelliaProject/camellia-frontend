@@ -10,6 +10,7 @@ export interface ExperienceBooking {
   experiences: string[];
   totalPaid: string;
   status: 'upcoming' | 'completed' | 'cancelled';
+  cancelledBy: 'admin' | 'tourist' | null;
 }
 
 interface BookingDetailsModalProps {
@@ -33,10 +34,23 @@ function formatDate(raw: any) {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  upcoming: 'bg-blue-100 text-blue-800',
+  upcoming:  'bg-blue-100 text-blue-800',
   completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-700',
 };
+
+function bookingStatusLabel(status: string, cancelledBy: 'admin' | 'tourist' | null) {
+  if (status !== 'cancelled') return status;
+  if (cancelledBy === 'admin')   return 'Cancelled by Plantation';
+  if (cancelledBy === 'tourist') return 'Cancelled by You';
+  return 'Cancelled';
+}
+
+function bookingStatusStyle(status: string, cancelledBy: 'admin' | 'tourist' | null) {
+  if (status !== 'cancelled') return STATUS_STYLES[status] || 'bg-gray-100 text-gray-600';
+  if (cancelledBy === 'tourist') return 'bg-orange-100 text-orange-700';
+  return 'bg-red-100 text-red-700';
+}
 
 export default function BookingDetailsModal({
   isOpen, onClose, booking, onWriteReview, onCancel,
@@ -48,7 +62,9 @@ export default function BookingDetailsModal({
 
   const handleCancel = async () => {
     if (!onCancel) return;
-    if (!window.confirm('Are you sure you want to cancel this booking? This cannot be undone.')) return;
+    if (!window.confirm(
+      'Are you sure you want to cancel this booking?\n\nPlease note: Tourist-initiated cancellations are non-refundable. This action cannot be undone.'
+    )) return;
     await onCancel(booking.id);
     onClose();
   };
@@ -69,8 +85,8 @@ export default function BookingDetailsModal({
 
         {/* Status badge */}
         <div className="px-6 pt-4">
-          <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full capitalize ${STATUS_STYLES[booking.status] || 'bg-gray-100 text-gray-600'}`}>
-            {booking.status}
+          <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${bookingStatusStyle(booking.status, booking.cancelledBy)}`}>
+            {bookingStatusLabel(booking.status, booking.cancelledBy)}
           </span>
         </div>
 
@@ -127,12 +143,18 @@ export default function BookingDetailsModal({
           )}
 
           {isUpcoming && onCancel && (
-            <button
-              onClick={handleCancel}
-              className="w-full flex items-center justify-center gap-2 border-2 border-red-400 text-red-600 hover:bg-red-50 font-semibold py-3 rounded-xl transition text-sm"
-            >
-              <AlertTriangle size={15} /> Cancel Booking
-            </button>
+            <div className="space-y-2">
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-2">
+                <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                Tourist-initiated cancellations are <strong>non-refundable</strong>. Only cancellations made by the plantation include a refund.
+              </p>
+              <button
+                onClick={handleCancel}
+                className="w-full flex items-center justify-center gap-2 border-2 border-red-400 text-red-600 hover:bg-red-50 font-semibold py-3 rounded-xl transition text-sm"
+              >
+                <AlertTriangle size={15} /> Cancel Booking (No Refund)
+              </button>
+            </div>
           )}
 
           <button

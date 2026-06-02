@@ -40,8 +40,6 @@ interface ContactRequest {
 interface ApprovalResult {
   plantationName: string;
   email: string;
-  username: string;
-  password: string;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -50,7 +48,7 @@ export default function SuperAdminDashboard() {
   const navigate  = useNavigate();
   const { user, logOut } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'plantations' | 'requests' | 'contactRequests'>('plantations');
+  const [activeTab, setActiveTab] = useState<'plantations' | 'requests' | 'subscriptions' | 'contactRequests'>('plantations');
 
   // Plantations
   const [plantations, setPlantations] = useState<Plantation[]>([]);
@@ -63,6 +61,10 @@ export default function SuperAdminDashboard() {
 
   // Contact requests (local only for now)
   const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+
+  // Subscriptions
+  const [subscriptions, setSubscriptions]   = useState<any[]>([]);
+  const [earnings, setEarnings]             = useState<any>(null);
 
   // Approval credentials modal
   const [approvalResult, setApprovalResult] = useState<ApprovalResult | null>(null);
@@ -116,6 +118,27 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const fetchSubscriptions = async () => {
+    try {
+      const [subRes, earnRes] = await Promise.all([
+        adminApi.getSubscriptions(),
+        adminApi.getSubscriptionEarnings(),
+      ]);
+      setSubscriptions(subRes.data?.data || []);
+      setEarnings(earnRes.data || null);
+    } catch { setSubscriptions([]); }
+  };
+
+  const handleToggleDisabled = async (plantationId: string, disabled: boolean) => {
+    try {
+      await adminApi.togglePlantationDisabled(plantationId, disabled);
+      void fetchPlantations();
+      void fetchSubscriptions();
+    } catch (err: any) {
+      alert(`Failed: ${err?.response?.data?.error || err.message}`);
+    }
+  };
+
   useEffect(() => {
     if (!user || user.role !== 'superadmin') {
       navigate('/');
@@ -123,6 +146,7 @@ export default function SuperAdminDashboard() {
     }
     void fetchPlantations();
     void fetchPendingRequests();
+    void fetchSubscriptions();
   }, [user, navigate]);
 
   // ── Plantation management ─────────────────────────────────────────────────
@@ -144,12 +168,10 @@ export default function SuperAdminDashboard() {
     setApprovingIds(prev => new Set(prev).add(requestId));
     try {
       const res = await adminApi.approvePlantationRequest(requestId);
-      const { plantation, adminUser } = res.data.data;
+      const { plantation } = res.data.data;
       setApprovalResult({
         plantationName: plantation.name,
         email:          plantation.email,
-        username:       adminUser.username,
-        password:       adminUser.plainPassword,
       });
       void fetchPendingRequests();
       void fetchPlantations();
@@ -219,6 +241,7 @@ export default function SuperAdminDashboard() {
           {[
             { key: 'plantations',    icon: <BarChart2 size={18} />, label: 'Plantations',        badge: null },
             { key: 'requests',       icon: <Clock size={18} />,     label: 'Pending Requests',   badge: pendingRequests.length || null },
+            { key: 'subscriptions',  icon: <BarChart2 size={18} />, label: 'Subscriptions',      badge: null },
             { key: 'contactRequests',icon: <Mail size={18} />,      label: 'Contact Requests',   badge: null },
           ].map(tab => (
             <button
@@ -264,6 +287,7 @@ export default function SuperAdminDashboard() {
               <h2 className="text-2xl font-bold text-[#1B4332] font-serif">
                 {activeTab === 'plantations'    && 'Plantations Overview'}
                 {activeTab === 'requests'        && 'Pending Plantation Requests'}
+                {activeTab === 'subscriptions'   && 'Subscriptions & Earnings'}
                 {activeTab === 'contactRequests' && 'Contact Requests'}
               </h2>
               <p className="text-gray-400 text-xs mt-0.5">Camellia Platform Management</p>
@@ -358,12 +382,24 @@ export default function SuperAdminDashboard() {
                           )}
                         </td>
                         <td className="px-5 py-4">
-                          <button
-                            onClick={() => handleViewDetails(p)}
-                            className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                          >
-                            <Eye size={14} /> View
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleViewDetails(p)}
+                              className="flex items-center gap-1.5 text-sm px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                            >
+                              <Eye size={14} /> View
+                            </button>
+                            <button
+                              onClick={() => handleToggleDisabled(p.id, !p.isDisabled)}
+                              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                                p.isDisabled
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-red-100 text-red-600 hover:bg-red-200'
+                              }`}
+                            >
+                              {p.isDisabled ? 'Enable' : 'Disable'}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -496,6 +532,95 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
+          {/* ── Subscriptions tab ────────────────────────────────────────── */}
+          {activeTab === 'subscriptions' && (() => {
+            const totalEarnings = earnings?.overall?.total_earnings ? Number(earnings.overall.total_earnings) : 0;
+            const totalSubs     = earnings?.overall?.total_subscriptions ? Number(earnings.overall.total_subscriptions) : 0;
+            const fmtD = (d: string) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+            const statusBadge = (sub: any) => {
+              const today = new Date(); today.setHours(0,0,0,0);
+              const end   = new Date(sub.end_date); end.setHours(0,0,0,0);
+              const days  = Math.round((end.getTime() - today.getTime()) / 86400000);
+              if (sub.status === 'expired' || days < 0) return { label: 'Expired', cls: 'bg-red-100 text-red-700' };
+              if (days <= 7)  return { label: `Expires in ${days}d`, cls: 'bg-red-100 text-red-700' };
+              if (days <= 30) return { label: `Expires in ${days}d`, cls: 'bg-amber-100 text-amber-700' };
+              return { label: 'Active', cls: 'bg-green-100 text-green-700' };
+            };
+            return (
+              <div className="space-y-6">
+                {/* Earnings summary */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white rounded-xl p-5">
+                    <p className="text-green-200 text-xs font-semibold uppercase tracking-wide mb-1">Total Earnings</p>
+                    <p className="text-3xl font-bold">Rs {totalEarnings.toLocaleString()}</p>
+                    <p className="text-green-300 text-xs mt-1">{totalSubs} subscription{totalSubs !== 1 ? 's' : ''}</p>
+                  </div>
+                  {(earnings?.byType || []).map((t: any) => (
+                    <div key={t.subscription_type} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                      <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1">
+                        {t.subscription_type === 'pro' ? 'Pro Pack' : 'Starter Pack'}
+                      </p>
+                      <p className="text-2xl font-bold text-[#1B4332]">Rs {Number(t.total).toLocaleString()}</p>
+                      <p className="text-gray-400 text-xs mt-1">{t.count} subscription{t.count !== 1 ? 's' : ''}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Subscriptions table */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {['Plantation', 'Plan', 'Amount', 'Start Date', 'Due Date', 'Status', 'Plantation Status'].map(h => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {subscriptions.length === 0 && (
+                        <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-400">No subscriptions yet</td></tr>
+                      )}
+                      {subscriptions.map((sub: any) => {
+                        const badge = statusBadge(sub);
+                        return (
+                          <tr key={sub.id}>
+                            <td className="px-4 py-4">
+                              <p className="font-semibold text-sm text-[#1B4332]">{sub.plantation_name}</p>
+                              <p className="text-xs text-gray-400">{sub.owner_name}</p>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sub.subscription_type === 'pro' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {sub.subscription_type === 'pro' ? '⭐ Pro' : 'Starter'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-sm font-semibold text-[#1B4332]">Rs {Number(sub.amount).toLocaleString()}</td>
+                            <td className="px-4 py-4 text-sm text-gray-600">{fmtD(sub.start_date)}</td>
+                            <td className="px-4 py-4 text-sm font-semibold text-gray-700">{fmtD(sub.end_date)}</td>
+                            <td className="px-4 py-4">
+                              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>
+                            </td>
+                            <td className="px-4 py-4">
+                              <button
+                                onClick={() => handleToggleDisabled(sub.plantation_id, !sub.is_disabled)}
+                                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
+                                  sub.is_disabled
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                }`}
+                              >
+                                {sub.is_disabled ? 'Enable' : 'Disable'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* ── Contact Requests tab ──────────────────────────────────────── */}
           {activeTab === 'contactRequests' && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -564,22 +689,17 @@ export default function SuperAdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-[#1B4332]">Plantation Approved!</h3>
+              <h3 className="text-xl font-bold text-[#1B4332]">Request Approved!</h3>
               <p className="text-gray-500 text-sm mt-1">
-                <strong>{approvalResult.plantationName}</strong> is now live on the platform.
+                <strong>{approvalResult.plantationName}</strong> will go live after subscription payment.
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-5 mb-5 space-y-3">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Generated Credentials</p>
-              <CredentialRow label="Username" value={approvalResult.username} />
-              <CredentialRow label="Password" value={approvalResult.password} secret />
-            </div>
-
-            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-6 flex items-start gap-2">
-              <Mail size={15} className="text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-700">
-                Credentials have been emailed to <strong>{approvalResult.email}</strong>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+              <Mail size={15} className="text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                A <strong>subscription payment link</strong> has been emailed to <strong>{approvalResult.email}</strong>.
+                Login credentials will be sent automatically after payment is completed.
               </p>
             </div>
 

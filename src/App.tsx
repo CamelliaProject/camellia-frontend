@@ -19,6 +19,10 @@ import TouristLogin from './features/auth/TouristLogin';
 import PlantationAdminLogin from './features/auth/PlantationAdminLogin';
 import SuperAdminLogin from './features/auth/SuperAdminLogin';
 import PlantationRequestPage from './features/auth/PlantationRequest';
+import SubscriptionPaymentPage from './features/auth/SubscriptionPaymentPage';
+import SubscriptionPaymentReturnPage from './features/auth/SubscriptionPaymentReturnPage';
+import SubscriptionRenewalPage from './features/auth/SubscriptionRenewalPage';
+import SubscriptionRenewalReturnPage from './features/auth/SubscriptionRenewalReturnPage';
 import { useAuth } from './context/AuthContext';
 
 // Redirects to `loginPath` when the user is not authenticated or lacks the required role.
@@ -91,6 +95,10 @@ function App() {
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/payment-return" element={<PaymentReturnPage />} />
         <Route path="/booking-confirmation" element={<BookingConfirmationPage />} />
+        <Route path="/subscription-payment" element={<SubscriptionPaymentPage />} />
+        <Route path="/subscription-payment-return" element={<SubscriptionPaymentReturnPage />} />
+        <Route path="/subscription-renew" element={<SubscriptionRenewalPage />} />
+        <Route path="/subscription-renew-return" element={<SubscriptionRenewalReturnPage />} />
       </Routes>
     </Router>
   );

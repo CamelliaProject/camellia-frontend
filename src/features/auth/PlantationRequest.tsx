@@ -14,10 +14,8 @@ const PLANS = [
     period: '/year',
     note: 'LKR 2,000 / month',
     bookings: 'Up to 1,000 bookings per year',
-    commission: '8% platform commission per booking',
     features: [
       'Up to 1,000 bookings per year',
-      '8% platform commission per booking',
       'Standard listing on platform',
       'Basic analytics dashboard',
       'Email support (24–48 h response)',
@@ -31,10 +29,8 @@ const PLANS = [
     period: '/year',
     note: 'LKR 5,000 / month',
     bookings: 'Unlimited bookings per year',
-    commission: '5% platform commission per booking',
     features: [
       'Unlimited bookings per year',
-      '5% platform commission per booking',
       'Featured & priority placement',
       'Advanced analytics & reports',
       'Priority support (same-day response)',
@@ -47,6 +43,7 @@ const PLANS = [
 // ── Component ───────────────────────────────────────────────────────────────
 
 export default function PlantationRequestPage() {
+  const [showForm, setShowForm]       = useState(false);
   const [step, setStep]               = useState(0);
   const [submitted, setSubmitted]     = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,6 +159,87 @@ export default function PlantationRequestPage() {
   }
 
   // ── Success Screen ────────────────────────────────────────────────────────
+
+  // ── Pricing page (shown before the form) ─────────────────────────────────
+  if (!showForm) {
+    return (
+      <div className="min-h-screen bg-[#F5F7F5]">
+        <div className="bg-[#1B4332] px-6 py-4 flex items-center justify-between">
+          <span className="text-white text-xl font-bold font-serif">Camellia</span>
+          <Link to="/" className="text-green-200 text-sm hover:text-white transition">← Back to Home</Link>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-4 py-14">
+          <div className="text-center mb-12">
+            <span className="inline-block bg-[#D8F3DC] text-[#1B4332] text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-widest mb-4">
+              Plantation Subscription Plans
+            </span>
+            <h1 className="text-4xl font-bold text-[#1B4332] mb-4">Join the Camellia Platform</h1>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">
+              Choose a plan that fits your plantation. No commission — just a simple annual subscription fee.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-10">
+            {PLANS.map(plan => (
+              <div
+                key={plan.id}
+                className={`relative bg-white rounded-3xl shadow-lg border-2 p-8 flex flex-col ${
+                  plan.highlight ? 'border-[#1B4332]' : 'border-gray-100'
+                }`}
+              >
+                {plan.highlight && (
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#1B4332] text-white text-xs font-bold px-5 py-1.5 rounded-full">
+                    Most Popular
+                  </span>
+                )}
+
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-[#1B4332] mb-1">{plan.name}</h2>
+                  <p className="text-sm text-gray-500">{plan.bookings}</p>
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-4xl font-bold text-[#1B4332]">{plan.price}</span>
+                  <span className="text-gray-400 text-sm ml-1">{plan.period}</span>
+                  <p className="text-sm text-gray-400 mt-1">{plan.note}</p>
+                </div>
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {plan.features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
+                      <svg className="w-4 h-4 text-[#52B788] shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => { setSubscriptionType(plan.id); setShowForm(true); }}
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition ${
+                    plan.highlight
+                      ? 'bg-[#1B4332] hover:bg-[#2D6A4F] text-white'
+                      : 'border-2 border-[#1B4332] text-[#1B4332] hover:bg-[#1B4332] hover:text-white'
+                  }`}
+                >
+                  Get Started with {plan.name} →
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-6 text-center">
+            <p className="text-sm text-gray-500">
+              No hidden fees · No commission on bookings · Cancel anytime ·
+              <span className="text-[#1B4332] font-semibold"> Payment collected after approval</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

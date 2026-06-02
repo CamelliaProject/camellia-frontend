@@ -20,6 +20,11 @@ import {
 
 const USD_TO_LKR = 330;
 const TODAY = new Date().toISOString().split('T')[0];
+const MAX_DATE = (() => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 6);
+  return d.toISOString().split('T')[0];
+})();
 
 type Step = 'experiences' | 'datetime' | 'details';
 
@@ -640,6 +645,7 @@ export default function OnePageBooking() {
                     <input
                       type="date"
                       min={TODAY}
+                      max={MAX_DATE}
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#52B788] text-gray-800"

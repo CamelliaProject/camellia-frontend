@@ -172,8 +172,8 @@ export default function PaymentReturnPage() {
 
           <p className="text-center text-xs text-gray-400 mt-6">
             Questions? Contact us at{' '}
-            <a href="mailto:support@camellia.com" className="text-[#2D6A4F] hover:underline">
-              support@camellia.com
+            <a href="mailto:camelliaceylonplatform@gmail.com" className="text-[#2D6A4F] hover:underline">
+              camelliaceylonplatform@gmail.com
             </a>
           </p>
         </div>

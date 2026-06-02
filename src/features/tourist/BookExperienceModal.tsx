@@ -1,20 +1,19 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-interface Experience {
-  name: string;
-  priceUSD: number;
-}
-
 interface BookExperienceModalProps {
   plantationName: string;
   experiences: Experience[];
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (booking: { experiences: string[]; date: string; totalUSD: number; totalLKR: number }) => void;
+  usdToLkr?: number;
 }
 
-const USD_TO_LKR = 330;
+interface Experience {
+  name: string;
+  priceUSD: number;
+}
 
 export default function BookExperienceModal({
   plantationName,
@@ -22,6 +21,7 @@ export default function BookExperienceModal({
   isOpen,
   onClose,
   onSubmit,
+  usdToLkr = 330,
 }: BookExperienceModalProps) {
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -40,7 +40,7 @@ export default function BookExperienceModal({
         .filter((exp) => selectedExperiences.includes(exp.name))
         .reduce((sum, exp) => sum + exp.priceUSD, 0);
 
-      const totalLKR = totalUSD * USD_TO_LKR;
+      const totalLKR = totalUSD * usdToLkr;
 
       onSubmit({ experiences: selectedExperiences, date: selectedDate, totalUSD, totalLKR });
 
@@ -56,7 +56,7 @@ export default function BookExperienceModal({
     .filter((exp) => selectedExperiences.includes(exp.name))
     .reduce((sum, exp) => sum + exp.priceUSD, 0);
 
-  const totalLKR = totalUSD * USD_TO_LKR;
+  const totalLKR = totalUSD * usdToLkr;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -99,7 +99,7 @@ export default function BookExperienceModal({
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Price (LKR)</p>
-                        <p className="text-lg font-bold text-[#2D6A4F]">Rs {(experience.priceUSD * USD_TO_LKR).toLocaleString()}</p>
+                        <p className="text-lg font-bold text-[#2D6A4F]">Rs {(experience.priceUSD * usdToLkr).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>

@@ -5,7 +5,6 @@ import {
   Globe, MapPin, DollarSign,
 } from 'lucide-react';
 
-const USD_TO_LKR = 330;
 import { adminApi } from '../../services/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -112,23 +111,26 @@ export default function PlantationPayments({ plantationId }: Props) {
 
   // ── Revenue totals ────────────────────────────────────────────────────
   // Includes upcoming + completed — backend already excludes cancelled.
+  // combined: use stored total_price_lkr (rate-locked at booking time).
+  // For legacy USD bookings that pre-date the rate column, fall back to ×330.
   const totals = useMemo(() => {
-    let lkr = 0; let usd = 0;
+    let lkr = 0; let usd = 0; let combined = 0;
     periodRows.forEach(r => {
-      if (r.totalLKR) lkr += r.totalLKR;
+      if (!r.totalUSD && r.totalLKR) lkr += r.totalLKR;
       if (r.totalUSD) usd += r.totalUSD;
+      combined += r.totalLKR ?? (r.totalUSD ? r.totalUSD * 330 : 0);
     });
-    const combined = lkr + usd * USD_TO_LKR;
     return { lkr, usd, combined, count: periodRows.length };
   }, [periodRows]);
 
   const allTimeTotals = useMemo(() => {
-    let lkr = 0; let usd = 0;
+    let lkr = 0; let usd = 0; let combined = 0;
     rows.forEach(r => {
-      if (r.totalLKR) lkr += r.totalLKR;
+      if (!r.totalUSD && r.totalLKR) lkr += r.totalLKR;
       if (r.totalUSD) usd += r.totalUSD;
+      combined += r.totalLKR ?? (r.totalUSD ? r.totalUSD * 330 : 0);
     });
-    return { lkr, usd, combined: lkr + usd * USD_TO_LKR };
+    return { lkr, usd, combined };
   }, [rows]);
 
   // ── Filtered + sorted table rows (completed + tourist-cancelled) ──────
@@ -257,7 +259,7 @@ export default function PlantationPayments({ plantationId }: Props) {
           </div>
           <p className="text-xs opacity-60 mb-1">{PERIOD_LABELS[period]} · LKR equiv.</p>
           <p className="text-xl font-bold">Rs {totals.combined.toLocaleString()}</p>
-          <p className="text-xs opacity-50 mt-1">Local + Foreign (×{USD_TO_LKR})</p>
+          <p className="text-xs opacity-50 mt-1">Local + Foreign (rate at booking time)</p>
         </div>
         {/* Bookings */}
         <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-2xl p-5">

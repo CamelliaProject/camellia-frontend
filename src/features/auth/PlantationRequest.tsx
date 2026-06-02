@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
+import { validateEmail, validatePhone } from '../../utils/validators';
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -86,9 +87,9 @@ export default function PlantationRequestPage() {
     if (step === 1) {
       if (!businessReg.trim()) e.businessReg = 'Business registration number is required.';
       if (!email.trim())       e.email       = 'Email address is required.';
-      else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email address.';
+      else if (!validateEmail(email)) e.email = 'Enter a valid email address.';
       if (!telephone.trim())   e.telephone   = 'Telephone number is required.';
-      else if (!/^[\d\s\-+()]{7,15}$/.test(telephone)) e.telephone = 'Enter a valid telephone number.';
+      else if (!validatePhone(telephone)) e.telephone = 'Enter a valid telephone number.';
     }
     if (step === 2) {
       if (!proofDocument) e.proofDocument = 'Proof document is required.';

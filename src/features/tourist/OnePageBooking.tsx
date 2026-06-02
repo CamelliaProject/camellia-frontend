@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import SignInModal from '../../components/layout/SignInModal';
-import { plantationApi } from '../../services/api';
+import { plantationApi, settingsApi } from '../../services/api';
 import {
   ChevronDown,
   ChevronUp,
@@ -18,7 +18,6 @@ import {
   Info,
 } from 'lucide-react';
 
-const USD_TO_LKR = 330;
 const TODAY = new Date().toISOString().split('T')[0];
 const TOMORROW = (() => {
   const d = new Date();
@@ -113,21 +112,23 @@ function ExperienceCard({
   isSelected,
   currency,
   isResident,
+  usdToLkr,
   onToggle,
 }: {
   exp: Experience;
   isSelected: boolean;
   currency: 'LKR' | 'USD';
   isResident: boolean;
+  usdToLkr: number;
   onToggle: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
   const adultPrice = isResident
-    ? (exp.price_lkr_adult || exp.price_usd_adult * USD_TO_LKR)
+    ? (exp.price_lkr_adult || exp.price_usd_adult * usdToLkr)
     : exp.price_usd_adult;
   const childPrice = isResident
-    ? (exp.price_lkr_child || exp.price_usd_child * USD_TO_LKR)
+    ? (exp.price_lkr_child || exp.price_usd_child * usdToLkr)
     : exp.price_usd_child;
   const symbol = isResident ? 'Rs' : '$';
 
@@ -241,6 +242,7 @@ function BookingSummary({
   children,
   currency,
   isResident,
+  usdToLkr,
   total,
 }: {
   plantationName: string;
@@ -250,6 +252,7 @@ function BookingSummary({
   children: number;
   currency: string;
   isResident: boolean;
+  usdToLkr: number;
   total: number;
 }) {
   const symbol = isResident ? 'Rs' : '$';
@@ -265,8 +268,8 @@ function BookingSummary({
       {selectedExperiences.length > 0 ? (
         <ul className="space-y-1.5 mb-4">
           {selectedExperiences.map((exp) => {
-            const ap = isResident ? (exp.price_lkr_adult || exp.price_usd_adult * USD_TO_LKR) : exp.price_usd_adult;
-            const cp = isResident ? (exp.price_lkr_child || exp.price_usd_child * USD_TO_LKR) : exp.price_usd_child;
+            const ap = isResident ? (exp.price_lkr_adult || exp.price_usd_adult * usdToLkr) : exp.price_usd_adult;
+            const cp = isResident ? (exp.price_lkr_child || exp.price_usd_child * usdToLkr) : exp.price_usd_child;
             const expTotal = ap * adults + cp * children;
             return (
               <li key={exp.id} className="flex justify-between items-start text-sm">
@@ -364,6 +367,7 @@ export default function OnePageBooking() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [isSignInOpen, setIsSignInOpen] = useState(false);
+  const [usdToLkr, setUsdToLkr] = useState(330);
 
   // Step 1 state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -403,6 +407,13 @@ export default function OnePageBooking() {
     };
     void load();
   }, [plantationId]);
+
+  // ── Fetch live exchange rate ──────────────────────────────────────────────
+  useEffect(() => {
+    settingsApi.getExchangeRate()
+      .then(res => { if (res.data?.usd_to_lkr) setUsdToLkr(res.data.usd_to_lkr); })
+      .catch(() => { /* keep default 330 fallback */ });
+  }, []);
 
   // Pre-fill email from auth
   useEffect(() => {
@@ -447,8 +458,8 @@ export default function OnePageBooking() {
   const computeTotal = (exps: Experience[] = selected) => {
     let t = 0;
     exps.forEach((exp) => {
-      const ap = isResident ? (exp.price_lkr_adult || exp.price_usd_adult * USD_TO_LKR) : exp.price_usd_adult;
-      const cp = isResident ? (exp.price_lkr_child || exp.price_usd_child * USD_TO_LKR) : exp.price_usd_child;
+      const ap = isResident ? (exp.price_lkr_adult || exp.price_usd_adult * usdToLkr) : exp.price_usd_adult;
+      const cp = isResident ? (exp.price_lkr_child || exp.price_usd_child * usdToLkr) : exp.price_usd_child;
       t += ap * adults + cp * children;
     });
     return t;
@@ -503,6 +514,7 @@ export default function OnePageBooking() {
           children,
           totalPrice: total,
           currency,
+          usdToLkrRate: usdToLkr,
         },
         touristDetails: {
           fullName: details.fullName,
@@ -581,7 +593,12 @@ export default function OnePageBooking() {
                   <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex items-center justify-between gap-4 flex-wrap">
                     <div>
                       <p className="font-semibold text-gray-800 text-sm mb-0.5">Your residency</p>
-                      <p className="text-xs text-gray-500">Prices differ for residents and foreign tourists</p>
+                      <p className="text-xs text-gray-500">
+                        Prices differ for residents and foreign tourists
+                        {!isResident && (
+                          <span className="ml-1 text-[#2D6A4F] font-medium">· Today: 1 USD = Rs {usdToLkr.toLocaleString()}</span>
+                        )}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -617,6 +634,7 @@ export default function OnePageBooking() {
                           isSelected={selectedIds.includes(exp.id)}
                           currency={currency}
                           isResident={isResident}
+                          usdToLkr={usdToLkr}
                           onToggle={() =>
                             setSelectedIds((prev) =>
                               prev.includes(exp.id) ? prev.filter((x) => x !== exp.id) : [...prev, exp.id]
@@ -777,6 +795,7 @@ export default function OnePageBooking() {
                 children={children}
                 currency={currency}
                 isResident={isResident}
+                usdToLkr={usdToLkr}
                 total={total}
               />
             </div>

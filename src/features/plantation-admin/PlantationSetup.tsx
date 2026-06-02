@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { plantationApi } from '../../services/api';
+import { validateEmail, validatePhone } from '../../utils/validators';
 
 interface PlantationSetupProps {
   plantationId: string;
@@ -63,12 +64,12 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
     const errs: Record<string, string> = {};
     if (!formData.phone.trim()) {
       errs.phone = 'Phone number is required';
-    } else if (!/^[\d\s\-\+\(\)]+$/.test(formData.phone)) {
+    } else if (!validatePhone(formData.phone)) {
       errs.phone = 'Please enter a valid phone number';
     }
     if (!formData.email.trim()) {
       errs.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!validateEmail(formData.email)) {
       errs.email = 'Please enter a valid email';
     }
     if (!formData.altitude.trim())   errs.altitude   = 'Altitude is required';

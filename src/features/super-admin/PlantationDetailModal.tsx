@@ -1,7 +1,8 @@
 
 
 import { useState, useEffect } from 'react';
-import type { Plantation } from '../../features/super-admin/SuperAdminDashboard'; // Import the interface
+import type { Plantation } from '../../features/super-admin/SuperAdminDashboard';
+import { validateEmail } from '../../utils/validators';
 
 
 interface PlantationDetailModalProps {
@@ -58,7 +59,7 @@ export default function PlantationDetailModal({
       newErrors.telephone = 'Please enter a valid telephone number';
     }
     if (!formData.email.trim()) newErrors.email = 'Email Address is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    else if (!validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
     return newErrors;

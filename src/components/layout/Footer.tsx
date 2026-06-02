@@ -95,7 +95,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm text-green-100">
               <li className="flex items-start gap-2.5">
                 <Mail size={14} className="text-green-300 mt-0.5 shrink-0" />
-                <span>support@camellia.com</span>
+                <span>camelliaceylonplatform@gmail.com</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Phone size={14} className="text-green-300 mt-0.5 shrink-0" />

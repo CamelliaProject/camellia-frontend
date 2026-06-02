@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
+import { validatePassword, validateUsername } from '../../utils/validators';
 
 interface FieldErrors {
   username?: string;
@@ -23,14 +24,14 @@ export default function SuperAdminLogin() {
 
   function validate(): boolean {
     const errors: FieldErrors = {};
-    if (!username.trim()) {
+    if (!validateUsername(username)) {
       errors.username = 'Username is required.';
-    } else if (username.trim().length > 50) {
+    } else if (username.length > 50) {
       errors.username = 'Username must be 50 characters or fewer.';
     }
     if (!password) {
       errors.password = 'Password is required.';
-    } else if (password.length < 6) {
+    } else if (!validatePassword(password)) {
       errors.password = 'Password must be at least 6 characters.';
     }
     setFieldErrors(errors);

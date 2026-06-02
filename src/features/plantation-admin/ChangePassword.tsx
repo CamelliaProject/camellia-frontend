@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
+import { validatePassword } from '../../utils/validators';
 
 export default function ChangePassword() {
   const { user, updateUser } = useAuth();
@@ -21,7 +22,7 @@ export default function ChangePassword() {
   const validate = () => {
     const errs: typeof errors = {};
     if (!password)               errs.password = 'New password is required.';
-    else if (password.length < 6) errs.password = 'Password must be at least 6 characters.';
+    else if (!validatePassword(password)) errs.password = 'Password must be at least 6 characters.';
     if (password !== confirm)    errs.confirm  = 'Passwords do not match.';
     setErrors(errs);
     return Object.keys(errs).length === 0;

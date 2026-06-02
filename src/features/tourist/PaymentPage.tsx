@@ -29,20 +29,25 @@ export default function PaymentPage() {
     return null;
   }
 
-  const { plantationId, plantationName, experiences, date, adults, children, totalPrice, currency } = bookingSummary;
+  const { plantationId, plantationName, experiences, date, adults, children, totalPrice, currency, usdToLkrRate } = bookingSummary;
   const symbol = currency === 'LKR' ? 'Rs' : '$';
 
   const handlePayHere = async () => {
     setError(null);
     setLoading(true);
     try {
+      const lkrEquivalent = currency === 'LKR'
+        ? totalPrice
+        : Math.round(totalPrice * (usdToLkrRate ?? 330));
+
       const payload = {
         plantation_id:    plantationId,
         booking_date:     date,
         num_adults:       adults || 1,
         num_children:     children || 0,
         total_price_usd:  currency === 'USD' ? totalPrice : null,
-        total_price_lkr:  currency === 'LKR' ? totalPrice : null,
+        total_price_lkr:  lkrEquivalent,
+        usd_to_lkr_rate:  currency === 'USD' ? (usdToLkrRate ?? null) : null,
         tourist_full_name: touristDetails.fullName,
         tourist_email:    touristDetails.email,
         tourist_phone:    touristDetails.phone  || null,

@@ -109,6 +109,10 @@ export const paymentApi = {
     apiClient.post('/payments/payhere/save-payment', { booking_reference: bookingReference, payment_id: paymentId }),
 };
 
+export const settingsApi = {
+  getExchangeRate: () => apiClient.get<{ usd_to_lkr: number }>('/settings/exchange-rate'),
+};
+
 export const contactApi = {
   submit: (data: Record<string, string>) => apiClient.post('/contact', data),
   getAll: () => apiClient.get('/contact'),

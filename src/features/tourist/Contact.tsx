@@ -3,6 +3,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { contactApi } from '../../services/api';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle } from 'lucide-react';
+import { validateEmail } from '../../utils/validators';
 
 const SUBJECTS = [
   'Booking Enquiry',
@@ -29,7 +30,7 @@ export default function Contact() {
     const e: Record<string, string> = {};
     if (!form.name.trim())    e.name    = 'Your name is required.';
     if (!form.email.trim())   e.email   = 'Your email is required.';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email address.';
+    else if (!validateEmail(form.email)) e.email = 'Enter a valid email address.';
     if (!form.subject)        e.subject = 'Please select a subject.';
     if (!form.message.trim()) e.message = 'Please write your message.';
     setErrors(e);
@@ -111,7 +112,7 @@ export default function Contact() {
 
             <div className="space-y-4">
               {[
-                { icon: <Mail size={18} />, label: 'Email', value: 'support@camellia.com' },
+                { icon: <Mail size={18} />, label: 'Email', value: 'camelliaceylonplatform@gmail.com' },
                 { icon: <Phone size={18} />, label: 'Phone', value: '+94 (0) 11 234 5678' },
                 { icon: <MapPin size={18} />, label: 'Address', value: 'Camellia Platform, Colombo, Sri Lanka' },
                 { icon: <Clock size={18} />, label: 'Support Hours', value: 'Mon – Fri, 9 AM – 6 PM (IST)' },

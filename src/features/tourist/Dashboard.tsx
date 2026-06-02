@@ -59,7 +59,7 @@ function mapBooking(raw: any): ExperienceBooking {
     plantationId: raw.plantation_id,
     plantationName: raw.plantation_name || 'Unknown Plantation',
     date: raw.booking_date || '',
-    cancelledBy: raw.cancelled_by || null,
+    cancelledBy: raw.cancelled_by === 'admin' ? 'admin' : raw.status === 'cancelled' ? 'tourist' : null,
     guests: guestParts.join(', '),
     experiences: experienceNames,
     totalPaid,
@@ -125,7 +125,9 @@ export default function Dashboard() {
 
   const handleCancel = async (bookingId: string) => {
     await bookingApi.cancel(bookingId);
-    setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'cancelled' } : b)));
+    setBookings((prev) => prev.map((b) =>
+      b.id === bookingId ? { ...b, status: 'cancelled', cancelledBy: 'tourist' } : b
+    ));
   };
 
   const handleOpenReviewModal = (booking: ExperienceBooking | null = null) => {

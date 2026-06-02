@@ -56,7 +56,7 @@ function mapRow(raw: any): Booking {
     totalUSD: raw.total_price_usd != null ? Number(raw.total_price_usd) : null,
     totalLKR: raw.total_price_lkr != null ? Number(raw.total_price_lkr) : null,
     status: raw.status ?? 'upcoming',
-    cancelledBy: raw.cancelled_by || null,
+    cancelledBy: raw.cancelled_by === 'admin' ? 'admin' : raw.status === 'cancelled' ? 'tourist' : null,
     tourist: {
       fullName: raw.tourist_full_name || raw.tourist_username || 'Guest',
       email: raw.tourist_email || '',
@@ -404,7 +404,11 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
   // ── Status update ────────────────────────────────────────────────────────
   const handleStatusChange = async (id: string, status: 'completed' | 'cancelled', reason?: string) => {
     await adminApi.updateBookingStatus(plantationId, id, status, reason);
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+    setBookings(prev => prev.map(b =>
+      b.id === id
+        ? { ...b, status, cancelledBy: status === 'cancelled' ? 'admin' : b.cancelledBy }
+        : b
+    ));
   };
 
   // ── Derived data ─────────────────────────────────────────────────────────

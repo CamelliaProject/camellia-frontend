@@ -49,7 +49,7 @@ function mapRow(raw: any): PaymentRow {
     numAdults: raw.num_adults ?? 1,
     numChildren: raw.num_children ?? 0,
     status: raw.status ?? 'upcoming',
-    cancelledBy: raw.cancelled_by === 'tourist' ? 'tourist' : null,
+    cancelledBy: raw.cancelled_by === 'admin' ? null : raw.status === 'cancelled' ? 'tourist' : null,
     bookingDate: raw.booking_date || '',
     createdAt: raw.created_at || '',
     experiences: Array.isArray(raw.experience_names) ? raw.experience_names : [],

@@ -109,4 +109,11 @@ export const paymentApi = {
     apiClient.post('/payments/payhere/save-payment', { booking_reference: bookingReference, payment_id: paymentId }),
 };
 
+export const contactApi = {
+  submit: (data: Record<string, string>) => apiClient.post('/contact', data),
+  getAll: () => apiClient.get('/contact'),
+  resolve: (id: string, resolved_message?: string) =>
+    apiClient.patch(`/contact/${id}/resolve`, { resolved_message }),
+};
+
 export default apiClient;

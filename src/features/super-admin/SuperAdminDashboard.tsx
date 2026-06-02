@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { adminApi } from '../../services/api';
+import { adminApi, contactApi } from '../../services/api';
 import apiClient from '../../services/apiClient';
 import {
   Eye, Mail, CheckCircle, BarChart2, LogOut, LayoutDashboard, Clock,
@@ -59,8 +59,10 @@ export default function SuperAdminDashboard() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
-  // Contact requests (local only for now)
-  const [contactRequests, setContactRequests] = useState<ContactRequest[]>([]);
+  const [contactRequests, setContactRequests]     = useState<ContactRequest[]>([]);
+  const [resolvingId, setResolvingId]             = useState<string | null>(null);
+  const [resolveNote, setResolveNote]             = useState('');
+  const [resolveLoading, setResolveLoading]       = useState(false);
 
   // Subscriptions
   const [subscriptions, setSubscriptions]   = useState<any[]>([]);
@@ -147,7 +149,30 @@ export default function SuperAdminDashboard() {
     void fetchPlantations();
     void fetchPendingRequests();
     void fetchSubscriptions();
+    void fetchContactRequests();
   }, [user, navigate]);
+
+  const fetchContactRequests = async () => {
+    try {
+      const res = await contactApi.getAll();
+      setContactRequests(res.data?.data || []);
+    } catch { setContactRequests([]); }
+  };
+
+  const handleResolve = async () => {
+    if (!resolvingId) return;
+    setResolveLoading(true);
+    try {
+      await contactApi.resolve(resolvingId, resolveNote);
+      setContactRequests(prev => prev.map(r => r.id === resolvingId ? { ...r, status: 'resolved' } : r));
+      setResolvingId(null);
+      setResolveNote('');
+    } catch (err: any) {
+      alert(`Failed: ${err?.response?.data?.error || err.message}`);
+    } finally {
+      setResolveLoading(false);
+    }
+  };
 
   // ── Plantation management ─────────────────────────────────────────────────
 
@@ -242,7 +267,7 @@ export default function SuperAdminDashboard() {
             { key: 'plantations',    icon: <BarChart2 size={18} />, label: 'Plantations',        badge: null },
             { key: 'requests',       icon: <Clock size={18} />,     label: 'Pending Requests',   badge: pendingRequests.length || null },
             { key: 'subscriptions',  icon: <BarChart2 size={18} />, label: 'Subscriptions',      badge: null },
-            { key: 'contactRequests',icon: <Mail size={18} />,      label: 'Contact Requests',   badge: null },
+            { key: 'contactRequests',icon: <Mail size={18} />,      label: 'Contact Requests',   badge: contactRequests.filter(r => r.status === 'pending').length || null },
           ].map(tab => (
             <button
               key={tab.key}
@@ -623,46 +648,66 @@ export default function SuperAdminDashboard() {
 
           {/* ── Contact Requests tab ──────────────────────────────────────── */}
           {activeTab === 'contactRequests' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-100">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['Name', 'Email', 'Subject', 'Message', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {contactRequests.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-16 text-center text-gray-400">No contact requests</td>
-                    </tr>
-                  )}
-                  {contactRequests.map(r => (
-                    <tr key={r.id}>
-                      <td className="px-5 py-4 text-sm font-medium">{r.name}</td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.email}</td>
-                      <td className="px-5 py-4 text-sm text-gray-600">{r.subject}</td>
-                      <td className="px-5 py-4 text-sm text-gray-600 max-w-xs truncate">{r.message}</td>
-                      <td className="px-5 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>{r.status}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        {r.status === 'pending' && (
-                          <button
-                            onClick={() => setContactRequests(prev => prev.map(x => x.id === r.id ? { ...x, status: 'resolved' } : x))}
-                            className="text-sm px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                          >
-                            Resolve
-                          </button>
+            <div className="space-y-4">
+              {/* stats row */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Total', value: contactRequests.length, cls: 'bg-blue-50 text-blue-800' },
+                  { label: 'Pending', value: contactRequests.filter(r => r.status === 'pending').length, cls: 'bg-amber-50 text-amber-800' },
+                  { label: 'Resolved', value: contactRequests.filter(r => r.status === 'resolved').length, cls: 'bg-green-50 text-green-800' },
+                ].map(s => (
+                  <div key={s.label} className={`${s.cls} rounded-xl p-4 text-center`}>
+                    <p className="text-2xl font-bold">{s.value}</p>
+                    <p className="text-xs font-semibold mt-0.5 opacity-70">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {contactRequests.length === 0 && (
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm py-20 text-center text-gray-400">
+                  <Mail className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No contact requests yet</p>
+                </div>
+              )}
+
+              {contactRequests.map(r => (
+                <div key={r.id} className={`bg-white rounded-xl border shadow-sm p-5 ${r.status === 'resolved' ? 'border-gray-100 opacity-70' : 'border-amber-100'}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[#D8F3DC] flex items-center justify-center text-[#2D6A4F] font-bold shrink-0">
+                        {(r.name || 'U')[0].toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-[#1B4332]">{r.name}</p>
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {r.status === 'resolved' ? '✓ Resolved' : 'Pending'}
+                          </span>
+                          {(r as any).subject && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{(r as any).subject}</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">{r.email} · {new Date((r as any).created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-sm text-gray-600 mt-2 leading-relaxed">{r.message}</p>
+                        {(r as any).resolved_message && (
+                          <div className="mt-3 bg-green-50 border-l-4 border-green-400 rounded-r-xl px-3 py-2">
+                            <p className="text-xs text-green-700 font-semibold mb-0.5">Response sent</p>
+                            <p className="text-xs text-green-600">{(r as any).resolved_message}</p>
+                          </div>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    {r.status === 'pending' && (
+                      <button
+                        onClick={() => { setResolvingId(r.id); setResolveNote(''); }}
+                        className="shrink-0 text-sm px-4 py-2 bg-[#1B4332] text-white rounded-lg hover:bg-[#2D6A4F] transition font-semibold"
+                      >
+                        Resolve
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
@@ -709,6 +754,38 @@ export default function SuperAdminDashboard() {
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Resolve contact request modal ───────────────────────────────── */}
+      {resolvingId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <h3 className="text-xl font-bold text-[#1B4332] mb-2">Resolve Contact Request</h3>
+            <p className="text-gray-500 text-sm mb-5">Optionally add a note about how this was resolved.</p>
+            <textarea
+              value={resolveNote}
+              onChange={e => setResolveNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Replied via email with booking instructions…"
+              className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#52B788] resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setResolvingId(null)}
+                className="flex-1 py-2.5 rounded-2xl border border-gray-300 text-gray-600 font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleResolve}
+                disabled={resolveLoading}
+                className="flex-1 py-2.5 rounded-2xl bg-[#1B4332] text-white font-semibold hover:bg-[#2D6A4F] transition disabled:opacity-60"
+              >
+                {resolveLoading ? 'Saving…' : 'Mark Resolved'}
+              </button>
+            </div>
           </div>
         </div>
       )}

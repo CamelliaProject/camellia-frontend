@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { PlusCircle, Edit3, Trash2, X, DollarSign, ImagePlus } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, X, DollarSign, ImagePlus, Loader2 } from 'lucide-react';
 import { experienceApi } from '../../services/api';
 
 interface PriceDetails {
@@ -57,7 +57,7 @@ function mapDbToUi(raw: any): Experience {
 interface ExperienceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (experience: Experience, imageFiles: File[]) => void;
+  onSubmit: (experience: Experience, imageFiles: File[], imagesToDelete: string[]) => void;
   initialExperience?: Experience;
 }
 
@@ -71,19 +71,27 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
     priceUSD: { adult: 0, child: 0 },
     images: [],
   });
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // Saved images from DB (Cloudinary URLs) still to keep
+  const [savedPreviews, setSavedPreviews] = useState<string[]>([]);
+  // Saved images the admin marked for deletion (applied on submit)
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  // New files the admin just selected
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  // Base64 previews for the new files above
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialExperience) {
       setFormData(initialExperience);
-      setImagePreviews(initialExperience.images || []);
+      setSavedPreviews(initialExperience.images || []);
     } else {
       setFormData({ name: '', description: '', shortDescription: '', announcement: '', priceLKR: { adult: 0, child: 0 }, priceUSD: { adult: 0, child: 0 }, images: [] });
-      setImagePreviews([]);
+      setSavedPreviews([]);
     }
+    setImagesToDelete([]);
     setImageFiles([]);
+    setNewPreviews([]);
   }, [initialExperience, isOpen]);
 
   if (!isOpen) return null;
@@ -104,24 +112,27 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
     files.forEach((file) => {
       setImageFiles(prev => [...prev, file]);
       const reader = new FileReader();
-      reader.onloadend = () => setImagePreviews(prev => [...prev, reader.result as string]);
+      reader.onloadend = () => setNewPreviews(prev => [...prev, reader.result as string]);
       reader.readAsDataURL(file);
     });
     e.target.value = '';
   };
 
-  const handleRemoveImage = (idx: number) => {
-    setImagePreviews(prev => prev.filter((_, i) => i !== idx));
-    // Only remove from imageFiles if index is in new files range
-    const existingCount = (initialExperience?.images || []).length;
-    if (idx >= existingCount) {
-      setImageFiles(prev => prev.filter((_, i) => i !== idx - existingCount));
-    }
+  // Remove a saved (DB) image — marks it for deletion on submit
+  const handleRemoveSaved = (url: string) => {
+    setImagesToDelete(prev => [...prev, url]);
+    setSavedPreviews(prev => prev.filter(u => u !== url));
+  };
+
+  // Remove a newly selected file before it's uploaded
+  const handleRemoveNew = (idx: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== idx));
+    setNewPreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ ...formData, id: initialExperience?.id }, imageFiles);
+    onSubmit({ ...formData, id: initialExperience?.id }, imageFiles, imagesToDelete);
     onClose();
   };
 
@@ -160,23 +171,64 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
           {/* Images */}
           <div className="border-t border-gray-200 pt-6">
             <h3 className="text-lg font-bold text-[#2D6A4F] mb-4 flex items-center gap-2"><ImagePlus size={20} /> Experience Images</h3>
+
+            {/* Saved images from DB */}
+            {savedPreviews.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 font-medium mb-2">Saved images — click 🗑 to remove</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {savedPreviews.map((url) => (
+                    <div key={url} className="relative group">
+                      <img src={url} alt="" className="w-full h-24 object-cover rounded-lg border border-gray-200" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSaved(url)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        title="Delete this image"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-white/80 text-gray-600 text-[10px] font-semibold px-1.5 py-0.5 rounded">Saved</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New images selected in this session */}
+            {newPreviews.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-gray-500 font-medium mb-2">New images — will be uploaded on save</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {newPreviews.map((src, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={src} alt="" className="w-full h-24 object-cover rounded-lg border-2 border-blue-300" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNew(idx)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                        title="Remove"
+                      >
+                        <X size={13} />
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-blue-500/90 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">New</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload button */}
             <input ref={imageInputRef} type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" />
             <button type="button" onClick={() => imageInputRef.current?.click()}
-              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-lg transition border-2 border-dashed border-blue-300 mb-3">
+              className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-lg transition border-2 border-dashed border-blue-300">
               <ImagePlus size={18} className="inline mr-2" /> Add Images
             </button>
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-3 gap-3">
-                {imagePreviews.map((img, idx) => (
-                  <div key={idx} className="relative">
-                    <img src={img} alt="" className="w-full h-24 object-cover rounded-lg" />
-                    <button type="button" onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+
+            {imagesToDelete.length > 0 && (
+              <p className="text-xs text-red-500 mt-2">{imagesToDelete.length} image{imagesToDelete.length > 1 ? 's' : ''} will be deleted on save.</p>
             )}
           </div>
 
@@ -300,9 +352,14 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
   };
 
   // ── Save (create or update) ─────────────────────────────────────────────
-  const handleSaveExperience = async (experience: Experience, imageFiles: File[]) => {
+  const handleSaveExperience = async (experience: Experience, imageFiles: File[], imagesToDelete: string[]) => {
     setIsLoading(true);
     try {
+      // Delete removed images first
+      if (imagesToDelete.length > 0 && experience.id) {
+        await Promise.all(imagesToDelete.map(url => experienceApi.deleteImage(experience.id!, url)));
+      }
+
       const fd = new FormData();
       fd.append('name', experience.name);
       fd.append('short_description', experience.shortDescription || '');
@@ -314,7 +371,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
       fd.append('price_lkr_child', String(experience.priceLKR.child));
       fd.append('is_active', 'true');
 
-      // Append all selected images — backend accepts upload.array('images', 10)
+      // Append all newly selected images
       imageFiles.forEach(f => fd.append('images', f));
 
       if (experience.id) {
@@ -450,7 +507,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
 
       <ExperienceModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); }}
         onSubmit={handleSaveExperience}
         initialExperience={currentExperience}
       />

@@ -1,151 +1,128 @@
-// Type definitions for reviews and replies
 export interface ReviewReply {
   id: string;
-  author: string;
-  authorRole: 'plantationadmin' | 'tourist';
+  review_id?: string;
+  author: string;       // maps from author_name
+  author_name?: string;
+  authorRole: 'plantationadmin' | 'tourist' | 'superadmin';
+  author_role?: string;
+  author_id?: string;
   authorPlantationId?: string;
-  text: string;
-  date: string;
+  text: string;         // maps from content
+  content?: string;
+  date: string;         // maps from created_at
+  created_at?: string;
   verified: boolean;
-  plantationId: string; // For permission checks
+  plantationId: string;
+  helpful_count: number;
 }
 
 export interface Review {
-  id: string | number;
-  author: string;
+  id: string;
+  plantation_id?: string;
+  tourist_id?: string;
+  author: string;           // maps from tourist_username
+  tourist_username?: string;
   rating: number;
-  date: string;
-  text: string;
+  date: string;             // maps from created_at
+  created_at?: string;
+  title?: string;
+  text: string;             // maps from content
+  content?: string;
+  image_url?: string;
   verified: boolean;
+  is_verified?: boolean;
+  helpful_count: number;
   replies?: ReviewReply[];
-  authorUsername?: string; // To track who wrote the review
+  authorUsername?: string;
 }
 
-export interface PlantationReviewData {
-  [key: string]: {
-    name: string;
-    address: string;
-    rating: number;
-    reviews: number;
-    reviewsList: Review[];
+export interface MyReviewData {
+  reviews: Array<Review & { plantation_name: string; plantation_image?: string }>;
+  myReplies: Array<{
+    id: string;
+    review_id: string;
+    content: string;
+    created_at: string;
+    author_role: string;
+    review_content: string;
+    review_rating: number;
+    plantation_name: string;
+    plantation_id: string;
+  }>;
+}
+
+// Map raw DB review row to display Review shape
+export function mapReview(raw: any, plantationId: string): Review {
+  return {
+    ...raw,
+    id: raw.id,
+    plantation_id: raw.plantation_id ?? plantationId,
+    tourist_id: raw.tourist_id,
+    author: raw.tourist_username || raw.tourist_email?.split('@')[0] || 'Visitor',
+    rating: raw.rating,
+    date: raw.created_at
+      ? new Date(raw.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '',
+    title: raw.title,
+    text: raw.content,
+    image_url: raw.image_url,
+    verified: raw.is_verified ?? false,
+    helpful_count: raw.helpful_count ?? 0,
+    replies: (raw.replies || []).map((r: any) => mapReply(r, plantationId)),
   };
 }
 
-// Review service class for managing reviews and replies
+// Map raw DB reply row to display ReviewReply shape
+export function mapReply(raw: any, plantationId: string): ReviewReply {
+  return {
+    id: raw.id,
+    review_id: raw.review_id,
+    author: raw.author_name || 'User',
+    author_name: raw.author_name,
+    authorRole: (raw.author_role || 'tourist') as ReviewReply['authorRole'],
+    author_role: raw.author_role,
+    author_id: raw.author_id,
+    text: raw.content,
+    content: raw.content,
+    date: raw.created_at
+      ? new Date(raw.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '',
+    created_at: raw.created_at,
+    verified: raw.is_verified ?? false,
+    helpful_count: raw.helpful_count ?? 0,
+    plantationId,
+  };
+}
+
 export class ReviewService {
-  /**
-   * Check if a user can reply to a review
-   * @param userRole - The role of the current user
-   * @param userPlantationId - The plantation ID of the current user (if plantation admin)
-   * @param reviewPlantationId - The plantation ID where the review was made
-   * @param targetReviewId - The ID of the review being replied to
-   * @returns boolean - Whether the user can reply
-   */
   static canUserReply(
     userRole: 'superadmin' | 'plantationadmin' | 'tourist' | null,
     userPlantationId: string | undefined,
-    reviewPlantationId: string
+    reviewPlantationId: string,
+    hasCompletedBooking = false
   ): boolean {
     if (!userRole) return false;
-
-    // Superadmin can always reply
     if (userRole === 'superadmin') return true;
-
-    // Plantation admin can reply if they manage this plantation
-    if (userRole === 'plantationadmin') {
-      return userPlantationId === reviewPlantationId;
-    }
-
-    // Tourist can reply if they are verified
-    // In a real app, you'd check against a verified bookings list
-    if (userRole === 'tourist') return true;
-
+    if (userRole === 'plantationadmin') return userPlantationId === reviewPlantationId;
+    if (userRole === 'tourist') return hasCompletedBooking;
     return false;
   }
 
-  /**
-   * Check if a user can delete a reply
-   */
   static canUserDeleteReply(
     userRole: 'superadmin' | 'plantationadmin' | 'tourist' | null,
-    userPlantationId: string | undefined,
-    replyAuthor: string,
+    currentUserId: string | undefined,
+    replyAuthorId: string | undefined,
     currentUsername: string | undefined,
-    isReplyAuthorAdmin: boolean,
-    adminPlantationId?: string
+    replyAuthorName: string
   ): boolean {
-    if (!userRole || !currentUsername) return false;
-
-    // Superadmin can delete any reply
+    if (!userRole) return false;
     if (userRole === 'superadmin') return true;
-
-    // The author can delete their own reply
-    if (replyAuthor === currentUsername) return true;
-
-    // Plantation admin can delete replies on their own plantation
-    // (including admin replies)
-    if (userRole === 'plantationadmin' && isReplyAuthorAdmin) {
-      return userPlantationId === adminPlantationId;
-    }
-
+    if (currentUserId && replyAuthorId && currentUserId === replyAuthorId) return true;
+    if (currentUsername && replyAuthorName === currentUsername) return true;
     return false;
   }
 
-  /**
-   * Add a reply to a review
-   */
-  static addReplyToReview(
-    reviews: Review[],
-    reviewId: string | number,
-    newReply: ReviewReply
-  ): Review[] {
-    return reviews.map((review) => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          replies: [...(review.replies || []), newReply],
-        };
-      }
-      return review;
-    });
-  }
-
-  /**
-   * Delete a reply from a review
-   */
-  static deleteReplyFromReview(
-    reviews: Review[],
-    reviewId: string | number,
-    replyId: string
-  ): Review[] {
-    return reviews.map((review) => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          replies: (review.replies || []).filter((reply) => reply.id !== replyId),
-        };
-      }
-      return review;
-    });
-  }
-
-  /**
-   * Generate a unique ID for a reply
-   */
-  static generateReplyId(): string {
-    return `reply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Get formatted date string
-   */
   static getFormattedDate(): string {
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
-    return now.toLocaleDateString('en-US', options);
+    return new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 }

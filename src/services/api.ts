@@ -71,7 +71,27 @@ export const experienceApi = {
   create: (data: FormData | Record<string, any>) => apiClient.post('/experiences', data),
   update: (id: string, data: FormData | Record<string, any>) => apiClient.put(`/experiences/${id}`, data),
   delete: (id: string) => apiClient.delete(`/experiences/${id}`),
+  deleteImage: (id: string, imageUrl: string) =>
+    apiClient.delete(`/experiences/${id}/images`, { data: { image_url: imageUrl } }),
   createSlot: (id: string, data: Record<string, any>) => apiClient.post(`/experiences/${id}/slots`, data),
+};
+
+export const reviewApi = {
+  getByPlantation: (plantationId: string) => apiClient.get(`/reviews/plantation/${plantationId}`),
+  getMyReviews: () => apiClient.get('/reviews/my-reviews'),
+  create: (data: Record<string, any>) => apiClient.post('/reviews', data),
+  uploadImage: (formData: FormData) =>
+    apiClient.post('/reviews/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  addReply: (reviewId: string, content: string) =>
+    apiClient.post(`/reviews/${reviewId}/replies`, { content }),
+  deleteReply: (reviewId: string, replyId: string) =>
+    apiClient.delete(`/reviews/${reviewId}/replies/${replyId}`),
+  reactToReview: (reviewId: string) =>
+    apiClient.patch(`/reviews/${reviewId}/helpful`),
+  reactToReply: (reviewId: string, replyId: string) =>
+    apiClient.patch(`/reviews/${reviewId}/replies/${replyId}/helpful`),
 };
 
 export const paymentApi = {

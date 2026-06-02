@@ -7,6 +7,12 @@ import apiClient from '../../services/apiClient';
 
 function normalizePlantation(raw: any) {
   const rawReviews: any[] = Array.isArray(raw.reviews) ? raw.reviews : [];
+
+  // Calculate live average rating from actual reviews; fall back to stored value
+  const liveRating = rawReviews.length
+    ? rawReviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / rawReviews.length
+    : (raw.rating || 0);
+
   return {
     id: raw.id,
     name: raw.name,
@@ -22,8 +28,8 @@ function normalizePlantation(raw: any) {
       visitors: raw.visitors || raw.highlights?.visitors || '',
       established: raw.established_year ? String(raw.established_year) : (raw.highlights?.established || raw.established || ''),
     },
-    rating: raw.rating || 0,
-    reviews: typeof raw.total_reviews === 'number' ? raw.total_reviews : rawReviews.length,
+    rating: liveRating,
+    reviews: rawReviews.length || (typeof raw.total_reviews === 'number' ? raw.total_reviews : 0),
     price: raw.price || '',
     duration: raw.duration || '',
     bestTime: raw.best_time_to_visit || raw.bestTime || '',
@@ -39,7 +45,9 @@ function normalizePlantation(raw: any) {
       date: r.created_at
         ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : '',
-      text: r.content || r.title || '',
+      title: r.title || '',
+      text: r.content || '',
+      image_url: r.image_url || null,
       verified: r.is_verified || false,
     })),
     experiences: (raw.experiences || []).map((exp: any) => ({
@@ -922,17 +930,26 @@ export default function PlantationDetail() {
           {/* Rating and Reviews */}
           <div className="mb-16 text-center">
             <h2 className="text-3xl font-bold mb-4">Visitor Reviews</h2>
-            <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex items-center justify-center gap-2 mb-3">
               <div className="flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className={i < Math.floor(plantation.rating) ? 'text-yellow-400 text-3xl' : 'text-gray-300 text-3xl'}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span
+                    key={star}
+                    className={`text-3xl ${star <= Math.round(plantation.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                  >
                     ★
                   </span>
                 ))}
               </div>
-              <span className="text-3xl font-bold">{Number(plantation.rating).toFixed(1)}</span>
+              <span className="text-3xl font-bold">
+                {plantation.reviews > 0 ? Number(plantation.rating).toFixed(1) : '—'}
+              </span>
             </div>
-            <p className="text-lg text-gray-600 mb-8">Based on {plantation.reviews} visitor reviews</p>
+            <p className="text-lg text-gray-600 mb-8">
+              {plantation.reviews > 0
+                ? `Based on ${plantation.reviews} visitor ${plantation.reviews === 1 ? 'review' : 'reviews'}`
+                : 'No reviews yet'}
+            </p>
 
             {/* Individual Reviews */}
             {plantation.reviewsList && plantation.reviewsList.length > 0 ? (
@@ -953,7 +970,18 @@ export default function PlantationDetail() {
                           ))}
                         </div>
                       </div>
+                      {review.title && (
+                        <p className="font-semibold text-gray-800 mb-1">{review.title}</p>
+                      )}
                       <p className="text-gray-700">{review.text}</p>
+                      {review.image_url && (
+                        <img
+                          src={review.image_url}
+                          alt="Review photo"
+                          className="mt-3 max-w-[180px] w-auto h-auto object-contain rounded-lg cursor-pointer hover:opacity-80 transition"
+                          onClick={() => setSelectedImage(review.image_url)}
+                        />
+                      )}
                       {review.verified && (
                         <p className="text-xs text-green-600 mt-3">✓ Verified Guest</p>
                       )}

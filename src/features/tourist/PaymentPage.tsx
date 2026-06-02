@@ -68,7 +68,6 @@ export default function PaymentPage() {
       const bookingPayload = {
         plantation_id: bookingSummary.plantationId,
         booking_date: bookingSummary.date,
-        booking_time: bookingSummary.time || '',
         num_adults: bookingSummary.adults || 1,
         num_children: bookingSummary.children || 0,
         total_price_usd: bookingSummary.currency === 'USD' ? bookingSummary.totalPrice : null,
@@ -113,7 +112,7 @@ export default function PaymentPage() {
   }
 
   
-  const { plantationName, experiences, date, time, adults, children, totalPrice, currency } = bookingSummary;
+  const { plantationName, experiences, date, adults, children, totalPrice, currency } = bookingSummary;
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">

@@ -1,17 +1,9 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-interface TimeSlot {
-  date: string;
-  time: string;
-  capacity: number;
-  booked: number;
-}
-
 interface Experience {
   name: string;
   priceUSD: number;
-  timeSlots: TimeSlot[];
 }
 
 interface BookExperienceModalProps {
@@ -19,10 +11,10 @@ interface BookExperienceModalProps {
   experiences: Experience[];
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (booking: { experiences: string[]; date: string; time: string; totalUSD: number; totalLKR: number }) => void;
+  onSubmit: (booking: { experiences: string[]; date: string; totalUSD: number; totalLKR: number }) => void;
 }
 
-const USD_TO_LKR = 330; // Realistic conversion rate
+const USD_TO_LKR = 330;
 
 export default function BookExperienceModal({
   plantationName,
@@ -31,11 +23,8 @@ export default function BookExperienceModal({
   onClose,
   onSubmit,
 }: BookExperienceModalProps) {
-  const [step, setStep] = useState<'select-experiences' | 'select-datetime'>('select-experiences');
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
-  const [capacityExceeded, setCapacityExceeded] = useState(false);
 
   const handleToggleExperience = (experienceName: string) => {
     setSelectedExperiences((prev) =>
@@ -45,62 +34,20 @@ export default function BookExperienceModal({
     );
   };
 
-  const getAvailableSlots = (): TimeSlot[] => {
-    if (selectedExperiences.length === 0) return [];
-    
-    // Get slots from first selected experience
-    const firstExp = experiences.find((e) => e.name === selectedExperiences[0]);
-    return firstExp ? firstExp.timeSlots : [];
-  };
-
-  const handleTimeSlotSelect = (slot: TimeSlot) => {
-    const availableSlots = slot.capacity - slot.booked;
-    
-    if (availableSlots <= 0) {
-      setCapacityExceeded(true);
-      setTimeout(() => setCapacityExceeded(false), 3000);
-      return;
-    }
-
-    setSelectedDate(slot.date);
-    setSelectedTime(slot.time);
-  };
-
-  const handleNextStep = () => {
-    if (selectedExperiences.length > 0) {
-      setStep('select-datetime');
-    }
-  };
-
   const handleSubmit = () => {
-    if (selectedExperiences.length > 0 && selectedDate && selectedTime) {
+    if (selectedExperiences.length > 0 && selectedDate) {
       const totalUSD = experiences
         .filter((exp) => selectedExperiences.includes(exp.name))
         .reduce((sum, exp) => sum + exp.priceUSD, 0);
 
       const totalLKR = totalUSD * USD_TO_LKR;
 
-      onSubmit({
-        experiences: selectedExperiences,
-        date: selectedDate,
-        time: selectedTime,
-        totalUSD,
-        totalLKR,
-      });
+      onSubmit({ experiences: selectedExperiences, date: selectedDate, totalUSD, totalLKR });
 
-      // Reset
-      setStep('select-experiences');
       setSelectedExperiences([]);
       setSelectedDate('');
-      setSelectedTime('');
       onClose();
     }
-  };
-
-  const handleBackToExperiences = () => {
-    setStep('select-experiences');
-    setSelectedDate('');
-    setSelectedTime('');
   };
 
   if (!isOpen) return null;
@@ -110,7 +57,6 @@ export default function BookExperienceModal({
     .reduce((sum, exp) => sum + exp.priceUSD, 0);
 
   const totalLKR = totalUSD * USD_TO_LKR;
-  const availableSlots = getAvailableSlots();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -118,212 +64,106 @@ export default function BookExperienceModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-[#2D6A4F]">Book Experience</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
         </div>
 
-        {/* Capacity Exceeded Notification */}
-        {capacityExceeded && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-3 mx-6 mt-4 rounded-lg">
-            ⚠️ This time slot has reached its capacity limit. Please select another slot.
-          </div>
-        )}
-
         {/* Content */}
         <div className="p-6">
-          {step === 'select-experiences' ? (
-            <>
-              <p className="text-lg font-semibold mb-4 text-gray-700">
-                Select experiences at {plantationName}
-              </p>
+          <p className="text-lg font-semibold mb-4 text-gray-700">
+            Select experiences at {plantationName}
+          </p>
 
-              {/* Experiences List */}
-              <div className="space-y-3 mb-8">
-                {experiences.map((experience) => (
-                  <div
-                    key={experience.name}
-                    className="bg-[#E8F5E9] border-2 border-[#B7E4C7] rounded-lg p-4 hover:bg-[#D4EDDA] transition cursor-pointer"
-                    onClick={() => handleToggleExperience(experience.name)}
-                  >
-                    <div className="flex items-start gap-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedExperiences.includes(experience.name)}
-                        onChange={() => handleToggleExperience(experience.name)}
-                        className="w-5 h-5 mt-1 accent-[#2D6A4F] cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 text-lg">
-                          {experience.name}
-                        </h3>
-                        <div className="flex gap-6 mt-2">
-                          <div>
-                            <p className="text-sm text-gray-600">Price (USD)</p>
-                            <p className="text-lg font-bold text-[#2D6A4F]">
-                              ${experience.priceUSD}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Price (LKR)</p>
-                            <p className="text-lg font-bold text-[#2D6A4F]">
-                              Rs {(experience.priceUSD * USD_TO_LKR).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
+          {/* Experiences List */}
+          <div className="space-y-3 mb-6">
+            {experiences.map((experience) => (
+              <div
+                key={experience.name}
+                className="bg-[#E8F5E9] border-2 border-[#B7E4C7] rounded-lg p-4 hover:bg-[#D4EDDA] transition cursor-pointer"
+                onClick={() => handleToggleExperience(experience.name)}
+              >
+                <div className="flex items-start gap-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedExperiences.includes(experience.name)}
+                    onChange={() => handleToggleExperience(experience.name)}
+                    className="w-5 h-5 mt-1 accent-[#2D6A4F] cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 text-lg">{experience.name}</h3>
+                    <div className="flex gap-6 mt-2">
+                      <div>
+                        <p className="text-sm text-gray-600">Price (USD)</p>
+                        <p className="text-lg font-bold text-[#2D6A4F]">${experience.priceUSD}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Price (LKR)</p>
+                        <p className="text-lg font-bold text-[#2D6A4F]">Rs {(experience.priceUSD * USD_TO_LKR).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Total Section */}
-              {selectedExperiences.length > 0 && (
-                <div className="bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white p-6 rounded-lg mb-8">
-                  <h3 className="font-semibold text-lg mb-4">
-                    Total ({selectedExperiences.length} experience
-                    {selectedExperiences.length !== 1 ? 's' : ''})
-                  </h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm opacity-90">USD</p>
-                      <p className="text-3xl font-bold">${totalUSD}</p>
-                      <p className="text-xs opacity-75 mt-1">For Foreign Tourists</p>
-                    </div>
-                    <div>
-                      <p className="text-sm opacity-90">LKR</p>
-                      <p className="text-3xl font-bold">Rs {totalLKR.toLocaleString()}</p>
-                      <p className="text-xs opacity-75 mt-1">For Local Tourists</p>
-                    </div>
-                  </div>
                 </div>
-              )}
-
-              {selectedExperiences.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-lg">
-                    Select at least one experience to proceed
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <p className="text-lg font-semibold mb-4 text-gray-700">
-                Select Date & Time Slot
-              </p>
-              
-              <div className="mb-4 p-4 bg-[#E8F5E9] rounded-lg">
-                <p className="text-sm text-gray-600">Selected Experiences:</p>
-                <p className="font-semibold text-[#2D6A4F]">{selectedExperiences.join(', ')}</p>
               </div>
+            ))}
+          </div>
 
-              {/* Available Time Slots */}
-              <div className="space-y-3 mb-8">
-                {availableSlots.map((slot, idx) => {
-                  const remainingSlots = slot.capacity - slot.booked;
-                  const isAvailable = remainingSlots > 0;
+          {/* Date picker */}
+          {selectedExperiences.length > 0 && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Choose a date</label>
+              <input
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+              />
+            </div>
+          )}
 
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => isAvailable && handleTimeSlotSelect(slot)}
-                      className={`p-4 rounded-lg border-2 transition ${
-                        isAvailable
-                          ? 'bg-[#E8F5E9] border-[#B7E4C7] hover:bg-[#D4EDDA] cursor-pointer'
-                          : 'bg-gray-100 border-gray-300 cursor-not-allowed opacity-60'
-                      } ${
-                        selectedDate === slot.date && selectedTime === slot.time
-                          ? 'border-[#2D6A4F] bg-[#B7E4C7]'
-                          : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <input
-                            type="radio"
-                            checked={selectedDate === slot.date && selectedTime === slot.time}
-                            onChange={() => isAvailable && handleTimeSlotSelect(slot)}
-                            disabled={!isAvailable}
-                            className="mr-3 accent-[#2D6A4F] cursor-pointer"
-                          />
-                          <div className="inline-block">
-                            <p className="font-semibold text-gray-800">{slot.date} at {slot.time}</p>
-                            <p className={`text-sm ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                              {isAvailable ? (
-                                <>Available: {remainingSlots} slot{remainingSlots !== 1 ? 's' : ''}</>
-                              ) : (
-                                <>Fully Booked</>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-600">Capacity</p>
-                          <p className="font-semibold text-gray-800">{slot.booked}/{slot.capacity}</p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Total Section */}
-              {selectedExperiences.length > 0 && (
-                <div className="bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white p-6 rounded-lg mb-8">
-                  <h3 className="font-semibold text-lg mb-4">
-                    Total ({selectedExperiences.length} experience
-                    {selectedExperiences.length !== 1 ? 's' : ''})
-                  </h3>
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-sm opacity-90">USD</p>
-                      <p className="text-3xl font-bold">${totalUSD}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm opacity-90">LKR</p>
-                      <p className="text-3xl font-bold">Rs {totalLKR.toLocaleString()}</p>
-                    </div>
-                  </div>
+          {/* Total */}
+          {selectedExperiences.length > 0 && (
+            <div className="bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white p-6 rounded-lg mb-4">
+              <h3 className="font-semibold text-lg mb-4">
+                Total ({selectedExperiences.length} experience{selectedExperiences.length !== 1 ? 's' : ''})
+              </h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm opacity-90">USD</p>
+                  <p className="text-3xl font-bold">${totalUSD}</p>
+                  <p className="text-xs opacity-75 mt-1">For Foreign Tourists</p>
                 </div>
-              )}
-            </>
+                <div>
+                  <p className="text-sm opacity-90">LKR</p>
+                  <p className="text-3xl font-bold">Rs {totalLKR.toLocaleString()}</p>
+                  <p className="text-xs opacity-75 mt-1">For Local Tourists</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedExperiences.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-lg">Select at least one experience to proceed</p>
+            </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex gap-4 p-6 border-t border-gray-200">
-          {step === 'select-datetime' && (
-            <button
-              onClick={handleBackToExperiences}
-              className="flex-1 border-2 border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#f0f0f0] font-semibold py-3 px-6 rounded-lg transition text-lg"
-            >
-              Back
-            </button>
-          )}
-          {step === 'select-experiences' && (
-            <button
-              onClick={onClose}
-              className="flex-1 border-2 border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#f0f0f0] font-semibold py-3 px-6 rounded-lg transition text-lg"
-            >
-              Cancel
-            </button>
-          )}
           <button
-            onClick={
-              step === 'select-experiences' ? handleNextStep : handleSubmit
-            }
-            disabled={
-              step === 'select-experiences'
-                ? selectedExperiences.length === 0
-                : !selectedDate || !selectedTime
-            }
+            onClick={onClose}
+            className="flex-1 border-2 border-[#2D6A4F] text-[#2D6A4F] hover:bg-[#f0f0f0] font-semibold py-3 px-6 rounded-lg transition text-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={selectedExperiences.length === 0 || !selectedDate}
             className="flex-1 bg-[#52B788] hover:bg-[#40916c] disabled:bg-gray-300 text-white font-semibold py-3 px-6 rounded-lg transition text-lg"
           >
-            {step === 'select-experiences' ? 'Next' : 'Confirm Booking'}
+            Confirm Booking
           </button>
         </div>
       </div>

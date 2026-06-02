@@ -12,7 +12,6 @@ interface Booking {
   bookingReference: string;
   plantationId: string;
   date: string;
-  time: string;
   numAdults: number;
   numChildren: number;
   experiences: string[];
@@ -44,21 +43,12 @@ function fmtDate(raw: any) {
   } catch { return String(raw); }
 }
 
-function fmtTime(raw: any) {
-  if (!raw) return '—';
-  const str = raw instanceof Date ? raw.toTimeString().slice(0, 8) : String(raw);
-  const [h, m] = str.split(':').map(Number);
-  if (isNaN(h) || isNaN(m)) return str;
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-}
-
 function mapRow(raw: any): Booking {
   return {
     id: raw.id,
     bookingReference: raw.booking_reference || raw.id,
     plantationId: raw.plantation_id,
     date: raw.booking_date || '',
-    time: raw.booking_time || '',
     numAdults: raw.num_adults ?? 1,
     numChildren: raw.num_children ?? 0,
     experiences: Array.isArray(raw.experience_names) ? raw.experience_names : [],
@@ -161,7 +151,6 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
           <Section title="Visit Details">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field icon={<Calendar size={15} />} label="Date" value={fmtDate(booking.date)} />
-              <Field icon={<Clock size={15} />} label="Time" value={fmtTime(booking.time)} />
               <Field icon={<Users size={15} />} label="Adults" value={booking.numAdults} />
               <Field icon={<Users size={15} />} label="Children" value={booking.numChildren} />
             </div>
@@ -399,7 +388,6 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
 
                   <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-sm text-gray-600">
                     <span className="flex items-center gap-1.5"><Calendar size={13} />{fmtDate(b.date)}</span>
-                    <span className="flex items-center gap-1.5"><Clock size={13} />{fmtTime(b.time)}</span>
                     <span className="flex items-center gap-1.5"><Users size={13} />
                       {b.numAdults} adult{b.numAdults !== 1 ? 's' : ''}
                       {b.numChildren > 0 ? `, ${b.numChildren} child${b.numChildren !== 1 ? 'ren' : ''}` : ''}

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import SignInModal from '../../components/layout/SignInModal';
-import { plantationApi, experienceApi } from '../../services/api';
+import { plantationApi } from '../../services/api';
 import {
   ChevronDown,
   ChevronUp,
@@ -12,7 +12,6 @@ import {
   Check,
   Users,
   Calendar,
-  Clock,
   Tag,
   Loader2,
   AlertCircle,
@@ -23,14 +22,6 @@ const USD_TO_LKR = 330;
 const TODAY = new Date().toISOString().split('T')[0];
 
 type Step = 'experiences' | 'datetime' | 'details';
-
-interface TimeSlot {
-  id: string;
-  slot_date: string;
-  slot_time: string;
-  capacity: number;
-  booked: number;
-}
 
 interface Experience {
   id: string;
@@ -64,15 +55,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function categoryColor(cat: string) {
   return CATEGORY_COLORS[cat] || 'bg-gray-100 text-gray-700';
-}
-
-function formatTime(raw: string) {
-  if (!raw) return '';
-  // raw may be "08:00:00" or "08:00 AM" — normalise to hh:mm AM/PM
-  const [h, m] = raw.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 || 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 function formatDate(raw: string) {
@@ -245,7 +227,6 @@ function BookingSummary({
   plantationName,
   selectedExperiences,
   date,
-  time,
   adults,
   children,
   currency,
@@ -255,7 +236,6 @@ function BookingSummary({
   plantationName: string;
   selectedExperiences: Experience[];
   date: string;
-  time: string;
   adults: number;
   children: number;
   currency: string;
@@ -302,17 +282,9 @@ function BookingSummary({
 
       {/* Date */}
       {date && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
           <Calendar size={14} />
           <span>{formatDate(date)}</span>
-        </div>
-      )}
-
-      {/* Time */}
-      {time && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
-          <Clock size={14} />
-          <span>{formatTime(time)}</span>
         </div>
       )}
 
@@ -389,11 +361,8 @@ export default function OnePageBooking() {
 
   // Step 2 state
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [slotsLoading, setSlotsLoading] = useState(false);
 
   // Step 3 state
   const [details, setDetails] = useState({
@@ -443,7 +412,6 @@ export default function OnePageBooking() {
         selectedIds: string[];
         isResident: boolean;
         selectedDate: string;
-        selectedTime: string;
         adults: number;
         children: number;
         details: typeof details;
@@ -453,11 +421,9 @@ export default function OnePageBooking() {
       setSelectedIds(s.selectedIds ?? []);
       setIsResident(s.isResident ?? true);
       setSelectedDate(s.selectedDate ?? '');
-      setSelectedTime(s.selectedTime ?? '');
       setAdults(s.adults ?? 1);
       setChildren(s.children ?? 0);
       setDetails(s.details ?? { fullName: '', email: user?.email ?? '', phone: '', nicPassportNumber: '', country: '', city: '', specialNotes: '' });
-      if (s.selectedIds?.length) void fetchSlots(s.selectedIds);
     } catch {
       sessionStorage.removeItem(key);
     }
@@ -478,39 +444,10 @@ export default function OnePageBooking() {
     return t;
   };
 
-  // Available dates derived from slots
-  const availableDates = [...new Set(slots.filter(s => s.capacity - s.booked > 0).map(s => s.slot_date))].sort();
-  const slotsForDate = slots.filter(s => s.slot_date === selectedDate && s.capacity - s.booked > 0);
-
   // ── Navigation helpers ───────────────────────────────────────────────────
   const scrollTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-  const fetchSlots = async (ids: string[]) => {
-    if (!ids.length) return;
-    setSlotsLoading(true);
-    try {
-      const results = await Promise.all(ids.map((id) => experienceApi.getSlots(id)));
-      const merged = results.flatMap((r) => r.data?.data ?? []) as TimeSlot[];
-      const available = merged.filter((s) => s.capacity - s.booked > 0);
-      // Deduplicate by date+time, keeping the slot with the least remaining capacity (most constraining)
-      const map = new Map<string, TimeSlot>();
-      available.forEach((s) => {
-        const key = `${s.slot_date}_${s.slot_time}`;
-        const existing = map.get(key);
-        if (!existing || s.capacity - s.booked < existing.capacity - existing.booked) {
-          map.set(key, s);
-        }
-      });
-      setSlots([...map.values()].sort((a, b) => a.slot_date.localeCompare(b.slot_date) || a.slot_time.localeCompare(b.slot_time)));
-    } catch {
-      setSlots([]);
-    } finally {
-      setSlotsLoading(false);
-    }
-  };
-
   const goToDatetime = () => {
-    void fetchSlots(selectedIds);
     setStep('datetime');
     scrollTop();
   };
@@ -536,7 +473,7 @@ export default function OnePageBooking() {
       // Persist all booking state so it survives sign-in redirect / re-mount.
       sessionStorage.setItem(
         `booking_resume_${plantationId}`,
-        JSON.stringify({ step: 'details', selectedIds, isResident, selectedDate, selectedTime, adults, children, details })
+        JSON.stringify({ step: 'details', selectedIds, isResident, selectedDate, adults, children, details })
       );
       setIsSignInOpen(true);
       return;
@@ -550,7 +487,6 @@ export default function OnePageBooking() {
           plantationName: plantation.name,
           experiences: selected,
           date: selectedDate,
-          time: selectedTime || '09:00',
           adults,
           children,
           totalPrice: total,
@@ -705,81 +641,10 @@ export default function OnePageBooking() {
                       type="date"
                       min={TODAY}
                       value={selectedDate}
-                      onChange={(e) => { setSelectedDate(e.target.value); setSelectedTime(''); }}
+                      onChange={(e) => setSelectedDate(e.target.value)}
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#52B788] text-gray-800"
                     />
-
-                    {/* Quick date chips from slots */}
-                    {slotsLoading && (
-                      <p className="text-sm text-gray-500 mt-3 flex items-center gap-2">
-                        <Loader2 size={14} className="animate-spin" /> Checking available slots…
-                      </p>
-                    )}
-
-                    {!slotsLoading && availableDates.length > 0 && (
-                      <div className="mt-3">
-                        <p className="text-xs text-gray-500 mb-2">Available dates (from slots):</p>
-                        <div className="flex flex-wrap gap-2">
-                          {availableDates.slice(0, 10).map((d) => (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => { setSelectedDate(d); setSelectedTime(''); }}
-                              className={`text-xs px-3 py-1.5 rounded-full border transition font-medium
-                                ${selectedDate === d ? 'bg-[#2D6A4F] text-white border-[#2D6A4F]' : 'bg-white text-gray-700 border-gray-300 hover:border-[#52B788]'}`}
-                            >
-                              {formatDate(d)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
-
-                  {/* Time slots — shown only when a date is picked */}
-                  {selectedDate && (
-                    <div className="bg-white rounded-xl border border-gray-200 p-5">
-                      <label className="block font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                        <Clock size={18} className="text-[#2D6A4F]" /> Choose a time slot
-                      </label>
-
-                      {slotsForDate.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {slotsForDate.map((s) => {
-                            const remaining = s.capacity - s.booked;
-                            const isActive = selectedTime === s.slot_time;
-                            return (
-                              <button
-                                key={s.id}
-                                type="button"
-                                onClick={() => setSelectedTime(s.slot_time)}
-                                className={`p-3 rounded-lg border-2 text-left transition
-                                  ${isActive ? 'border-[#2D6A4F] bg-[#f0faf4]' : 'border-gray-200 hover:border-[#52B788] bg-white'}`}
-                              >
-                                <p className={`font-semibold text-sm ${isActive ? 'text-[#2D6A4F]' : 'text-gray-800'}`}>
-                                  {formatTime(s.slot_time)}
-                                </p>
-                                <p className="text-xs text-green-600 mt-0.5">{remaining} spot{remaining !== 1 ? 's' : ''} left</p>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-sm text-gray-500 mb-3 flex items-center gap-2">
-                            <Info size={14} />
-                            No pre-set slots for this date. Enter your preferred time:
-                          </p>
-                          <input
-                            type="time"
-                            value={selectedTime}
-                            onChange={(e) => setSelectedTime(e.target.value)}
-                            className="px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#52B788]"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
 
                   {/* Guest counts */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -886,7 +751,6 @@ export default function OnePageBooking() {
                 plantationName={plantation.name}
                 selectedExperiences={selected}
                 date={selectedDate}
-                time={selectedTime}
                 adults={adults}
                 children={children}
                 currency={currency}

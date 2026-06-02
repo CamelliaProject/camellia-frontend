@@ -15,7 +15,7 @@ export default function BookingConfirmationPage() {
     return null;
   }
 
-  const { plantationName, experiences, date, time, adults, children, totalPrice, currency } = bookingSummary;
+  const { plantationName, experiences, date, adults, children, totalPrice, currency } = bookingSummary;
 
   // Format date to "Monday, November 17, 2025" for display
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
@@ -52,10 +52,6 @@ export default function BookingConfirmationPage() {
               <div>
                 <p className="font-semibold">Date</p>
                 <p className="text-lg">{formattedDate}</p>
-              </div>
-              <div>
-                <p className="font-semibold">Time</p>
-                <p className="text-lg">{time}</p>
               </div>
               <div>
                 <p className="font-semibold">Guests</p>

@@ -59,7 +59,6 @@ function mapBooking(raw: any): ExperienceBooking {
     plantationId: raw.plantation_id,
     plantationName: raw.plantation_name || 'Unknown Plantation',
     date: raw.booking_date || '',
-    time: raw.booking_time || '',
     guests: guestParts.join(', '),
     experiences: experienceNames,
     totalPaid,
@@ -185,13 +184,7 @@ export default function Dashboard() {
     } catch { return String(raw); }
   };
 
-  const fmtTime = (raw: any) => {
-    if (!raw) return '';
-    const str = raw instanceof Date ? raw.toTimeString().slice(0, 8) : String(raw);
-    const [h, m] = str.split(':').map(Number);
-    if (isNaN(h) || isNaN(m)) return str;
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-  };
+
 
   const STATUS_BADGE: Record<string, string> = {
     upcoming: 'bg-blue-100 text-blue-800',
@@ -281,7 +274,7 @@ export default function Dashboard() {
                           <div className="w-12 h-12 rounded-xl bg-[#D8F3DC] flex items-center justify-center text-2xl shrink-0">🌿</div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-[#1B4332] truncate">{b.plantationName}</p>
-                            <p className="text-gray-500 text-sm mt-0.5">{fmtDate(b.date)} · {fmtTime(b.time)}</p>
+                            <p className="text-gray-500 text-sm mt-0.5">{fmtDate(b.date)}</p>
                             {b.experiences.length > 0 && (
                               <p className="text-xs text-gray-400 mt-0.5 truncate">{b.experiences.join(', ')}</p>
                             )}
@@ -333,7 +326,7 @@ export default function Dashboard() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-gray-400 text-sm mt-0.5">{fmtDate(b.date)} · {fmtTime(b.time)}</p>
+                            <p className="text-gray-400 text-sm mt-0.5">{fmtDate(b.date)}</p>
                             {b.experiences.length > 0 && (
                               <p className="text-xs text-gray-400 mt-0.5 truncate">{b.experiences.join(', ')}</p>
                             )}

@@ -1,4 +1,4 @@
-import { X, Calendar, Clock, Users, Star, AlertTriangle } from 'lucide-react';
+import { X, Calendar, Users, Star, AlertTriangle } from 'lucide-react';
 
 export interface ExperienceBooking {
   id: string;
@@ -6,7 +6,6 @@ export interface ExperienceBooking {
   plantationId: string;
   plantationName: string;
   date: string;
-  time: string;
   guests: string;
   experiences: string[];
   totalPaid: string;
@@ -31,14 +30,6 @@ function formatDate(raw: any) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
   } catch { return String(raw); }
-}
-
-function formatTime(raw: any) {
-  if (!raw) return '—';
-  const str = raw instanceof Date ? raw.toTimeString().slice(0, 8) : String(raw);
-  const [h, m] = str.split(':').map(Number);
-  if (isNaN(h) || isNaN(m)) return str;
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -91,13 +82,6 @@ export default function BookingDetailsModal({
               <div>
                 <p className="text-xs text-gray-500 font-medium">Date</p>
                 <p className="text-sm font-semibold text-gray-800">{formatDate(booking.date)}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Clock size={18} className="text-[#52B788] mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500 font-medium">Time</p>
-                <p className="text-sm font-semibold text-gray-800">{formatTime(booking.time)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 col-span-2">

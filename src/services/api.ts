@@ -101,7 +101,6 @@ export const reviewApi = {
 };
 
 export const paymentApi = {
-  create: (data: Record<string, any>) => apiClient.post('/payments', data),
   getAll: () => apiClient.get('/payments'),
   updateStatus: (id: string, status: string) => apiClient.patch(`/payments/${id}/status`, { status }),
   payhereInitiate: (data: Record<string, any>) => apiClient.post('/payments/payhere/initiate', data),

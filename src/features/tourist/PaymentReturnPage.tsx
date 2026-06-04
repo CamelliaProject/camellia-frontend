@@ -48,9 +48,9 @@ export default function PaymentReturnPage() {
   useEffect(() => {
     if (status !== 'success') return;
 
-    // Save the PayHere payment_id so the backend can issue refunds if needed
-    if (transactionId && transactionId !== '—' && paymentId) {
-      paymentApi.payheresSavePayment(transactionId, paymentId).catch(() => {/* non-critical */});
+    // Notify backend so it can send the confirmation email and store the payment_id for refunds
+    if (transactionId && transactionId !== '—') {
+      paymentApi.payheresSavePayment(transactionId, paymentId ?? '').catch(() => {/* non-critical */});
     }
 
     if (stored) {

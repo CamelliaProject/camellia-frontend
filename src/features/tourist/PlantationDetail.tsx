@@ -895,6 +895,50 @@ export default function PlantationDetail() {
             </div>
           </div>
 
+          {/* Experiences & Pricing */}
+          {plantation.experiences && plantation.experiences.length > 0 && (
+            <div className="mb-16">
+              <h2 className="text-3xl font-bold mb-8">Experiences & Pricing</h2>
+              <div className="space-y-4">
+                {plantation.experiences.map((exp: any, idx: number) => (
+                  <div key={exp.id || idx} className="bg-gray-50 rounded-xl border border-gray-200 p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-bold text-[#1B4332] mb-1">{exp.name}</h3>
+                        {exp.category && (
+                          <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 mb-2">
+                            {exp.category}
+                          </span>
+                        )}
+                        {(exp.shortDescription || exp.description) && (
+                          <p className="text-gray-600 text-sm">{exp.shortDescription || exp.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-6 flex-shrink-0">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 mb-1">Adult</p>
+                          <p className="text-lg font-bold text-[#2D6A4F]">${exp.priceUSD.adult}</p>
+                          {exp.priceLKR.adult > 0 && (
+                            <p className="text-sm text-gray-500">Rs {exp.priceLKR.adult.toLocaleString()}</p>
+                          )}
+                        </div>
+                        {exp.priceUSD.child > 0 && (
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 mb-1">Child</p>
+                            <p className="text-lg font-bold text-[#52B788]">${exp.priceUSD.child}</p>
+                            {exp.priceLKR.child > 0 && (
+                              <p className="text-sm text-gray-500">Rs {exp.priceLKR.child.toLocaleString()}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Activities */}
           <div className="mb-16">
             {plantation.activities.length > 0 && (

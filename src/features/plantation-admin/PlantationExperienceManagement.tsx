@@ -389,9 +389,9 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
         showMessage('Experience added successfully!', 'success');
         onSaved?.();
       }
-    } catch (err) {
-      console.error('Failed to save experience:', err);
-      showMessage('Failed to save experience. Please try again.', 'error');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to save experience. Please try again.';
+      showMessage(msg, 'error');
     } finally {
       setIsLoading(false);
       setIsModalOpen(false);
@@ -409,9 +409,9 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
       setLocalExperiences(prev => prev.filter(e => e.id !== experience.id));
       showMessage('Experience deleted.', 'success');
       onSaved?.();
-    } catch (err) {
-      console.error('Failed to delete experience:', err);
-      showMessage('Failed to delete experience.', 'error');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || 'Failed to delete experience.';
+      showMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }

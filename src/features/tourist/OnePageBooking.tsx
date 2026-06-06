@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import SignInModal from '../../components/layout/SignInModal';
-import { plantationApi, settingsApi } from '../../services/api';
+import { plantationApi, settingsApi, availabilityApi } from '../../services/api';
 import {
   ChevronDown,
   ChevronUp,
@@ -16,6 +16,8 @@ import {
   Loader2,
   AlertCircle,
   Info,
+  Clock,
+  XCircle,
 } from 'lucide-react';
 
 const TODAY = new Date().toISOString().split('T')[0];
@@ -65,6 +67,25 @@ const CATEGORY_COLORS: Record<string, string> = {
 function categoryColor(cat: string) {
   return CATEGORY_COLORS[cat] || 'bg-gray-100 text-gray-700';
 }
+
+interface TimeSlot {
+  id: string;
+  slot_time: string;
+  capacity: number;
+  booked: number;
+}
+
+interface AvailabilitySettings {
+  unavailable_days: number[];  // 0-6
+  closing_dates: { close_date: string }[];
+}
+
+function fmt12h(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+const DOW_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function formatDate(raw: string) {
   if (!raw) return '';
@@ -244,6 +265,7 @@ function BookingSummary({
   isResident,
   usdToLkr,
   total,
+  selectedTime,
 }: {
   plantationName: string;
   selectedExperiences: Experience[];
@@ -254,6 +276,7 @@ function BookingSummary({
   isResident: boolean;
   usdToLkr: number;
   total: number;
+  selectedTime: string;
 }) {
   const symbol = isResident ? 'Rs' : '$';
   return (
@@ -266,17 +289,19 @@ function BookingSummary({
 
       {/* Experiences */}
       {selectedExperiences.length > 0 ? (
-        <ul className="space-y-1.5 mb-4">
+        <ul className="space-y-2 mb-4">
           {selectedExperiences.map((exp) => {
             const ap = isResident ? (exp.price_lkr_adult || exp.price_usd_adult * usdToLkr) : exp.price_usd_adult;
             const cp = isResident ? (exp.price_lkr_child || exp.price_usd_child * usdToLkr) : exp.price_usd_child;
             const expTotal = ap * adults + cp * children;
             return (
-              <li key={exp.id} className="flex justify-between items-start text-sm">
-                <span className="text-gray-700 flex-1 mr-2">{exp.name}</span>
-                <span className="font-medium text-gray-900 whitespace-nowrap">
-                  {symbol} {expTotal.toLocaleString()}
-                </span>
+              <li key={exp.id} className="text-sm">
+                <div className="flex justify-between items-start">
+                  <span className="text-gray-700 flex-1 mr-2 leading-tight">{exp.name}</span>
+                  <span className="font-medium text-gray-900 whitespace-nowrap">
+                    {symbol} {expTotal.toLocaleString()}
+                  </span>
+                </div>
               </li>
             );
           })}
@@ -295,9 +320,17 @@ function BookingSummary({
 
       {/* Date */}
       {date && (
-        <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
           <Calendar size={14} />
           <span>{formatDate(date)}</span>
+        </div>
+      )}
+
+      {/* Selected time */}
+      {selectedTime && (
+        <div className="flex items-center gap-2 text-sm text-[#2D6A4F] mb-4">
+          <Clock size={14} />
+          <span className="font-medium">{fmt12h(selectedTime)}</span>
         </div>
       )}
 
@@ -378,6 +411,14 @@ export default function OnePageBooking() {
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
 
+  // Plantation availability settings (loaded once)
+  const [availSettings, setAvailSettings] = useState<AvailabilitySettings | null>(null);
+
+  // Plantation-level time slot state
+  const [plantationSlots, setPlantationSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(''); // single visit time (HH:MM)
+
   // Step 3 state
   const [details, setDetails] = useState({
     fullName: '',
@@ -415,10 +456,33 @@ export default function OnePageBooking() {
       .catch(() => { /* keep default 330 fallback */ });
   }, []);
 
+  // ── Load plantation availability settings (unavailable days + closing dates)
+  useEffect(() => {
+    if (!plantationId) return;
+    availabilityApi.getSettings(plantationId)
+      .then(res => setAvailSettings(res.data?.data ?? null))
+      .catch(() => { /* non-critical — fall back to permissive */ });
+  }, [plantationId]);
+
   // Pre-fill email from auth
   useEffect(() => {
     if (user?.email) setDetails((d) => ({ ...d, email: user.email }));
   }, [user]);
+
+  // Fetch plantation-level time slot availability when date changes
+  useEffect(() => {
+    if (!selectedDate || !plantationId) {
+      setPlantationSlots([]);
+      setSelectedTime('');
+      return;
+    }
+    setLoadingSlots(true);
+    setSelectedTime('');
+    availabilityApi.getSlotAvailability(plantationId, selectedDate)
+      .then(res => { setPlantationSlots(res.data?.data ?? []); })
+      .catch(() => { setPlantationSlots([]); })
+      .finally(() => { setLoadingSlots(false); });
+  }, [selectedDate, plantationId]);
 
   // Restore booking state after the user signs in (handles both same-page auth
   // state change and remount after redirect back to this page).
@@ -475,8 +539,44 @@ export default function OnePageBooking() {
 
   const isDateTooSoon = selectedDate === TODAY;
 
+  // ── Closed-day / closing-date validation ────────────────────────────────
+  const isUnavailableDay = (() => {
+    if (!selectedDate || !availSettings) return false;
+    const dow = new Date(selectedDate + 'T00:00:00').getDay();
+    return availSettings.unavailable_days.includes(dow);
+  })();
+
+  const isClosingDate = (() => {
+    if (!selectedDate || !availSettings) return false;
+    return availSettings.closing_dates.some(cd => String(cd.close_date).slice(0, 10) === selectedDate);
+  })();
+
+  const dateBlockedReason = isUnavailableDay
+    ? `The plantation is closed on ${DOW_NAMES[new Date(selectedDate + 'T00:00:00').getDay()]}s.`
+    : isClosingDate
+      ? 'The plantation is closed on this date.'
+      : null;
+
+  const totalGuests = adults + children;
+
+  // ── Plantation-level time-slot logic ────────────────────────────────────
+  const hasAnySlots = plantationSlots.length > 0;
+  const completelyFull = hasAnySlots && plantationSlots.every(s => s.capacity - s.booked < totalGuests);
+
+  const handlePickTime = (time: string) => {
+    setSelectedTime(prev => prev === time ? '' : time);
+  };
+
+  const allSlotsValid = (() => {
+    if (!hasAnySlots) return true;
+    if (completelyFull) return false;
+    if (!selectedTime) return false;
+    const slot = plantationSlots.find(s => s.slot_time === selectedTime);
+    return !!slot && slot.capacity - slot.booked >= totalGuests;
+  })();
+
   const goToDetails = () => {
-    if (!selectedDate || isDateTooSoon) return;
+    if (!selectedDate || isDateTooSoon || dateBlockedReason || !allSlotsValid || loadingSlots) return;
     setStep('details');
     scrollTop();
   };
@@ -515,6 +615,7 @@ export default function OnePageBooking() {
           totalPrice: total,
           currency,
           usdToLkrRate: usdToLkr,
+          bookingTime: selectedTime || null,
         },
         touristDetails: {
           fullName: details.fullName,
@@ -684,7 +785,74 @@ export default function OnePageBooking() {
                         Bookings must be made at least 1 day in advance. Please select a future date.
                       </div>
                     )}
+                    {!isDateTooSoon && dateBlockedReason && (
+                      <div className="mt-2 flex items-center gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm">
+                        <XCircle size={15} className="shrink-0" />
+                        {dateBlockedReason} Please choose a different date.
+                      </div>
+                    )}
                   </div>
+
+                  {/* ── Visit time picker ─────────────────────────── */}
+                  {selectedDate && !isDateTooSoon && !dateBlockedReason && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                      <p className="font-semibold text-gray-800 mb-0.5 flex items-center gap-2">
+                        <Clock size={18} className="text-[#2D6A4F]" /> Choose Your Arrival Time
+                      </p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Select an arrival time — all your chosen experiences start from this time.
+                      </p>
+
+                      {loadingSlots ? (
+                        <div className="flex items-center gap-2 text-gray-500 text-sm py-2">
+                          <Loader2 size={16} className="animate-spin" /> Checking availability…
+                        </div>
+                      ) : !hasAnySlots ? (
+                        <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                          <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                          No fixed time slots for this day — you're welcome to arrive at any time.
+                        </div>
+                      ) : completelyFull ? (
+                        <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                          <XCircle size={15} className="shrink-0 mt-0.5" />
+                          All time slots are fully booked for {formatDate(selectedDate)}. Please choose a different date.
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-3">
+                          {plantationSlots.map((slot) => {
+                            const avail = slot.capacity - slot.booked;
+                            const isFull = avail < totalGuests;
+                            const isSelected = selectedTime === slot.slot_time;
+                            return (
+                              <button
+                                key={slot.id}
+                                type="button"
+                                disabled={isFull}
+                                onClick={() => handlePickTime(slot.slot_time)}
+                                className={`flex flex-col items-center min-w-[90px] px-5 py-3 rounded-xl border-2 text-sm transition-all
+                                  ${isFull
+                                    ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-55'
+                                    : isSelected
+                                      ? 'border-[#2D6A4F] bg-[#f0faf4] text-[#1B4332] shadow-md ring-2 ring-[#B7E4C7]'
+                                      : 'border-gray-200 bg-white text-gray-700 hover:border-[#52B788] hover:shadow-sm'
+                                  }`}
+                              >
+                                <span className="font-bold text-base">{fmt12h(slot.slot_time)}</span>
+                                {isFull ? (
+                                  <span className="text-xs mt-1 text-red-400 font-medium">Full</span>
+                                ) : avail <= 3 ? (
+                                  <span className="text-xs mt-1 text-amber-600 font-medium">{avail} spot{avail !== 1 ? 's' : ''} left</span>
+                                ) : (
+                                  <span className="text-xs mt-1 text-emerald-600">{avail} spots</span>
+                                )}
+                                {isSelected && <Check size={13} className="mt-1.5 text-[#2D6A4F]" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Guest counts */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -703,7 +871,7 @@ export default function OnePageBooking() {
                     </button>
                     <button
                       type="button"
-                      disabled={!selectedDate || isDateTooSoon}
+                      disabled={!selectedDate || isDateTooSoon || !!dateBlockedReason || loadingSlots || !allSlotsValid}
                       onClick={goToDetails}
                       className="flex-1 flex items-center justify-center gap-2 bg-[#52B788] hover:bg-[#40916c] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
                     >
@@ -797,6 +965,7 @@ export default function OnePageBooking() {
                 isResident={isResident}
                 usdToLkr={usdToLkr}
                 total={total}
+                selectedTime={selectedTime}
               />
             </div>
           </div>

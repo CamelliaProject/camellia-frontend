@@ -7,6 +7,11 @@ import {
 import { adminApi } from '../../services/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
+interface ExperienceSlot {
+  name: string;
+  slot_time: string | null; // HH:MM:SS or null when no slot was booked
+}
+
 interface Booking {
   id: string;
   bookingReference: string;
@@ -14,7 +19,10 @@ interface Booking {
   date: string;
   numAdults: number;
   numChildren: number;
+  /** Names only — kept for search/filter convenience */
   experiences: string[];
+  /** Full detail: name + booked time slot */
+  experienceSlots: ExperienceSlot[];
   totalUSD: number | null;
   totalLKR: number | null;
   status: 'upcoming' | 'completed' | 'cancelled';
@@ -44,7 +52,20 @@ function fmtDate(raw: any) {
   } catch { return String(raw); }
 }
 
+function fmt12h(time: string | null | undefined): string {
+  if (!time) return '';
+  const [h, m] = time.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 function mapRow(raw: any): Booking {
+  // API now returns experience_slots: [{name, slot_time}]
+  // Fall back to experience_names array for backwards compat
+  const slots: ExperienceSlot[] = Array.isArray(raw.experience_slots)
+    ? raw.experience_slots
+    : (Array.isArray(raw.experience_names) ? raw.experience_names.map((n: string) => ({ name: n, slot_time: null })) : []);
+
   return {
     id: raw.id,
     bookingReference: raw.booking_reference || raw.id,
@@ -52,7 +73,8 @@ function mapRow(raw: any): Booking {
     date: raw.booking_date || '',
     numAdults: raw.num_adults ?? 1,
     numChildren: raw.num_children ?? 0,
-    experiences: Array.isArray(raw.experience_names) ? raw.experience_names : [],
+    experiences: slots.map(s => s.name),
+    experienceSlots: slots,
     totalUSD: raw.total_price_usd != null ? Number(raw.total_price_usd) : null,
     totalLKR: raw.total_price_lkr != null ? Number(raw.total_price_lkr) : null,
     status: raw.status ?? 'upcoming',
@@ -66,6 +88,12 @@ function mapRow(raw: any): Booking {
     },
     specialNotes: raw.special_notes || '',
   };
+}
+
+/** Returns the common visit time if all booked slots share the same time, otherwise null. */
+function commonVisitTime(slots: ExperienceSlot[]): string | null {
+  const times = [...new Set(slots.map(s => s.slot_time).filter(Boolean))];
+  return times.length === 1 ? times[0]! : null;
 }
 
 function daysUntil(dateStr: string): number {
@@ -258,20 +286,36 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
           <Section title="Visit Details">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field icon={<Calendar size={15} />} label="Date" value={fmtDate(booking.date)} />
+              {(() => {
+                const t = commonVisitTime(booking.experienceSlots);
+                return t ? <Field icon={<Clock size={15} />} label="Visit Time" value={fmt12h(t)} /> : null;
+              })()}
               <Field icon={<Users size={15} />} label="Adults" value={booking.numAdults} />
-              <Field icon={<Users size={15} />} label="Children" value={booking.numChildren} />
+              {booking.numChildren > 0 && (
+                <Field icon={<Users size={15} />} label="Children" value={booking.numChildren} />
+              )}
             </div>
           </Section>
 
           {/* Experiences */}
           <Section title="Experiences Booked">
-            {booking.experiences.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {booking.experiences.map((exp, i) => (
-                  <span key={i} className="flex items-center gap-1.5 bg-[#f0faf4] text-[#1B4332] text-sm font-medium px-3 py-1.5 rounded-full border border-[#B7E4C7]">
-                    <Tag size={12} /> {exp}
-                  </span>
-                ))}
+            {booking.experienceSlots.length > 0 ? (
+              <div className="space-y-2">
+                {booking.experienceSlots.map((slot, i) => {
+                  const hasDiffTime = !commonVisitTime(booking.experienceSlots) && slot.slot_time;
+                  return (
+                    <div key={i} className="flex items-center justify-between bg-[#f0faf4] border border-[#B7E4C7] rounded-xl px-3 py-2">
+                      <span className="flex items-center gap-2 text-sm font-medium text-[#1B4332]">
+                        <Tag size={12} className="shrink-0" /> {slot.name}
+                      </span>
+                      {hasDiffTime && (
+                        <span className="flex items-center gap-1 text-xs text-[#2D6A4F] font-semibold ml-3 shrink-0">
+                          <Clock size={11} /> {fmt12h(slot.slot_time)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-400 italic">No experiences recorded</p>
@@ -529,7 +573,14 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
                   <p className="text-xs text-gray-400 mt-0.5">{b.tourist.email} {b.tourist.country ? `· ${b.tourist.country}` : ''}</p>
 
                   <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-sm text-gray-600">
-                    <span className="flex items-center gap-1.5"><Calendar size={13} />{fmtDate(b.date)}</span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={13} />
+                      {fmtDate(b.date)}
+                      {(() => {
+                        const t = commonVisitTime(b.experienceSlots);
+                        return t ? <span className="ml-1 text-[#2D6A4F] font-medium flex items-center gap-1"><Clock size={12} />{fmt12h(t)}</span> : null;
+                      })()}
+                    </span>
                     <span className="flex items-center gap-1.5"><Users size={13} />
                       {b.numAdults} adult{b.numAdults !== 1 ? 's' : ''}
                       {b.numChildren > 0 ? `, ${b.numChildren} child${b.numChildren !== 1 ? 'ren' : ''}` : ''}

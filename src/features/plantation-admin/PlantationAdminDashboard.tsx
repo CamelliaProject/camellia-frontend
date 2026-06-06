@@ -8,8 +8,9 @@ import PlantationMediaManagement from '../plantation-admin/PlantationMediaManage
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import PlantationSetup from './PlantationSetup';
-import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, Leaf, LayoutDashboard, Settings } from 'lucide-react'; 
+import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, Leaf, LayoutDashboard, Settings, CalendarOff } from 'lucide-react';
 import PlantationPayments from './PlantationPayments';
+import PlantationAvailabilityManagement from './PlantationAvailabilityManagement';
 
 interface PlantationAdminUser {
   username: string;
@@ -50,7 +51,7 @@ function mapDbToNested(raw: any) {
 export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'experiences' | 'bookings' | 'payments'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'availability' | 'experiences' | 'bookings' | 'payments'>('details');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [rawPlantation, setRawPlantation] = useState<any>(null);   // flat DB row
@@ -239,6 +240,16 @@ export default function PlantationAdminDashboard() {
             <GalleryHorizontal size={20} /> Media Gallery
           </button>
           <button
+            onClick={() => setActiveTab('availability')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'availability'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <CalendarOff size={20} /> Available Date & Time
+          </button>
+          <button
             onClick={() => setActiveTab('experiences')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeTab === 'experiences'
@@ -308,6 +319,7 @@ export default function PlantationAdminDashboard() {
                 {activeTab === 'details' && 'Plantation Details'}
                 {activeTab === 'media' && 'Media Gallery'}
                 {activeTab === 'experiences' && 'Manage Experiences'}
+                {activeTab === 'availability' && 'Available Date and Time'}
                 {activeTab === 'bookings' && 'View Bookings'}
                 {activeTab === 'payments' && 'Payments & Payouts'}
               </h2>
@@ -329,6 +341,9 @@ export default function PlantationAdminDashboard() {
             )}
             {activeTab === 'experiences' && (
               <PlantationExperienceManagement plantation={plantation} onSaved={refreshPlantation} />
+            )}
+            {activeTab === 'availability' && (
+              <PlantationAvailabilityManagement plantationId={plantationAdmin.plantationId} />
             )}
             {activeTab === 'bookings' && (
               <PlantationBookingManagement plantationId={plantationAdmin.plantationId} />

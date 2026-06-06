@@ -73,13 +73,47 @@ export const bookingApi = {
 
 export const experienceApi = {
   getByPlantation: (plantationId: string) => apiClient.get(`/experiences/plantation/${plantationId}`),
-  getSlots: (id: string) => apiClient.get(`/experiences/${id}/slots`),
+  // Legacy per-date slots (kept for backward compat)
+  getSlots: (id: string, date?: string) =>
+    apiClient.get(`/experiences/${id}/slots`, { params: date ? { date } : undefined }),
   create: (data: FormData | Record<string, any>) => apiClient.post('/experiences', data),
   update: (id: string, data: FormData | Record<string, any>) => apiClient.put(`/experiences/${id}`, data),
   delete: (id: string) => apiClient.delete(`/experiences/${id}`),
   deleteImage: (id: string, imageUrl: string) =>
     apiClient.delete(`/experiences/${id}/images`, { data: { image_url: imageUrl } }),
-  createSlot: (id: string, data: Record<string, any>) => apiClient.post(`/experiences/${id}/slots`, data),
+  // Weekly recurring schedule
+  getWeeklySlots: (id: string) => apiClient.get(`/experiences/${id}/weekly-slots`),
+  createWeeklySlot: (id: string, data: { day_of_week: number; slot_time: string; capacity: number }) =>
+    apiClient.post(`/experiences/${id}/weekly-slots`, data),
+  updateWeeklySlot: (id: string, slotId: string, data: { capacity: number }) =>
+    apiClient.put(`/experiences/${id}/weekly-slots/${slotId}`, data),
+  deleteWeeklySlot: (id: string, slotId: string) =>
+    apiClient.delete(`/experiences/${id}/weekly-slots/${slotId}`),
+  // Computed availability for a specific date (uses weekly schedule + live booking counts)
+  getAvailability: (id: string, date: string) =>
+    apiClient.get(`/experiences/${id}/availability`, { params: { date } }),
+};
+
+export const availabilityApi = {
+  getSettings: (plantationId: string) =>
+    apiClient.get(`/plantations/${plantationId}/availability-settings`),
+  updateUnavailableDays: (plantationId: string, days: number[]) =>
+    apiClient.put(`/plantations/${plantationId}/unavailable-days`, { days }),
+  addClosingDate: (plantationId: string, close_date: string, reason?: string) =>
+    apiClient.post(`/plantations/${plantationId}/closing-dates`, { close_date, reason }),
+  removeClosingDate: (plantationId: string, closeId: string) =>
+    apiClient.delete(`/plantations/${plantationId}/closing-dates/${closeId}`),
+  // Plantation-level time slots
+  getTimeSlots: (plantationId: string) =>
+    apiClient.get(`/plantations/${plantationId}/time-slots`),
+  getSlotAvailability: (plantationId: string, date: string) =>
+    apiClient.get(`/plantations/${plantationId}/time-slots/availability`, { params: { date } }),
+  createTimeSlot: (plantationId: string, data: { day_of_week: number; slot_time: string; capacity: number }) =>
+    apiClient.post(`/plantations/${plantationId}/time-slots`, data),
+  updateTimeSlot: (plantationId: string, slotId: string, data: { capacity: number }) =>
+    apiClient.put(`/plantations/${plantationId}/time-slots/${slotId}`, data),
+  deleteTimeSlot: (plantationId: string, slotId: string) =>
+    apiClient.delete(`/plantations/${plantationId}/time-slots/${slotId}`),
 };
 
 export const reviewApi = {

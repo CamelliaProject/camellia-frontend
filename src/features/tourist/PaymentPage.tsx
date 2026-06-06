@@ -3,7 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { paymentApi } from '../../services/api';
-import { Calendar, Users, Tag, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar, Users, Tag, ShieldCheck, Loader2, AlertCircle, Clock } from 'lucide-react';
+
+function fmt12h(t: string | null | undefined) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
 
 function formatDate(raw: string) {
   if (!raw) return '—';
@@ -29,7 +35,7 @@ export default function PaymentPage() {
     return null;
   }
 
-  const { plantationId, plantationName, experiences, date, adults, children, totalPrice, currency, usdToLkrRate } = bookingSummary;
+  const { plantationId, plantationName, experiences, date, adults, children, totalPrice, currency, usdToLkrRate, bookingTime } = bookingSummary;
   const symbol = currency === 'LKR' ? 'Rs' : '$';
 
   const handlePayHere = async () => {
@@ -56,6 +62,7 @@ export default function PaymentPage() {
         experience_ids:   Array.isArray(experiences)
           ? experiences.map((e: any) => e.id).filter(Boolean)
           : [],
+        booking_time:     bookingTime || null,
         // PayHere-specific
         currency,
         amount:     totalPrice,
@@ -106,6 +113,12 @@ export default function PaymentPage() {
                 <div className="flex items-center gap-3 text-gray-700">
                   <Calendar size={16} className="text-[#52B788] shrink-0" />
                   <span>{formatDate(date)}</span>
+                </div>
+              )}
+              {bookingTime && (
+                <div className="flex items-center gap-3 text-gray-700">
+                  <Clock size={16} className="text-[#52B788] shrink-0" />
+                  <span>Visit time: {fmt12h(bookingTime)}</span>
                 </div>
               )}
               <div className="flex items-center gap-3 text-gray-700">

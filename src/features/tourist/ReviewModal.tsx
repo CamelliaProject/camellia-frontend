@@ -2,27 +2,37 @@ import { useState } from 'react';
 import { X, ImageIcon, Loader2 } from 'lucide-react';
 import { reviewApi } from '../../services/api';
 
-interface PlantationOption {
-  id: string;
-  name: string;
+interface ReviewableBooking {
+  bookingId: string;
+  plantationId: string;
+  plantationName: string;
+  date: string;
 }
 
 interface ReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (review: { plantationId: string; plantationName: string; rating: number; reviewText: string; imageUrl?: string }) => void;
-  experiencedPlantations: PlantationOption[];
-  initialSelectedPlantationId?: string;
+  onSubmit: () => void;
+  reviewableBookings: ReviewableBooking[];
+  initialSelectedBookingId?: string;
+}
+
+function fmtDate(raw: string) {
+  if (!raw) return '';
+  try {
+    const [y, mo, d] = raw.slice(0, 10).split('-').map(Number);
+    return new Date(y, mo - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch { return raw; }
 }
 
 export default function ReviewModal({
   isOpen,
   onClose,
   onSubmit,
-  experiencedPlantations,
-  initialSelectedPlantationId = '',
+  reviewableBookings,
+  initialSelectedBookingId = '',
 }: ReviewModalProps) {
-  const [selectedPlantationId, setSelectedPlantationId] = useState(initialSelectedPlantationId);
+  const [selectedBookingId, setSelectedBookingId] = useState(initialSelectedBookingId);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -31,7 +41,7 @@ export default function ReviewModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  const selectedPlantation = experiencedPlantations.find((p) => p.id === selectedPlantationId);
+  const selectedBooking = reviewableBookings.find((b) => b.bookingId === selectedBookingId);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -47,8 +57,8 @@ export default function ReviewModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlantationId || rating === 0 || !reviewText.trim()) {
-      setSubmitError('Please select a plantation, provide a rating, and write your experience.');
+    if (!selectedBookingId || rating === 0 || !reviewText.trim()) {
+      setSubmitError('Please select a visit, provide a rating, and write your experience.');
       return;
     }
     setSubmitError('');
@@ -64,20 +74,13 @@ export default function ReviewModal({
       }
 
       await reviewApi.create({
-        plantation_id: selectedPlantationId,
+        booking_id: selectedBookingId,
         rating,
         content: reviewText.trim(),
         image_url: imageUrl,
       });
 
-      onSubmit({
-        plantationId: selectedPlantationId,
-        plantationName: selectedPlantation?.name || '',
-        rating,
-        reviewText: reviewText.trim(),
-        imageUrl,
-      });
-
+      onSubmit();
       onClose();
     } catch (err: any) {
       setSubmitError(err.response?.data?.error || 'Failed to submit review. Please try again.');
@@ -100,23 +103,28 @@ export default function ReviewModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Plantation Selection */}
+          {/* Visit Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Plantation <span className="text-red-500">*</span>
+              Visit <span className="text-red-500">*</span>
             </label>
             <select
-              value={selectedPlantationId}
-              onChange={(e) => setSelectedPlantationId(e.target.value)}
+              value={selectedBookingId}
+              onChange={(e) => setSelectedBookingId(e.target.value)}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] text-sm"
               required
-              disabled={!!initialSelectedPlantationId}
+              disabled={!!initialSelectedBookingId}
             >
-              <option value="" disabled>Choose a plantation you visited</option>
-              {experiencedPlantations.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+              <option value="" disabled>Choose a visit to review</option>
+              {reviewableBookings.map((b) => (
+                <option key={b.bookingId} value={b.bookingId}>
+                  {b.plantationName} — {fmtDate(b.date)}
+                </option>
               ))}
             </select>
+            {selectedBooking && (
+              <p className="text-xs text-gray-400 mt-1">{selectedBooking.plantationName}</p>
+            )}
           </div>
 
           {/* Rating */}

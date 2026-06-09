@@ -469,6 +469,21 @@ export default function OnePageBooking() {
     if (user?.email) setDetails((d) => ({ ...d, email: user.email }));
   }, [user]);
 
+  // Restore full booking state when returning via "Go back" from PaymentPage
+  useEffect(() => {
+    const rb = (location.state as any)?.restoreBooking;
+    if (!rb) return;
+    setSelectedIds(rb.selectedIds ?? []);
+    setIsResident(rb.isResident ?? true);
+    setSelectedDate(rb.selectedDate ?? '');
+    setAdults(rb.adults ?? 1);
+    setChildren(rb.children ?? 0);
+    if (rb.details) setDetails(rb.details);
+    setStep(rb.step ?? 'details');
+    navigate(location.pathname, { replace: true, state: {} });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Fetch plantation-level time slot availability when date changes
   useEffect(() => {
     if (!selectedDate || !plantationId) {

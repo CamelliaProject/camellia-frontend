@@ -11,6 +11,7 @@ import { Loader2, MessageCircle } from 'lucide-react';
 interface MyReview {
   id: string;
   plantation_id: string;
+  booking_id: string | null;
   plantation_name: string;
   plantation_image?: string;
   rating: number;
@@ -47,10 +48,10 @@ function mapBooking(raw: any): ExperienceBooking {
 
   const experienceNames: string[] = Array.isArray(raw.experience_names) ? raw.experience_names : [];
 
-  const totalPaid = raw.total_price_lkr
-    ? `Rs ${Number(raw.total_price_lkr).toLocaleString()}`
-    : raw.total_price_usd
+  const totalPaid = raw.total_price_usd
     ? `$ ${Number(raw.total_price_usd).toLocaleString()}`
+    : raw.total_price_lkr
+    ? `Rs ${Number(raw.total_price_lkr).toLocaleString()}`
     : '—';
 
   return {
@@ -148,16 +149,12 @@ export default function Dashboard() {
   const pastBookings = bookings.filter((b) => b.status === 'completed' || b.status === 'cancelled');
   const completedBookings = bookings.filter((b) => b.status === 'completed');
 
-  // Unique completed plantations with id+name for the modal
-  const reviewedPlantationIds = new Set(myReviews.map((r) => r.plantation_name));
-  const experiencedPlantations = completedBookings
-    .filter((b) => !reviewedPlantationIds.has(b.plantationName))
-    .reduce<Array<{ id: string; name: string }>>((acc, b) => {
-      if (!acc.find((p) => p.id === b.plantationId)) {
-        acc.push({ id: b.plantationId, name: b.plantationName });
-      }
-      return acc;
-    }, []);
+  // Booking IDs that already have a review
+  const reviewedBookingIds = new Set(myReviews.map((r) => r.booking_id).filter(Boolean) as string[]);
+  // Completed bookings not yet reviewed — available to review one-per-visit
+  const reviewableBookings = completedBookings
+    .filter((b) => !reviewedBookingIds.has(b.id))
+    .map((b) => ({ bookingId: b.id, plantationId: b.plantationId, plantationName: b.plantationName, date: b.date }));
 
   const displayName = user?.name || user?.username || 'Traveller';
   const avatarLetter = displayName[0]?.toUpperCase() ?? 'T';
@@ -322,7 +319,7 @@ export default function Dashboard() {
                   {pastBookings.length > 0 ? (
                     <div className="grid gap-3">
                       {pastBookings.map((b) => {
-                        const isReviewed = b.status === 'completed' && myReviews.some((r) => r.plantation_id === b.plantationId);
+                        const isReviewed = reviewedBookingIds.has(b.id);
                         return (
                         <button
                           key={b.id}
@@ -333,11 +330,19 @@ export default function Dashboard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-bold text-[#1B4332] truncate">{b.plantationName}</p>
-                              {isReviewed && (
+                              {isReviewed ? (
                                 <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full shrink-0">
                                   ⭐ Reviewed
                                 </span>
-                              )}
+                              ) : b.status === 'completed' ? (
+                                <span
+                                  role="button"
+                                  onClick={(e) => { e.stopPropagation(); handleOpenReviewModal(b); }}
+                                  className="inline-flex items-center gap-1 bg-[#D8F3DC] text-[#2D6A4F] text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 cursor-pointer hover:bg-[#B7E4C7] transition"
+                                >
+                                  ✏️ Review
+                                </span>
+                              ) : null}
                             </div>
                             <p className="text-gray-400 text-sm mt-0.5">{fmtDate(b.date)}</p>
                             {b.experiences.length > 0 && (
@@ -374,7 +379,7 @@ export default function Dashboard() {
                 <span className="w-1 h-6 bg-amber-400 rounded-full" />
                 <h2 className="text-xl font-bold">My Reviews</h2>
               </div>
-              {experiencedPlantations.length > 0 && (
+              {reviewableBookings.length > 0 && (
                 <button
                   onClick={() => handleOpenReviewModal(null)}
                   className="bg-[#2D6A4F] hover:bg-[#1B4332] text-white font-semibold py-2.5 px-6 rounded-xl transition text-sm"
@@ -525,8 +530,8 @@ export default function Dashboard() {
           isOpen={isReviewModalOpen}
           onClose={() => { setIsReviewModalOpen(false); setSelectedBookingForReview(null); }}
           onSubmit={handleReviewSubmit}
-          experiencedPlantations={experiencedPlantations}
-          initialSelectedPlantationId={selectedBookingForReview?.plantationId || ''}
+          reviewableBookings={reviewableBookings}
+          initialSelectedBookingId={selectedBookingForReview?.id || ''}
         />
       )}
 
@@ -535,6 +540,7 @@ export default function Dashboard() {
           isOpen={isDetailsOpen}
           onClose={() => { setIsDetailsOpen(false); setSelectedBooking(null); }}
           booking={selectedBooking}
+          isReviewed={reviewedBookingIds.has(selectedBooking.id)}
           onWriteReview={(b) => { setIsDetailsOpen(false); handleOpenReviewModal(b); }}
           onCancel={handleCancel}
         />

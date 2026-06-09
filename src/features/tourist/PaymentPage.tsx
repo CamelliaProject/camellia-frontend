@@ -182,7 +182,29 @@ export default function PaymentPage() {
           </p>
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/plantation/${plantationId}/booking`, {
+              state: {
+                restoreBooking: {
+                  step: 'details',
+                  selectedIds: Array.isArray(experiences)
+                    ? experiences.map((e: any) => e.id).filter(Boolean)
+                    : [],
+                  isResident: currency === 'LKR',
+                  selectedDate: date,
+                  adults,
+                  children,
+                  details: {
+                    fullName: touristDetails.fullName || '',
+                    email: touristDetails.email || '',
+                    phone: touristDetails.phone || '',
+                    nicPassportNumber: touristDetails.nicPassportNumber || '',
+                    country: touristDetails.country || '',
+                    city: touristDetails.city || '',
+                    specialNotes: touristDetails.notes || '',
+                  },
+                },
+              },
+            })}
             disabled={loading}
             className="w-full mt-3 text-sm text-gray-500 hover:text-[#2D6A4F] transition"
           >

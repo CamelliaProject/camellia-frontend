@@ -325,19 +325,25 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
           {/* Payment */}
           <Section title="Payment">
             <div className="bg-[#f0faf4] rounded-xl p-4 flex flex-col gap-2">
-              {booking.totalLKR != null && (
+              {booking.totalUSD != null ? (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 flex items-center gap-2"><Wallet size={14} /> Amount Paid (USD)</span>
+                    <span className="font-bold text-lg text-[#2D6A4F]">$ {booking.totalUSD.toLocaleString()}</span>
+                  </div>
+                  {booking.totalLKR != null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-400 flex items-center gap-2"><Wallet size={14} /> LKR Equivalent</span>
+                      <span className="text-sm text-gray-500">Rs {booking.totalLKR.toLocaleString()}</span>
+                    </div>
+                  )}
+                </>
+              ) : booking.totalLKR != null ? (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 flex items-center gap-2"><Wallet size={14} /> LKR (Local)</span>
+                  <span className="text-sm text-gray-600 flex items-center gap-2"><Wallet size={14} /> Amount Paid (LKR)</span>
                   <span className="font-bold text-lg text-[#2D6A4F]">Rs {booking.totalLKR.toLocaleString()}</span>
                 </div>
-              )}
-              {booking.totalUSD != null && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 flex items-center gap-2"><Wallet size={14} /> USD (Foreign)</span>
-                  <span className="font-bold text-lg text-[#2D6A4F]">$ {booking.totalUSD.toLocaleString()}</span>
-                </div>
-              )}
-              {booking.totalLKR == null && booking.totalUSD == null && (
+              ) : (
                 <p className="text-sm text-gray-400 italic">No payment recorded</p>
               )}
             </div>
@@ -598,9 +604,16 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
 
                 {/* Right: payment + ref */}
                 <div className="text-right shrink-0">
-                  {b.totalLKR != null && <p className="font-bold text-[#2D6A4F]">Rs {b.totalLKR.toLocaleString()}</p>}
-                  {b.totalUSD != null && <p className="font-bold text-[#2D6A4F]">$ {b.totalUSD.toLocaleString()}</p>}
-                  {b.totalLKR == null && b.totalUSD == null && <p className="text-gray-400 text-sm">—</p>}
+                  {b.totalUSD != null ? (
+                    <>
+                      <p className="font-bold text-[#2D6A4F]">$ {b.totalUSD.toLocaleString()}</p>
+                      {b.totalLKR != null && <p className="text-xs text-gray-400">≈ Rs {b.totalLKR.toLocaleString()}</p>}
+                    </>
+                  ) : b.totalLKR != null ? (
+                    <p className="font-bold text-[#2D6A4F]">Rs {b.totalLKR.toLocaleString()}</p>
+                  ) : (
+                    <p className="text-gray-400 text-sm">—</p>
+                  )}
                   <p className="text-xs text-gray-400 mt-1">#{b.bookingReference}</p>
                   <button className="mt-2 flex items-center gap-1 text-xs text-[#52B788] font-semibold ml-auto">
                     <Eye size={13} /> View

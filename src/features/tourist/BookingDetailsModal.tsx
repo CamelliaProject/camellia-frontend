@@ -17,6 +17,7 @@ interface BookingDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   booking: ExperienceBooking;
+  isReviewed?: boolean;
   onWriteReview?: (booking: ExperienceBooking) => void;
   onCancel?: (bookingId: string) => Promise<void>;
 }
@@ -53,7 +54,7 @@ function bookingStatusStyle(status: string, cancelledBy: 'admin' | 'tourist' | n
 }
 
 export default function BookingDetailsModal({
-  isOpen, onClose, booking, onWriteReview, onCancel,
+  isOpen, onClose, booking, isReviewed, onWriteReview, onCancel,
 }: BookingDetailsModalProps) {
   if (!isOpen) return null;
 
@@ -133,13 +134,19 @@ export default function BookingDetailsModal({
 
         {/* Actions */}
         <div className="px-6 pb-6 flex flex-col gap-2">
-          {isCompleted && onWriteReview && (
-            <button
-              onClick={() => { onWriteReview(booking); onClose(); }}
-              className="w-full flex items-center justify-center gap-2 bg-[#52B788] hover:bg-[#40916c] text-white font-semibold py-3 rounded-xl transition"
-            >
-              <Star size={16} /> Write a Review
-            </button>
+          {isCompleted && (
+            isReviewed ? (
+              <div className="w-full flex items-center justify-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 font-semibold py-3 rounded-xl text-sm">
+                ⭐ You have reviewed this plantation
+              </div>
+            ) : onWriteReview ? (
+              <button
+                onClick={() => { onWriteReview(booking); onClose(); }}
+                className="w-full flex items-center justify-center gap-2 bg-[#52B788] hover:bg-[#40916c] text-white font-semibold py-3 rounded-xl transition"
+              >
+                <Star size={16} /> Write a Review
+              </button>
+            ) : null
           )}
 
           {isUpcoming && onCancel && (

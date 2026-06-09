@@ -347,15 +347,14 @@ export default function PlantationPayments({ plantationId }: Props) {
 
                 {/* Payment amounts */}
                 <div className="text-right shrink-0">
-                  {r.totalLKR != null && (
+                  {r.totalUSD != null ? (
+                    <>
+                      <p className="font-bold text-lg text-[#2D6A4F]">$ {r.totalUSD.toLocaleString()}</p>
+                      {r.totalLKR != null && <p className="text-xs text-gray-400">≈ Rs {r.totalLKR.toLocaleString()}</p>}
+                    </>
+                  ) : r.totalLKR != null ? (
                     <p className="font-bold text-lg text-[#2D6A4F]">Rs {r.totalLKR.toLocaleString()}</p>
-                  )}
-                  {r.totalUSD != null && (
-                    <p className={`font-bold ${r.totalLKR != null ? 'text-sm text-gray-500' : 'text-lg text-[#2D6A4F]'}`}>
-                      $ {r.totalUSD.toLocaleString()}
-                    </p>
-                  )}
-                  {r.totalLKR == null && r.totalUSD == null && (
+                  ) : (
                     <p className="text-gray-400 text-sm">—</p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">#{r.bookingReference}</p>

@@ -1,0 +1,153 @@
+export interface PassportFormat {
+  pattern: RegExp;
+  hint: string;
+  maxLength: number;
+}
+
+/**
+ * Country-specific passport number formats keyed by ISO 3166-1 alpha-2 code.
+ * maxLength = the longest valid string the pattern accepts — used as the HTML input cap.
+ */
+export const PASSPORT_PATTERNS: Record<string, PassportFormat> = {
+  // ── Americas ──────────────────────────────────────────────────────────────
+  US: { pattern: /^[A-Z0-9]{9}$/i,                hint: '9 letters/digits (e.g. A12345678)',           maxLength: 9  },
+  CA: { pattern: /^[A-Z]{2}\d{6}$|^[A-Z]\d{8}$/i, hint: '2 letters + 6 digits (e.g. AB123456)',        maxLength: 9  },
+  MX: { pattern: /^[A-Z]\d{8}$|^[A-Z]{2}\d{7}$/i, hint: '1 letter + 8 digits (e.g. G12345678)',        maxLength: 9  },
+  BR: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits (e.g. AB123456)',        maxLength: 8  },
+  AR: { pattern: /^[A-Z]{3}\d{6}$/i,               hint: '3 letters + 6 digits (e.g. AAA123456)',       maxLength: 9  },
+  CO: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  CL: { pattern: /^[A-Z]\d{7,8}$/i,                hint: '1 letter + 7–8 digits',                      maxLength: 9  },
+  PE: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits',                        maxLength: 9  },
+  VE: { pattern: /^[A-Z]\d{7,8}$/i,                hint: '1 letter + 7–8 digits',                      maxLength: 9  },
+  EC: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  BO: { pattern: /^[A-Z]\d{6,7}$/i,                hint: '1 letter + 6–7 digits',                      maxLength: 8  },
+  UY: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+  PY: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  CR: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  PA: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+  JM: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  TT: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+
+  // ── Western Europe ────────────────────────────────────────────────────────
+  GB: { pattern: /^\d{9}$|^[A-Z0-9]{9}$/i,         hint: '9 digits or 9 alphanumeric (e.g. 123456789)', maxLength: 9  },
+  DE: { pattern: /^[A-Z0-9]{9,10}$/i,              hint: '9–10 alphanumeric (e.g. C01X00T47)',          maxLength: 10 },
+  FR: { pattern: /^[0-9A-Z]{9}$/i,                 hint: '9 alphanumeric (e.g. 12YZ45678)',             maxLength: 9  },
+  IT: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits (e.g. YA1234567)',       maxLength: 9  },
+  ES: { pattern: /^[A-Z]{3}\d{6}$/i,               hint: '3 letters + 6 digits (e.g. AAA123456)',       maxLength: 9  },
+  NL: { pattern: /^[A-Z0-9]{9}$/i,                 hint: '9 alphanumeric (e.g. NX1234567)',             maxLength: 9  },
+  BE: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  CH: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits (e.g. X1234567)',         maxLength: 8  },
+  AT: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits (e.g. P1234567)',         maxLength: 8  },
+  SE: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  NO: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  DK: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  FI: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  IE: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  PT: { pattern: /^[A-Z]\d{6}$|^[A-Z]{2}\d{6}$/i,  hint: '1–2 letters + 6 digits (e.g. P123456)',      maxLength: 8  },
+  GR: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  CY: { pattern: /^[A-Z]\d{6}$|^K\d{7}$/i,         hint: '1 letter + 6–7 digits (e.g. K1234567)',      maxLength: 8  },
+  MT: { pattern: /^\d{7}$/i,                       hint: '7 digits',                                   maxLength: 7  },
+  LU: { pattern: /^[A-Z]{2}\d{5,6}$/i,             hint: '2 letters + 5–6 digits',                     maxLength: 8  },
+  MC: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+
+  // ── Central & Eastern Europe ──────────────────────────────────────────────
+  PL: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits (e.g. AB1234567)',       maxLength: 9  },
+  CZ: { pattern: /^\d{8,9}$|^[A-Z]{2}\d{6}$/i,     hint: '8–9 digits',                                 maxLength: 9  },
+  SK: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  HU: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  RO: { pattern: /^\d{8,9}$|^[A-Z]{2}\d{7}$/i,     hint: '8–9 digits',                                 maxLength: 9  },
+  HR: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  SI: { pattern: /^P[A-Z]{2}\d{6}$/i,              hint: 'P + 2 letters + 6 digits (e.g. PAA123456)',   maxLength: 9  },
+  RS: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  BA: { pattern: /^[A-Z]{1,2}\d{7}$/i,             hint: '1–2 letters + 7 digits',                     maxLength: 9  },
+  ME: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  MK: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  AL: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  BG: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  UA: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  RU: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  BY: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  MD: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  LT: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  LV: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  EE: { pattern: /^[A-Z]{1,2}\d{7}$/i,             hint: '1–2 letters + 7 digits',                     maxLength: 9  },
+  GE: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  AM: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  AZ: { pattern: /^[A-Z]{3}\d{6}$/i,               hint: '3 letters + 6 digits (e.g. AZE123456)',       maxLength: 9  },
+  KZ: { pattern: /^[A-Z]{1,2}\d{7}$/i,             hint: '1–2 letters + 7 digits',                     maxLength: 9  },
+  UZ: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  KG: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  TJ: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  TM: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits',                        maxLength: 9  },
+
+  // ── South & Southeast Asia ────────────────────────────────────────────────
+  IN: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits (e.g. J1234567)',         maxLength: 8  },
+  PK: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits (e.g. AB1234567)',       maxLength: 9  },
+  BD: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  NP: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  BT: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+  MV: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+  ID: { pattern: /^[A-Z]\d{7}$|^[A-Z]{2}\d{6,7}$/i, hint: '1 letter + 7 digits (e.g. B1234567)',       maxLength: 9  },
+  MY: { pattern: /^[A-Z]\d{7}$|^[A-Z]{2}\d{7}$/i,  hint: '1–2 letters + 7 digits',                    maxLength: 9  },
+  SG: { pattern: /^[A-Z]\d{7}[A-Z]$/i,             hint: '1 letter + 7 digits + 1 letter (e.g. K1234567B)', maxLength: 9 },
+  TH: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits (e.g. AA1234567)',       maxLength: 9  },
+  VN: { pattern: /^[A-Z]\d{7}$|^[A-Z0-9]{8}$/i,    hint: '1 letter + 7 digits or 8 alphanumeric',      maxLength: 8  },
+  PH: { pattern: /^[A-Z]{2}\d{7}$|^[A-Z0-9]{7,9}$/i, hint: '2 letters + 7 digits (e.g. EC1234567)',    maxLength: 9  },
+  MM: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  KH: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  LA: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+
+  // ── East Asia & Pacific ───────────────────────────────────────────────────
+  CN: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits (e.g. E12345678)',        maxLength: 9  },
+  JP: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits (e.g. TH1234567)',       maxLength: 9  },
+  KR: { pattern: /^[A-Z]{1,2}\d{7,8}$/i,           hint: '1–2 letters + 7–8 digits (e.g. M12345678)',   maxLength: 10 },
+  TW: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits',                        maxLength: 9  },
+  MN: { pattern: /^[A-Z]{2}\d{8}$/i,               hint: '2 letters + 8 digits',                       maxLength: 10 },
+  AU: { pattern: /^[A-Z]{1,2}\d{7}$/i,             hint: '1–2 letters + 7 digits (e.g. N1234567)',      maxLength: 9  },
+  NZ: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits (e.g. LG123456)',        maxLength: 8  },
+  FJ: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+
+  // ── Middle East ───────────────────────────────────────────────────────────
+  AE: { pattern: /^\d{8,9}$|^[A-Z]\d{8}$/i,        hint: '8–9 digits or 1 letter + 8 digits',          maxLength: 9  },
+  SA: { pattern: /^[A-Z]\d{7,8}$/i,                hint: '1 letter + 7–8 digits',                      maxLength: 9  },
+  QA: { pattern: /^\d{8}$|^[A-Z]\d{7}$/i,           hint: '8 digits or 1 letter + 7 digits',            maxLength: 8  },
+  KW: { pattern: /^\d{8}$|^[A-Z]\d{7}$/i,           hint: '8 digits or 1 letter + 7 digits',            maxLength: 8  },
+  BH: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  OM: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  IL: { pattern: /^\d{7,9}$/i,                     hint: '7–9 digits',                                 maxLength: 9  },
+  JO: { pattern: /^[A-Z]\d{7,8}$/i,                hint: '1 letter + 7–8 digits',                      maxLength: 9  },
+  LB: { pattern: /^[A-Z]{2}\d{6}$|^\d{8}$/i,       hint: '2 letters + 6 digits or 8 digits',           maxLength: 8  },
+  TR: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits (e.g. U01234567)',        maxLength: 9  },
+  IR: { pattern: /^[A-Z0-9]{8}$/i,                 hint: '8 alphanumeric',                             maxLength: 8  },
+  IQ: { pattern: /^[A-Z]\d{7}$|^\d{8}$/i,           hint: '1 letter + 7 digits or 8 digits',            maxLength: 8  },
+  SY: { pattern: /^\d{8}$|^[A-Z]{2}\d{6}$/i,       hint: '8 digits or 2 letters + 6 digits',           maxLength: 8  },
+  YE: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+
+  // ── Africa ────────────────────────────────────────────────────────────────
+  ZA: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits (e.g. A12345678)',        maxLength: 9  },
+  EG: { pattern: /^[A-Z]\d{7}$|^[A-Z0-9]{9}$/i,    hint: '1 letter + 7 digits or 9 alphanumeric',      maxLength: 9  },
+  NG: { pattern: /^[A-Z]\d{8}$/i,                  hint: '1 letter + 8 digits (e.g. A12345678)',        maxLength: 9  },
+  KE: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  MA: { pattern: /^[A-Z]{2}\d{6}$|^[A-Z0-9]{8}$/i, hint: '2 letters + 6 digits',                       maxLength: 8  },
+  TN: { pattern: /^\d{8}$/i,                       hint: '8 digits',                                   maxLength: 8  },
+  GH: { pattern: /^G\d{7}$/i,                      hint: 'G + 7 digits (e.g. G0123456)',                maxLength: 8  },
+  ET: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  TZ: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  UG: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  ZW: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  ZM: { pattern: /^[A-Z]{2}\d{6}$/i,               hint: '2 letters + 6 digits',                       maxLength: 8  },
+  SN: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  CI: { pattern: /^[A-Z]{2}\d{7}$/i,               hint: '2 letters + 7 digits',                       maxLength: 9  },
+  CM: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  DZ: { pattern: /^\d{9}$/i,                       hint: '9 digits',                                   maxLength: 9  },
+  LY: { pattern: /^\d{7,9}$/i,                     hint: '7–9 digits',                                 maxLength: 9  },
+  SD: { pattern: /^[A-Z]\d{7}$/i,                  hint: '1 letter + 7 digits',                        maxLength: 8  },
+  MU: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
+};
+
+/** Fallback for countries not in the map */
+export const PASSPORT_FALLBACK: PassportFormat = {
+  pattern: /^[A-Z0-9\-]{5,20}$/i,
+  hint: '5–20 letters and digits (as printed on your passport)',
+  maxLength: 20,
+};

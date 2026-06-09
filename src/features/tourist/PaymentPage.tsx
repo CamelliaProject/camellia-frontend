@@ -54,11 +54,13 @@ export default function PaymentPage() {
         total_price_usd:  currency === 'USD' ? totalPrice : null,
         total_price_lkr:  lkrEquivalent,
         usd_to_lkr_rate:  currency === 'USD' ? (usdToLkrRate ?? null) : null,
-        tourist_full_name: touristDetails.fullName,
-        tourist_email:    touristDetails.email,
-        tourist_phone:    touristDetails.phone  || null,
-        tourist_country:  touristDetails.country || null,
-        special_notes:    touristDetails.notes  || null,
+        tourist_full_name:     touristDetails.fullName,
+        tourist_email:         touristDetails.email,
+        tourist_phone:         touristDetails.phone         || null,
+        tourist_country:       touristDetails.country       || null,
+        tourist_city:          touristDetails.city          || null,
+        tourist_nic_passport:  touristDetails.nicPassportNumber || null,
+        special_notes:         touristDetails.notes         || null,
         experience_ids:   Array.isArray(experiences)
           ? experiences.map((e: any) => e.id).filter(Boolean)
           : [],

@@ -19,6 +19,10 @@ import {
   Clock,
   XCircle,
 } from 'lucide-react';
+import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js/min';
+import type { CountryCode } from 'libphonenumber-js/min';
+import { COUNTRIES } from '../../constants/countries';
+import { PASSPORT_PATTERNS, PASSPORT_FALLBACK } from '../../constants/passportPatterns';
 
 const TODAY = new Date().toISOString().split('T')[0];
 const TOMORROW = (() => {
@@ -429,6 +433,10 @@ export default function OnePageBooking() {
     city: '',
     specialNotes: '',
   });
+  const [detailErrors, setDetailErrors] = useState<Partial<Record<
+    'fullName' | 'email' | 'phone' | 'nicPassportNumber' | 'country' | 'city',
+    string
+  >>>({});
 
   const currency: 'LKR' | 'USD' = isResident ? 'LKR' : 'USD';
   const symbol = isResident ? 'Rs' : '$';
@@ -604,8 +612,98 @@ export default function OnePageBooking() {
     scrollTop();
   };
 
+  const clearError = (field: keyof typeof detailErrors) =>
+    setDetailErrors(e => ({ ...e, [field]: undefined }));
+
+  const inputClass = (hasError: boolean) =>
+    `w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 transition ${
+      hasError
+        ? 'border-red-400 focus:ring-red-300 bg-red-50'
+        : 'border-gray-300 focus:ring-[#52B788]'
+    }`;
+
+  const selectClass = (hasError: boolean) =>
+    `w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 bg-white transition ${
+      hasError
+        ? 'border-red-400 focus:ring-red-300 bg-red-50'
+        : 'border-gray-300 focus:ring-[#52B788]'
+    }`;
+
+  // Dial code derived from selected country (residents are always LK/+94)
+  const phoneCountryName = isResident ? 'Sri Lanka' : details.country;
+  const phoneCountryCode = COUNTRIES.find(c => c.name === phoneCountryName)?.code as CountryCode | undefined;
+  const dialCode = (() => {
+    try { return phoneCountryCode ? '+' + getCountryCallingCode(phoneCountryCode) : ''; }
+    catch { return ''; }
+  })();
+
+  // Passport format for tourist's selected country (undefined for residents — they use NIC)
+  const passportFormat = isResident
+    ? undefined
+    : (phoneCountryCode ? (PASSPORT_PATTERNS[phoneCountryCode] ?? PASSPORT_FALLBACK) : undefined);
+
+  const validateDetails = (): boolean => {
+    const errs: typeof detailErrors = {};
+
+    if (!details.fullName.trim()) {
+      errs.fullName = 'Full name is required.';
+    } else if (details.fullName.trim().length < 2) {
+      errs.fullName = 'Enter your full name (at least 2 characters).';
+    }
+
+    if (!details.email.trim()) {
+      errs.email = 'Email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details.email.trim())) {
+      errs.email = 'Enter a valid email address.';
+    }
+
+    // Country — only tourists need to select; residents are locked to Sri Lanka
+    if (!isResident && !details.country) {
+      errs.country = 'Please select your country.';
+      errs.phone = 'Select your country first so we can validate your phone number.';
+    } else if (!details.phone.trim()) {
+      errs.phone = 'Phone number is required.';
+    } else {
+      const fullPhone = dialCode ? dialCode + details.phone.trim() : details.phone.trim();
+      try {
+        if (!isValidPhoneNumber(fullPhone, phoneCountryCode)) {
+          errs.phone = `Not a valid ${phoneCountryName} phone number — enter local digits only (e.g. 77 123 4567).`;
+        }
+      } catch {
+        errs.phone = 'Enter a valid phone number.';
+      }
+    }
+
+    if (!details.nicPassportNumber.trim()) {
+      errs.nicPassportNumber = isResident ? 'NIC number is required.' : 'Passport number is required.';
+    } else if (isResident) {
+      if (!/^\d{9}[VvXx]$|^\d{12}$/.test(details.nicPassportNumber.trim())) {
+        errs.nicPassportNumber = 'Enter a valid Sri Lankan NIC — old format: 123456789V, new: 200012345678.';
+      }
+    } else {
+      const fmt = passportFormat ?? PASSPORT_FALLBACK;
+      if (!fmt.pattern.test(details.nicPassportNumber.trim())) {
+        const countryLabel = details.country ? `${details.country} ` : '';
+        errs.nicPassportNumber = `Invalid ${countryLabel}passport format. Expected: ${fmt.hint}.`;
+      }
+    }
+
+    if (!details.city.trim()) {
+      errs.city = 'City is required.';
+    } else if (details.city.trim().length < 2) {
+      errs.city = 'Enter a valid city name (at least 2 characters).';
+    } else if (!/^[\p{L}\s\-'.]+$/u.test(details.city.trim())) {
+      errs.city = 'City name must contain only letters, spaces, hyphens, or apostrophes.';
+    }
+
+    setDetailErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateDetails()) return;
 
     if (!isAuthenticated) {
       // Persist all booking state so it survives sign-in redirect / re-mount.
@@ -618,6 +716,11 @@ export default function OnePageBooking() {
     }
 
     const total = computeTotal();
+    const effectiveCountry = isResident ? 'Sri Lanka' : details.country;
+    const effectivePhone = dialCode && details.phone.trim()
+      ? dialCode + details.phone.trim()
+      : details.phone;
+
     navigate('/payment', {
       state: {
         bookingSummary: {
@@ -635,9 +738,9 @@ export default function OnePageBooking() {
         touristDetails: {
           fullName: details.fullName,
           email: details.email,
-          phone: details.phone,
+          phone: effectivePhone,
           nicPassportNumber: details.nicPassportNumber,
-          country: details.country,
+          country: effectiveCountry,
           city: details.city,
           notes: details.specialNotes,
         },
@@ -902,31 +1005,138 @@ export default function OnePageBooking() {
                   <div className="bg-white rounded-xl border border-gray-200 p-6 mb-5">
                     <h2 className="font-bold text-gray-900 text-lg mb-5">Your personal details</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(
-                        [
-                          { name: 'fullName', label: 'Full Name', placeholder: 'John Doe', type: 'text', required: true },
-                          { name: 'email', label: 'Email Address', placeholder: 'john@example.com', type: 'email', required: true },
-                          { name: 'phone', label: 'Phone Number', placeholder: '+94 77 123 4567', type: 'tel', required: true },
-                          { name: 'nicPassportNumber', label: 'NIC / Passport No.', placeholder: 'P1234567890', type: 'text', required: true },
-                          { name: 'country', label: 'Country', placeholder: 'Sri Lanka', type: 'text', required: true },
-                          { name: 'city', label: 'City', placeholder: 'Colombo', type: 'text', required: true },
-                        ] as const
-                      ).map((field) => (
-                        <div key={field.name}>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            {field.label} {field.required && <span className="text-red-500">*</span>}
-                          </label>
+                      {/* Full Name */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={details.fullName}
+                          onChange={(e) => { setDetails(d => ({ ...d, fullName: e.target.value })); clearError('fullName'); }}
+                          placeholder="John Doe"
+                          maxLength={100}
+                          className={inputClass(!!detailErrors.fullName)}
+                        />
+                        {detailErrors.fullName && <p className="mt-1 text-xs text-red-600">{detailErrors.fullName}</p>}
+                      </div>
+
+                      {/* Email */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={details.email}
+                          onChange={(e) => { setDetails(d => ({ ...d, email: e.target.value })); clearError('email'); }}
+                          placeholder="john@example.com"
+                          maxLength={254}
+                          className={inputClass(!!detailErrors.email)}
+                        />
+                        {detailErrors.email && <p className="mt-1 text-xs text-red-600">{detailErrors.email}</p>}
+                      </div>
+
+                      {/* Country — locked to Sri Lanka for residents; tourists cannot pick Sri Lanka */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Country <span className="text-red-500">*</span>
+                        </label>
+                        {isResident ? (
+                          <div className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 flex items-center gap-2 cursor-not-allowed select-none">
+                            <span>🇱🇰</span>
+                            <span className="flex-1 font-medium">Sri Lanka</span>
+                            <span className="text-xs text-gray-400">Locked · Resident</span>
+                          </div>
+                        ) : (
+                          <select
+                            value={details.country}
+                            onChange={(e) => {
+                              setDetails(d => ({ ...d, country: e.target.value, phone: '' }));
+                              clearError('country');
+                              clearError('phone');
+                            }}
+                            className={selectClass(!!detailErrors.country)}
+                          >
+                            <option value="">Select your country</option>
+                            {COUNTRIES.filter(c => c.code !== 'LK').map(c => (
+                              <option key={c.code} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
+                        )}
+                        {detailErrors.country && <p className="mt-1 text-xs text-red-600">{detailErrors.country}</p>}
+                      </div>
+
+                      {/* Phone — dial code badge auto-set by country; user enters local number */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Phone Number <span className="text-red-500">*</span>
+                        </label>
+                        <div className="flex">
+                          <div className={`flex items-center justify-center min-w-[68px] px-3 border border-r-0 rounded-l-lg text-sm font-mono font-semibold select-none ${
+                            detailErrors.phone
+                              ? 'border-red-400 bg-red-50 text-red-500'
+                              : (isResident || details.country)
+                                ? 'border-gray-300 bg-gray-100 text-gray-700'
+                                : 'border-gray-300 bg-gray-50 text-gray-400'
+                          }`}>
+                            {dialCode || '+—'}
+                          </div>
                           <input
-                            type={field.type}
-                            name={field.name}
-                            value={details[field.name]}
-                            onChange={(e) => setDetails((d) => ({ ...d, [field.name]: e.target.value }))}
-                            placeholder={field.placeholder}
-                            required={field.required}
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788] text-gray-800"
+                            type="tel"
+                            value={details.phone}
+                            onChange={(e) => { setDetails(d => ({ ...d, phone: e.target.value })); clearError('phone'); }}
+                            placeholder={isResident || details.country ? '77 123 4567' : 'Select country first'}
+                            disabled={!isResident && !details.country}
+                            maxLength={15}
+                            className={`flex-1 px-4 py-2.5 border rounded-r-lg focus:outline-none focus:ring-2 text-gray-800 transition disabled:bg-gray-50 disabled:cursor-not-allowed ${
+                              detailErrors.phone
+                                ? 'border-red-400 focus:ring-red-300 bg-red-50'
+                                : 'border-gray-300 focus:ring-[#52B788]'
+                            }`}
                           />
                         </div>
-                      ))}
+                        {detailErrors.phone && <p className="mt-1 text-xs text-red-600">{detailErrors.phone}</p>}
+                      </div>
+
+                      {/* NIC (resident) / Passport (tourist) */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          {isResident ? 'NIC Number' : 'Passport Number'} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={details.nicPassportNumber}
+                          onChange={(e) => { setDetails(d => ({ ...d, nicPassportNumber: e.target.value })); clearError('nicPassportNumber'); }}
+                          placeholder={isResident ? '123456789V or 200012345678' : 'P1234567'}
+                          maxLength={isResident ? 12 : (passportFormat?.maxLength ?? 20)}
+                          className={inputClass(!!detailErrors.nicPassportNumber)}
+                        />
+                        {detailErrors.nicPassportNumber
+                          ? <p className="mt-1 text-xs text-red-600">{detailErrors.nicPassportNumber}</p>
+                          : isResident
+                            ? <p className="mt-1 text-xs text-gray-400">Old format: 9 digits + V/X · New format: 12 digits</p>
+                            : passportFormat && (
+                              <p className="mt-1 text-xs text-gray-400">Format: {passportFormat.hint}</p>
+                            )
+                        }
+                      </div>
+
+                      {/* City */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          City <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={details.city}
+                          onChange={(e) => { setDetails(d => ({ ...d, city: e.target.value })); clearError('city'); }}
+                          placeholder="Colombo"
+                          maxLength={100}
+                          className={inputClass(!!detailErrors.city)}
+                        />
+                        {detailErrors.city && <p className="mt-1 text-xs text-red-600">{detailErrors.city}</p>}
+                      </div>
 
                       {/* Special notes — full width */}
                       <div className="sm:col-span-2">
@@ -936,6 +1146,7 @@ export default function OnePageBooking() {
                           onChange={(e) => setDetails((d) => ({ ...d, specialNotes: e.target.value }))}
                           placeholder="Dietary requirements, accessibility needs, special occasions…"
                           rows={3}
+                          maxLength={500}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#52B788] text-gray-800 resize-none"
                         />
                       </div>

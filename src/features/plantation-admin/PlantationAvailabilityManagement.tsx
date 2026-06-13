@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Trash2, PlusCircle, CalendarOff, Clock, Users } from 'lucide-react';
+import { Loader2, Trash2, PlusCircle, CalendarOff, Clock, Users, Lock, CalendarDays, AlertTriangle } from 'lucide-react';
 import { availabilityApi } from '../../services/api';
 
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_FULL   = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface ClosingDate { id: string; close_date: string; reason: string | null; }
-interface TimeSlot    { id: string; day_of_week: number; slot_time: string; capacity: number; }
+interface TimeSlot    { id: string; day_of_week: number; slot_time: string; capacity: number; upcoming_booking_count: number; booked_guests: number; }
+interface SlotAvailability { id: string; day_of_week: number; slot_time: string; capacity: number; booked: number; }
 
 function fmtDate(d: string) {
   const s = String(d).slice(0, 10);
@@ -17,6 +18,10 @@ function fmtDate(d: string) {
 function fmt12h(t: string) {
   const [h, m] = t.split(':').map(Number);
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
 }
 
 export default function PlantationAvailabilityManagement({ plantationId }: { plantationId: string }) {
@@ -39,6 +44,11 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
   const [newTime, setNewTime] = useState('');
   const [newCap, setNewCap] = useState(20);
   const [editCap, setEditCap] = useState<Record<string, number>>({});
+
+  // Availability overview by date
+  const [availDate, setAvailDate] = useState(todayStr());
+  const [availSlots, setAvailSlots] = useState<SlotAvailability[]>([]);
+  const [availLoading, setAvailLoading] = useState(false);
 
   const flash = (text: string, ok: boolean) => {
     setMsg({ text, ok });
@@ -75,6 +85,20 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     };
     void load();
   }, [plantationId]);
+
+  // Load slot availability for selected date
+  useEffect(() => {
+    if (!availDate) return;
+    const load = async () => {
+      setAvailLoading(true);
+      try {
+        const r = await availabilityApi.getSlotAvailability(plantationId, availDate);
+        setAvailSlots(r.data?.data ?? []);
+      } catch { setAvailSlots([]); }
+      finally { setAvailLoading(false); }
+    };
+    void load();
+  }, [plantationId, availDate]);
 
   const daySlots = timeSlots
     .filter(s => s.day_of_week === activeDay)
@@ -131,7 +155,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     setSaving(true);
     try {
       const r = await availabilityApi.createTimeSlot(plantationId, { day_of_week: activeDay, slot_time: newTime, capacity: newCap });
-      const added: TimeSlot = r.data?.data;
+      const added: TimeSlot = { ...r.data?.data, upcoming_booking_count: 0, booked_guests: 0 };
       setTimeSlots(prev => {
         const idx = prev.findIndex(s => s.id === added.id);
         return idx >= 0 ? prev.map((s, i) => i === idx ? added : s) : [...prev, added];
@@ -145,11 +169,19 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
 
   const handleCapBlur = async (slot: TimeSlot) => {
     const cap = editCap[slot.id];
-    if (!cap || cap === slot.capacity) return;
+    if (cap === undefined || cap === slot.capacity) return;
+    const minCap = slot.booked_guests ?? 0;
+    if (cap < minCap) {
+      flash(`Cannot set capacity below ${minCap} — that is the number of guests already booked for this slot.`, false);
+      setEditCap(prev => ({ ...prev, [slot.id]: slot.capacity }));
+      return;
+    }
     setSaving(true);
     try {
       const r = await availabilityApi.updateTimeSlot(plantationId, slot.id, { capacity: cap });
-      setTimeSlots(prev => prev.map(s => s.id === slot.id ? r.data.data : s));
+      setTimeSlots(prev => prev.map(s =>
+        s.id === slot.id ? { ...r.data.data, upcoming_booking_count: s.upcoming_booking_count, booked_guests: s.booked_guests } : s
+      ));
       setEditCap(prev => { const n = { ...prev }; delete n[slot.id]; return n; });
       flash('Capacity saved.', true);
     } catch (err: any) { flash(err?.response?.data?.error || 'Failed.', false); }
@@ -167,7 +199,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     finally { setSaving(false); }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayStr();
 
   if (loading) {
     return (
@@ -176,6 +208,11 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
       </div>
     );
   }
+
+  // ── Availability overview helpers ─────────────────────────────────────────
+  const availDow = availDate ? new Date(availDate + 'T00:00:00').getDay() : -1;
+  const isClosingDate = closingDates.some(cd => cd.close_date.slice(0, 10) === availDate);
+  const isDayOpen = availDow >= 0 ? openDays[availDow] : true;
 
   return (
     <div className="space-y-8">
@@ -191,6 +228,84 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
           {msg.text}
         </div>
       )}
+
+      {/* ── Slot Availability Overview ── */}
+      <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <CalendarDays size={18} className="text-[#2D6A4F]" />
+          <h3 className="text-lg font-bold text-[#1B4332]">Guest Availability by Date</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-5">
+          Pick a date to see how many guests are booked vs. available in each time slot.
+        </p>
+
+        <div className="flex items-center gap-3 mb-5">
+          <input
+            type="date"
+            value={availDate}
+            onChange={e => setAvailDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#52B788]"
+          />
+          {availDate && (
+            <span className="text-sm text-gray-500">
+              {DOW_FULL[availDow]} · {fmtDate(availDate)}
+            </span>
+          )}
+        </div>
+
+        {isClosingDate ? (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            <CalendarOff size={16} /> This date is marked as a closing date — no bookings accepted.
+          </div>
+        ) : !isDayOpen ? (
+          <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-700">
+            <AlertTriangle size={16} /> {DOW_FULL[availDow]}s are set as closed — no bookings accepted.
+          </div>
+        ) : availLoading ? (
+          <div className="flex items-center gap-2 text-gray-400 py-4 text-sm">
+            <Loader2 size={15} className="animate-spin" /> Loading availability…
+          </div>
+        ) : availSlots.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">No time slots configured for {DOW_FULL[availDow]}s.</p>
+        ) : (
+          <div className="space-y-3">
+            {availSlots.map(slot => {
+              const available = Math.max(0, slot.capacity - slot.booked);
+              const pct = slot.capacity > 0 ? Math.min(100, Math.round((slot.booked / slot.capacity) * 100)) : 0;
+              const barColor = pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-orange-400' : 'bg-[#52B788]';
+              return (
+                <div key={slot.id} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-gray-800 text-sm">{fmt12h(slot.slot_time)}</span>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="text-gray-500">
+                        <span className="font-semibold text-gray-700">{slot.booked}</span> booked
+                      </span>
+                      <span className="text-gray-400">/</span>
+                      <span className="text-gray-500">
+                        <span className="font-semibold text-gray-700">{slot.capacity}</span> capacity
+                      </span>
+                      <span className={`font-bold text-sm px-2.5 py-0.5 rounded-full ${
+                        available === 0 ? 'bg-red-100 text-red-700' :
+                        available <= 3 ? 'bg-orange-100 text-orange-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {available === 0 ? 'Full' : `${available} available`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       {/* ── Operating days ── */}
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
@@ -276,33 +391,64 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
             <p className="text-sm text-gray-400 italic mb-3">No time slots for {DOW_FULL[activeDay]}s yet.</p>
           ) : (
             <div className="space-y-2 mb-4">
-              {daySlots.map(slot => (
-                <div key={slot.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5">
-                  <span className="font-bold text-gray-800 w-24 text-sm">{fmt12h(slot.slot_time)}</span>
-                  <div className="flex items-center gap-1.5 text-gray-500 flex-1">
-                    <Users size={13} />
-                    <input
-                      type="number"
-                      min={1}
-                      value={editCap[slot.id] ?? slot.capacity}
-                      onChange={e => setEditCap(p => ({ ...p, [slot.id]: parseInt(e.target.value) || slot.capacity }))}
-                      onBlur={() => handleCapBlur(slot)}
-                      title="Max guests — click away to save"
-                      className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-1 focus:ring-[#52B788]"
-                    />
-                    <span className="text-xs text-gray-400">max guests</span>
+              {daySlots.map(slot => {
+                const hasBookings = (slot.upcoming_booking_count ?? 0) > 0;
+                const minCap = slot.booked_guests ?? 0;
+                return (
+                  <div key={slot.id} className={`flex items-center gap-3 bg-white border rounded-xl px-4 py-2.5 ${hasBookings ? 'border-amber-200' : 'border-gray-200'}`}>
+                    <span className="font-bold text-gray-800 w-24 text-sm">{fmt12h(slot.slot_time)}</span>
+
+                    <div className="flex items-center gap-1.5 text-gray-500 flex-1 flex-wrap">
+                      <Users size={13} />
+                      {/* Capacity is always editable, but cannot go below booked_guests */}
+                      <input
+                        type="number"
+                        min={Math.max(1, minCap)}
+                        value={editCap[slot.id] ?? slot.capacity}
+                        onChange={e => setEditCap(p => ({ ...p, [slot.id]: parseInt(e.target.value) || slot.capacity }))}
+                        onBlur={() => handleCapBlur(slot)}
+                        title={hasBookings ? `Min ${minCap} (guests already booked) — can increase only` : 'Max guests — click away to save'}
+                        className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-1 focus:ring-[#52B788]"
+                      />
+                      <span className="text-xs text-gray-400">max guests</span>
+                      {hasBookings && (
+                        <span className="flex items-center gap-1 text-xs text-amber-700 font-medium bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                          <Lock size={11} />
+                          {slot.booked_guests} booked · {slot.upcoming_booking_count} booking{slot.upcoming_booking_count !== 1 ? 's' : ''} · can increase only
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="relative group shrink-0">
+                      {hasBookings ? (
+                        <span
+                          aria-disabled="true"
+                          className="p-1.5 text-gray-300 cursor-not-allowed pointer-events-none select-none inline-flex"
+                          title={`${slot.upcoming_booking_count} active booking${slot.upcoming_booking_count !== 1 ? 's' : ''} — cannot delete`}
+                        >
+                          <Lock size={15} />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => handleDeleteSlot(slot)}
+                          className="p-1.5 text-red-400 hover:text-red-600 disabled:opacity-30 transition"
+                          title="Remove slot"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                      {hasBookings && (
+                        <div className="absolute bottom-full right-0 mb-2 w-52 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                          {slot.upcoming_booking_count} active booking{slot.upcoming_booking_count !== 1 ? 's' : ''} exist for this slot — cannot delete. You may increase capacity only.
+                          <div className="absolute top-full right-3 border-4 border-transparent border-t-gray-900" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => handleDeleteSlot(slot)}
-                    className="p-1.5 text-red-400 hover:text-red-600 disabled:opacity-30 transition"
-                    title="Remove slot"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

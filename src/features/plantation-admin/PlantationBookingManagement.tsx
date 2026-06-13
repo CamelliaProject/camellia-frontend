@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   CheckCircle, Clock, XCircle, X, Eye, Search,
-  User, Mail, Phone, Globe, Users, Calendar, Tag,
+  User, Mail, Phone, Globe, MapPin, CreditCard, Users, Calendar, Tag,
   Wallet, StickyNote, Loader2, ArrowUpDown, AlertTriangle,
 } from 'lucide-react';
 import { adminApi } from '../../services/api';
@@ -32,6 +32,8 @@ interface Booking {
     email: string;
     phone: string;
     country: string;
+    city: string;
+    nicPassport: string;
     username: string;
   };
   specialNotes: string;
@@ -84,6 +86,8 @@ function mapRow(raw: any): Booking {
       email: raw.tourist_email || '',
       phone: raw.tourist_phone || '',
       country: raw.tourist_country || '',
+      city: raw.tourist_city || '',
+      nicPassport: raw.tourist_nic_passport || '',
       username: raw.tourist_username || '',
     },
     specialNotes: raw.special_notes || '',
@@ -279,6 +283,8 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
               <Field icon={<Mail size={15} />} label="Email" value={booking.tourist.email} />
               <Field icon={<Phone size={15} />} label="Phone" value={booking.tourist.phone} />
               <Field icon={<Globe size={15} />} label="Country" value={booking.tourist.country} />
+              <Field icon={<MapPin size={15} />} label="City" value={booking.tourist.city} />
+              <Field icon={<CreditCard size={15} />} label="NIC / Passport" value={booking.tourist.nicPassport} />
             </div>
           </Section>
 

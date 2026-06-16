@@ -18,6 +18,7 @@ import {
   Info,
   Clock,
   XCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js/min';
 import type { CountryCode } from 'libphonenumber-js/min';
@@ -437,6 +438,10 @@ export default function OnePageBooking() {
     'fullName' | 'email' | 'phone' | 'nicPassportNumber' | 'country' | 'city',
     string
   >>>({});
+  // Once the tourist types their own email, never auto-overwrite it with the
+  // signed-in account's email (e.g. they sign in with a different Google account
+  // mid-booking just to continue, but want the typed email kept on the booking).
+  const emailManuallyEditedRef = useRef(false);
 
   const currency: 'LKR' | 'USD' = isResident ? 'LKR' : 'USD';
   const symbol = isResident ? 'Rs' : '$';
@@ -472,9 +477,12 @@ export default function OnePageBooking() {
       .catch(() => { /* non-critical — fall back to permissive */ });
   }, [plantationId]);
 
-  // Pre-fill email from auth
+  // Pre-fill email from auth — only while the tourist hasn't typed their own
+  // email yet. Once they edit it, it's theirs to keep (still freely editable).
   useEffect(() => {
-    if (user?.email) setDetails((d) => ({ ...d, email: user.email }));
+    if (user?.email && !emailManuallyEditedRef.current) {
+      setDetails((d) => ({ ...d, email: user.email }));
+    }
   }, [user]);
 
   // Restore full booking state when returning via "Go back" from PaymentPage
@@ -486,7 +494,10 @@ export default function OnePageBooking() {
     setSelectedDate(rb.selectedDate ?? '');
     setAdults(rb.adults ?? 1);
     setChildren(rb.children ?? 0);
-    if (rb.details) setDetails(rb.details);
+    if (rb.details) {
+      setDetails(rb.details);
+      if (rb.details.email) emailManuallyEditedRef.current = true;
+    }
     setStep(rb.step ?? 'details');
     navigate(location.pathname, { replace: true, state: {} });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -532,6 +543,7 @@ export default function OnePageBooking() {
       setAdults(s.adults ?? 1);
       setChildren(s.children ?? 0);
       setDetails(s.details ?? { fullName: '', email: user?.email ?? '', phone: '', nicPassportNumber: '', country: '', city: '', specialNotes: '' });
+      if (s.details?.email) emailManuallyEditedRef.current = true;
     } catch {
       sessionStorage.removeItem(key);
     }
@@ -1029,7 +1041,7 @@ export default function OnePageBooking() {
                         <input
                           type="email"
                           value={details.email}
-                          onChange={(e) => { setDetails(d => ({ ...d, email: e.target.value })); clearError('email'); }}
+                          onChange={(e) => { emailManuallyEditedRef.current = true; setDetails(d => ({ ...d, email: e.target.value })); clearError('email'); }}
                           placeholder="john@example.com"
                           maxLength={254}
                           className={inputClass(!!detailErrors.email)}
@@ -1152,6 +1164,15 @@ export default function OnePageBooking() {
                       </div>
                     </div>
                   </div>
+
+                  {isResident && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-start gap-3">
+                      <ShieldCheck size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800">
+                        Sri Lankan resident pricing is verified at the gate — please bring the physical NIC matching the number above. If it doesn't match, you'll be asked to pay the foreign tourist rate on-site.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Price recap before payment */}
                   <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-xl p-5 mb-5">

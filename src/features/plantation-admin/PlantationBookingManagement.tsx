@@ -467,6 +467,7 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
     ));
   };
 
+
   // ── Derived data ─────────────────────────────────────────────────────────
   const counts = useMemo(() => ({
     upcoming:  bookings.filter(b => b.status === 'upcoming').length,

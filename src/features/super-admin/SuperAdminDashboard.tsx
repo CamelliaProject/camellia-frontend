@@ -131,16 +131,6 @@ export default function SuperAdminDashboard() {
     } catch { setSubscriptions([]); }
   };
 
-  const handleToggleDisabled = async (plantationId: string, disabled: boolean) => {
-    try {
-      await adminApi.togglePlantationDisabled(plantationId, disabled);
-      void fetchPlantations();
-      void fetchSubscriptions();
-    } catch (err: any) {
-      alert(`Failed: ${err?.response?.data?.error || err.message}`);
-    }
-  };
-
   useEffect(() => {
     if (!user || user.role !== 'superadmin') {
       navigate('/');
@@ -414,16 +404,6 @@ export default function SuperAdminDashboard() {
                             >
                               <Eye size={14} /> View
                             </button>
-                            <button
-                              onClick={() => handleToggleDisabled(p.id, !p.isDisabled)}
-                              className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
-                                p.isDisabled
-                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                  : 'bg-red-100 text-red-600 hover:bg-red-200'
-                              }`}
-                            >
-                              {p.isDisabled ? 'Enable' : 'Disable'}
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -596,14 +576,14 @@ export default function SuperAdminDashboard() {
                   <table className="min-w-full divide-y divide-gray-100">
                     <thead className="bg-gray-50">
                       <tr>
-                        {['Plantation', 'Plan', 'Amount', 'Start Date', 'Due Date', 'Status', 'Plantation Status'].map(h => (
+                        {['Plantation', 'Plan', 'Amount', 'Start Date', 'Due Date', 'Status'].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {subscriptions.length === 0 && (
-                        <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-400">No subscriptions yet</td></tr>
+                        <tr><td colSpan={6} className="px-5 py-12 text-center text-gray-400">No subscriptions yet</td></tr>
                       )}
                       {subscriptions.map((sub: any) => {
                         const badge = statusBadge(sub);
@@ -623,18 +603,6 @@ export default function SuperAdminDashboard() {
                             <td className="px-4 py-4 text-sm font-semibold text-gray-700">{fmtD(sub.end_date)}</td>
                             <td className="px-4 py-4">
                               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${badge.cls}`}>{badge.label}</span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <button
-                                onClick={() => handleToggleDisabled(sub.plantation_id, !sub.is_disabled)}
-                                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
-                                  sub.is_disabled
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
-                                }`}
-                              >
-                                {sub.is_disabled ? 'Enable' : 'Disable'}
-                              </button>
                             </td>
                           </tr>
                         );

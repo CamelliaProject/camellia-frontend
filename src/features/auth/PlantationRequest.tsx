@@ -11,9 +11,9 @@ const PLANS = [
   {
     id: 'starter' as const,
     name: 'Starter Pack',
-    price: 'LKR 24,000',
+    price: 'LKR 60,000',
     period: '/year',
-    note: 'LKR 2,000 / month',
+    note: 'LKR 5,000 / month',
     bookings: 'Up to 1,000 bookings per year',
     features: [
       'Up to 1,000 bookings per year',
@@ -26,9 +26,9 @@ const PLANS = [
   {
     id: 'pro' as const,
     name: 'Pro Pack',
-    price: 'LKR 60,000',
+    price: 'LKR 150,000',
     period: '/year',
-    note: 'LKR 5,000 / month',
+    note: 'LKR 12,500 / month',
     bookings: 'Unlimited bookings per year',
     features: [
       'Unlimited bookings per year',

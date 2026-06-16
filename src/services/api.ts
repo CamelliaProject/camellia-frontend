@@ -49,8 +49,6 @@ export const adminApi = {
   // Super Admin - Subscriptions
   getSubscriptions: () => apiClient.get('/admin/subscriptions'),
   getSubscriptionEarnings: () => apiClient.get('/admin/subscription-earnings'),
-  togglePlantationDisabled: (plantationId: string, disabled: boolean) =>
-    apiClient.put(`/admin/plantations/${plantationId}/toggle-disabled`, { disabled }),
 };
 
 export const plantationApi = {

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, LogOut, PlusCircle, ChevronDown, Menu, X } from 'lucide-react';
+import TouristLoginModal from '../../features/auth/TouristLoginModal';
 
 export default function Navbar() {
   const location = useLocation();
@@ -10,6 +11,7 @@ export default function Navbar() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen]     = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) =>
@@ -130,12 +132,13 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link
-                to="/login"
+              <button
+                type="button"
+                onClick={() => setLoginModalOpen(true)}
                 className="text-sm font-semibold text-[#2D6A4F] px-4 py-2 rounded-lg hover:bg-[#f0faf4] transition"
               >
                 Sign In
-              </Link>
+              </button>
               <Link
                 to="/plantation-request"
                 className="text-sm font-semibold bg-[#2D6A4F] text-white px-4 py-2 rounded-lg hover:bg-[#1B4332] transition"
@@ -201,13 +204,13 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  onClick={() => setMobileOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => { setMobileOpen(false); setLoginModalOpen(true); }}
                   className="block text-sm font-semibold text-[#2D6A4F] py-1.5"
                 >
                   Sign In
-                </Link>
+                </button>
                 <Link
                   to="/plantation-request"
                   onClick={() => setMobileOpen(false)}
@@ -220,6 +223,8 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {loginModalOpen && <TouristLoginModal onClose={() => setLoginModalOpen(false)} />}
     </nav>
   );
 }

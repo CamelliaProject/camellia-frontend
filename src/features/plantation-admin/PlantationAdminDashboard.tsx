@@ -51,7 +51,7 @@ function mapDbToNested(raw: any) {
 export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
-  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'availability' | 'experiences' | 'bookings' | 'payments'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'media' | 'availability' | 'experiences' | 'bookings' | 'payments'>('payments');
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [rawPlantation, setRawPlantation] = useState<any>(null);   // flat DB row
@@ -160,7 +160,7 @@ export default function PlantationAdminDashboard() {
     setShowSetup(false);
     setPlantationLoading(false);
     setSetupSuccess(true);
-    setActiveTab('details');
+    setActiveTab('payments');
     setTimeout(() => setSetupSuccess(false), 3000);
   };
 
@@ -220,6 +220,26 @@ export default function PlantationAdminDashboard() {
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <button
+            onClick={() => setActiveTab('payments')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'payments'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <Wallet size={20} /> Payments
+          </button>
+          <button
+            onClick={() => setActiveTab('bookings')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'bookings'
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <CalendarCheck size={20} /> View Bookings
+          </button>
+          <button
             onClick={() => setActiveTab('details')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeTab === 'details'
@@ -258,26 +278,6 @@ export default function PlantationAdminDashboard() {
             }`}
           >
             <Package size={20} /> Experiences
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'bookings'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <CalendarCheck size={20} /> View Bookings
-          </button>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'payments'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <Wallet size={20} /> Payments
           </button>
         </nav>
         

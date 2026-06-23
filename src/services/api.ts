@@ -11,6 +11,9 @@ export function setApiAuthToken(token?: string) {
 export const authApi = {
   adminLogin: (data: Record<string, any>) => apiClient.post('/auth/admin-login', data),
   changePassword: (newPassword: string) => apiClient.put('/auth/change-password', { newPassword }),
+  forgotPassword: (username: string) => apiClient.post('/auth/forgot-password', { username }),
+  resetPassword: (token: string, newPassword: string) =>
+    apiClient.post('/auth/reset-password', { token, newPassword }),
 };
 
 export const adminApi = {

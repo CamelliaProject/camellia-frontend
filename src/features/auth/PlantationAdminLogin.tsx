@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api';
@@ -167,6 +167,11 @@ export default function PlantationAdminLogin() {
             {fieldErrors.password && (
               <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>
             )}
+            <div className="mt-2 text-right">
+              <Link to="/plantationadmin/forgot-password" className="text-sm text-[#2D6A4F] font-semibold hover:underline">
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           {/* Server-level error */}

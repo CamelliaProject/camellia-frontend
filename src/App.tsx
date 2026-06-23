@@ -17,6 +17,8 @@ import ChangePassword from './features/plantation-admin/ChangePassword';
 import SuperAdminDashboard from './features/super-admin/SuperAdminDashboard';
 import TouristLogin from './features/auth/TouristLogin';
 import PlantationAdminLogin from './features/auth/PlantationAdminLogin';
+import PlantationAdminForgotPassword from './features/auth/PlantationAdminForgotPassword';
+import PlantationAdminResetPassword from './features/auth/PlantationAdminResetPassword';
 import SuperAdminLogin from './features/auth/SuperAdminLogin';
 import PlantationRequestPage from './features/auth/PlantationRequest';
 import SubscriptionPaymentPage from './features/auth/SubscriptionPaymentPage';
@@ -90,6 +92,8 @@ function App() {
         />
         <Route path="/login" element={<TouristLogin />} />
         <Route path="/plantationadmin" element={<PlantationAdminLogin />} />
+        <Route path="/plantationadmin/forgot-password" element={<PlantationAdminForgotPassword />} />
+        <Route path="/plantationadmin/reset-password" element={<PlantationAdminResetPassword />} />
         <Route path="/superadmin" element={<SuperAdminLogin />} />
         <Route path="/plantation-request" element={<PlantationRequestPage />} />
         <Route path="/payment" element={<PaymentPage />} />

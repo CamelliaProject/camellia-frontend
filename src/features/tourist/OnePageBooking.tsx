@@ -136,14 +136,12 @@ function StepBar({ current }: { current: Step }) {
 function ExperienceCard({
   exp,
   isSelected,
-  currency,
   isResident,
   usdToLkr,
   onToggle,
 }: {
   exp: Experience;
   isSelected: boolean;
-  currency: 'LKR' | 'USD';
   isResident: boolean;
   usdToLkr: number;
   onToggle: () => void;
@@ -863,7 +861,6 @@ export default function OnePageBooking() {
                           key={exp.id}
                           exp={exp}
                           isSelected={selectedIds.includes(exp.id)}
-                          currency={currency}
                           isResident={isResident}
                           usdToLkr={usdToLkr}
                           onToggle={() =>

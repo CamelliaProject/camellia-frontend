@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Wallet, TrendingUp, Users, Tag,
+  Wallet, TrendingUp, Tag,
   CheckCircle, Loader2, Globe, MapPin,
   DollarSign, BarChart2, UserCheck, AlertTriangle, TrendingDown,
 } from 'lucide-react';
@@ -23,16 +23,6 @@ interface PaymentRow {
 }
 
 interface Props { plantationId: string; }
-
-function fmtDate(raw: any) {
-  if (!raw) return '—';
-  try {
-    const iso = raw instanceof Date ? raw.toISOString() : String(raw);
-    const [y, mo, d] = iso.slice(0, 10).split('-').map(Number);
-    if (!y || !mo || !d) return String(raw);
-    return new Date(y, mo - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch { return String(raw); }
-}
 
 function mapRow(raw: any): PaymentRow {
   return {

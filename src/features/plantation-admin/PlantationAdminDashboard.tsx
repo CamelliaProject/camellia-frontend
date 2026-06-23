@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { adminApi, plantationApi } from '../../services/api';
+import { plantationApi } from '../../services/api';
 import PlantationDetailsManagement from './PlantationDetailsManagement';
 import PlantationMediaManagement from '../plantation-admin/PlantationMediaManagement';
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import PlantationSetup from './PlantationSetup';
-import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, Leaf, LayoutDashboard, Settings, CalendarOff } from 'lucide-react';
+import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, LayoutDashboard, Settings, CalendarOff } from 'lucide-react';
 import PlantationPayments from './PlantationPayments';
 import PlantationAvailabilityManagement from './PlantationAvailabilityManagement';
 
@@ -59,36 +59,7 @@ export default function PlantationAdminDashboard() {
   const [plantationLoading, setPlantationLoading] = useState(true);
   const plantationIdRef = React.useRef<string | null>(null);
   const [setupSuccess, setSetupSuccess] = useState(false);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [adminDataLoading, setAdminDataLoading] = useState(false);
 
-  useEffect(() => {
-    // Fetch plantation-specific bookings and reviews when plantation admin loads
-    if (plantationAdmin?.plantationId) {
-      fetchAdminData(plantationAdmin.plantationId);
-    }
-  }, [plantationAdmin?.plantationId]);
-
-  const fetchAdminData = async (plantationId: string) => {
-    setAdminDataLoading(true);
-    try {
-      // Fetch bookings for this plantation
-      const bookingsRes = await adminApi.getPlantationBookings(plantationId);
-      setBookings(bookingsRes.data.bookings || []);
-
-      // Fetch reviews for this plantation
-      const reviewsRes = await adminApi.getPlantationReviews(plantationId);
-      setReviews(reviewsRes.data.reviews || []);
-    } catch (error) {
-      console.error('Failed to load admin data:', error);
-      // Fall back to mock data if API calls fail
-    } finally {
-      setAdminDataLoading(false);
-    }
-  };
-
-  
   const isPlantationIncomplete = (raw: any) => !raw?.detailed_description;
 
   const refreshPlantation = useCallback(async () => {

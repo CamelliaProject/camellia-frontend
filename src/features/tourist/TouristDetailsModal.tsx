@@ -34,7 +34,6 @@ export default function TouristDetailsModal({ isOpen, onClose, onSubmit }: Touri
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-    // Optionally reset form after submission
     setFormData({
       fullName: '',
       email: '',
@@ -50,7 +49,6 @@ export default function TouristDetailsModal({ isOpen, onClose, onSubmit }: Touri
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-[#2D6A4F]">Enter Tourist Details</h2>
           <button
@@ -61,7 +59,6 @@ export default function TouristDetailsModal({ isOpen, onClose, onSubmit }: Touri
           </button>
         </div>
 
-        {/* Form Content */}
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
@@ -156,7 +153,6 @@ export default function TouristDetailsModal({ isOpen, onClose, onSubmit }: Touri
             </div>
           </div>
 
-          {/* Footer Buttons */}
           <div className="flex gap-4">
             <button
               type="button"

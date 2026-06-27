@@ -92,7 +92,6 @@ export default function PlantationDetailModal({
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
@@ -100,7 +99,6 @@ export default function PlantationDetailModal({
           ×
         </button>
 
-        {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-[#1B4332] mb-2">
             {isEditing ? 'Edit Plantation Details' : 'Plantation Details'}
@@ -109,7 +107,6 @@ export default function PlantationDetailModal({
         </div>
 
         <form className="space-y-4">
-          {/* General Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-1">Plantation Name</label>
@@ -188,7 +185,6 @@ export default function PlantationDetailModal({
             </div>
           </div>
 
-          {/* Admin Credentials */}
           <h3 className="text-xl font-bold mt-6 mb-2 text-[#1B4332]">Admin Credentials</h3>
           {formData.passwordChanged ? (
             <div className="p-4 bg-green-50 border border-green-200 rounded-md flex items-start gap-3">
@@ -251,7 +247,6 @@ export default function PlantationDetailModal({
             </div>
           )}
 
-          {/* Disable/Enable Toggle */}
           <div className="mt-6 flex items-center justify-between p-3 bg-gray-50 rounded-md">
             <label htmlFor="isDisabled" className="flex items-center space-x-2 cursor-pointer">
               <span className="text-lg font-semibold text-[#1B4332]">
@@ -275,7 +270,6 @@ export default function PlantationDetailModal({
             </button>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex justify-end gap-4 mt-8">
             {!isEditing ? (
               <button
@@ -291,7 +285,7 @@ export default function PlantationDetailModal({
                   type="button"
                   onClick={() => {
                     setIsEditing(false);
-                    setFormData(plantation); // Revert changes
+                    setFormData(plantation);
                     setErrors({});
                   }}
                   className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
@@ -313,4 +307,3 @@ export default function PlantationDetailModal({
     </div>
   );
 }
-

@@ -44,7 +44,6 @@ export default function Plantations() {
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">
       <Navbar />
 
-      {/* Hero Section */}
       <div className="relative h-[400px] flex items-center px-12 text-white">
         <img
           src="/images/landing.jpg"
@@ -57,7 +56,6 @@ export default function Plantations() {
         </div>
       </div>
 
-      {/* Main Content */}
       <main className="py-16 px-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-[#1B4332] mb-4 font-serif">Our Tea Plantations</h2>

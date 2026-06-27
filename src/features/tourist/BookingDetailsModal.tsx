@@ -73,7 +73,6 @@ export default function BookingDetailsModal({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
             <h2 className="text-xl font-bold text-[#1B4332]">{booking.plantationName}</h2>
@@ -84,14 +83,12 @@ export default function BookingDetailsModal({
           </button>
         </div>
 
-        {/* Status badge */}
         <div className="px-6 pt-4">
           <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full ${bookingStatusStyle(booking.status, booking.cancelledBy)}`}>
             {bookingStatusLabel(booking.status, booking.cancelledBy)}
           </span>
         </div>
 
-        {/* Details */}
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-start gap-3">
@@ -110,7 +107,6 @@ export default function BookingDetailsModal({
             </div>
           </div>
 
-          {/* Experiences */}
           {booking.experiences.length > 0 && (
             <div className="bg-[#f0faf4] rounded-xl p-4">
               <p className="text-xs text-gray-500 font-medium mb-2">Experiences Booked</p>
@@ -125,14 +121,12 @@ export default function BookingDetailsModal({
             </div>
           )}
 
-          {/* Total */}
           <div className="border-t pt-4 flex justify-between items-center">
             <p className="text-sm text-gray-500">Total Paid</p>
             <p className="text-2xl font-bold text-[#2D6A4F]">{booking.totalPaid}</p>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="px-6 pb-6 flex flex-col gap-2">
           {isCompleted && (
             isReviewed ? (

@@ -46,7 +46,6 @@ export default function PlantationReviews() {
 
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  // Review form
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -137,7 +136,6 @@ export default function PlantationReviews() {
         image_url: imageUrl,
       });
 
-      // Refresh reviews
       const reviewsRes = await reviewApi.getByPlantation(id!);
       setReviews((reviewsRes.data.data || []).map((r: any) => mapReview(r, id!)));
       setHasAlreadyReviewed(true);
@@ -182,7 +180,6 @@ export default function PlantationReviews() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      {/* Image lightbox */}
       {lightboxSrc && (
         <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -208,7 +205,6 @@ export default function PlantationReviews() {
 
       <main className="py-12 px-6 md:px-12">
         <div className="max-w-3xl mx-auto">
-          {/* Back */}
           <button
             onClick={() => navigate(id ? `/plantation/${id}` : '/plantations')}
             className="flex items-center gap-2 text-[#2D6A4F] hover:text-[#1B4332] font-semibold mb-8"
@@ -217,13 +213,11 @@ export default function PlantationReviews() {
             Back to {plantation?.name || 'Plantation'}
           </button>
 
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold font-serif mb-1">
               {plantation?.name ? `${plantation.name} Reviews` : 'Plantation Reviews'}
             </h1>
 
-            {/* Live rating calculated from fetched reviews */}
             {!isLoading && (
               <div className="mt-3">
                 {reviews.length > 0 ? (() => {
@@ -254,7 +248,6 @@ export default function PlantationReviews() {
             )}
           </div>
 
-          {/* Write Review Banner */}
           {user && user.role === 'tourist' && (
             <div className="mb-8">
               {hasAlreadyReviewed && (
@@ -278,7 +271,6 @@ export default function PlantationReviews() {
             </div>
           )}
 
-          {/* Review Form */}
           {showReviewForm && (
             <div className="mb-10 bg-[#F5FAF7] border border-[#B7E4C7] rounded-2xl p-6">
               <div className="flex items-center justify-between mb-5">
@@ -292,7 +284,6 @@ export default function PlantationReviews() {
               </div>
 
               <form onSubmit={handleSubmitReview} className="space-y-5">
-                {/* Rating */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Rating <span className="text-red-500">*</span>
@@ -300,7 +291,6 @@ export default function PlantationReviews() {
                   <StarPicker value={rating} onChange={setRating} />
                 </div>
 
-                {/* Title */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Title <span className="text-gray-400 font-normal">(optional)</span>
@@ -315,7 +305,6 @@ export default function PlantationReviews() {
                   />
                 </div>
 
-                {/* Content */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Your Experience <span className="text-red-500">*</span>
@@ -332,7 +321,6 @@ export default function PlantationReviews() {
                   <p className="text-xs text-gray-400 mt-1 text-right">{content.length}/2000</p>
                 </div>
 
-                {/* Image Upload */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Photo <span className="text-gray-400 font-normal">(optional, max 5 MB)</span>
@@ -398,7 +386,6 @@ export default function PlantationReviews() {
             </div>
           )}
 
-          {/* Loading */}
           {isLoading && (
             <div className="flex items-center justify-center py-20 text-gray-400">
               <Loader2 className="animate-spin mr-3" size={24} />
@@ -406,7 +393,6 @@ export default function PlantationReviews() {
             </div>
           )}
 
-          {/* Error */}
           {!isLoading && error && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4 text-center">
               {error}
@@ -414,7 +400,6 @@ export default function PlantationReviews() {
             </div>
           )}
 
-          {/* Reviews List */}
           {!isLoading && !error && (
             <div className="space-y-6">
               {reviews.length === 0 ? (
@@ -426,7 +411,6 @@ export default function PlantationReviews() {
               ) : (
                 reviews.map((review) => (
                   <div key={review.id} className="border border-gray-200 rounded-2xl p-6 hover:shadow-md transition">
-                    {/* Review Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-[#D8F3DC] flex items-center justify-center text-[#2D6A4F] font-bold text-lg shrink-0">
@@ -452,7 +436,6 @@ export default function PlantationReviews() {
 
                     <p className="text-gray-700 leading-relaxed mb-3">{review.text}</p>
 
-                    {/* Review Image */}
                     {review.image_url && (
                       <div className="mb-3">
                         <img
@@ -471,7 +454,6 @@ export default function PlantationReviews() {
                       </div>
                     )}
 
-                    {/* Replies + reactions */}
                     <ReviewReplies
                       review={review}
                       plantationId={id || ''}

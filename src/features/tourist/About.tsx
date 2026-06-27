@@ -4,25 +4,21 @@ import Footer from '../../components/layout/Footer';
 export default function About() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      {/* Header */}
       <Navbar />
 
-      {/* Main Content */}
       <main className="py-16 px-12">
         <div className="max-w-4xl mx-auto">
-          {/* Hero Image Section */}
           <div className="mb-12">
-            <img 
-              src="/images/about.png" 
-              alt="About Camellia" 
+            <img
+              src="/images/about.png"
+              alt="About Camellia"
               className="w-full rounded-lg shadow-lg object-cover h-96"
             />
           </div>
 
-          {/* About Section */}
           <section className="mb-16">
             <h1 className="text-5xl font-bold mb-8 font-serif text-center">About Camellia</h1>
-            
+
             <div className="space-y-6 text-gray-700 text-lg leading-relaxed">
               <p>
                 Camellia is your gateway to Sri Lanka's most exquisite tea plantations and the rich heritage of Ceylon tea tourism. We believe that experiencing tea is not just about tasting a beverage, but immersing yourself in centuries of tradition, culture, and natural beauty.
@@ -44,7 +40,6 @@ export default function About() {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

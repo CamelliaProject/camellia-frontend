@@ -8,7 +8,6 @@ import apiClient from '../../services/apiClient';
 function normalizePlantation(raw: any) {
   const rawReviews: any[] = Array.isArray(raw.reviews) ? raw.reviews : [];
 
-  // Calculate live average rating from actual reviews; fall back to stored value
   const liveRating = rawReviews.length
     ? rawReviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / rawReviews.length
     : (raw.rating || 0);
@@ -701,7 +700,6 @@ try {
     }
   });
 } catch (e) {
-  // ignore parse errors
 }
 
 export default function PlantationDetail() {
@@ -775,13 +773,12 @@ export default function PlantationDetail() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#1B4332]">
-      {/* Image Lightbox Modal */}
       {selectedImage && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedImage(null)}
         >
-          <div 
+          <div
             className="relative max-w-4xl w-full"
             onClick={(e) => e.stopPropagation()}
           >
@@ -800,10 +797,8 @@ export default function PlantationDetail() {
         </div>
       )}
 
-      {/* Header */}
       <Navbar />
 
-      {/* Main Image */}
       <div className="relative h-96 w-full overflow-hidden bg-[#1B4332]">
         {plantation.mainImage ? (
           <img
@@ -822,10 +817,8 @@ export default function PlantationDetail() {
         <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/20"></div>
       </div>
 
-      {/* Main Content */}
       <main className="py-16 px-12">
         <div className="max-w-5xl mx-auto">
-          {/* Title and Location */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold font-serif mb-4">{plantation.name}</h1>
             <div className="flex items-center gap-2 text-lg text-gray-600 mb-6">
@@ -834,12 +827,10 @@ export default function PlantationDetail() {
             </div>
           </div>
 
-          {/* Description */}
           <div className="mb-12">
             <p className="text-lg text-gray-700 leading-relaxed">{plantation.detailedDescription}</p>
           </div>
 
-          {/* Gallery - 3 Images in a Row */}
           {plantation.galleryImages.length > 0 && (
             <div className="mb-16">
               <h2 className="text-3xl font-bold mb-8">Photo Gallery</h2>
@@ -857,7 +848,6 @@ export default function PlantationDetail() {
             </div>
           )}
 
-          {/* Features */}
           {plantation.features.length > 0 && (
             <div className="mb-16">
               <h2 className="text-3xl font-bold mb-8">Experience Highlights</h2>
@@ -872,7 +862,6 @@ export default function PlantationDetail() {
             </div>
           )}
 
-          {/* Highlights Info */}
           <div className="mb-16 bg-gradient-to-r from-[#2D6A4F] to-[#52B788] text-white p-8 rounded-lg">
             <h2 className="text-3xl font-bold mb-8">Estate Information</h2>
             <div className="grid md:grid-cols-4 gap-6">
@@ -895,7 +884,6 @@ export default function PlantationDetail() {
             </div>
           </div>
 
-          {/* Experiences & Pricing */}
           {plantation.experiences && plantation.experiences.length > 0 && (
             <div className="mb-16">
               <h2 className="text-3xl font-bold mb-8">Experiences & Pricing</h2>
@@ -939,7 +927,6 @@ export default function PlantationDetail() {
             </div>
           )}
 
-          {/* Activities */}
           <div className="mb-16">
             {plantation.activities.length > 0 && (
               <>
@@ -963,7 +950,6 @@ export default function PlantationDetail() {
             </div>
           </div>
 
-          {/* Details Grid */}
           {plantation.bestTime && (
             <div className="mb-16 bg-gray-50 p-8 rounded-lg text-center">
               <h2 className="text-2xl font-bold mb-4">Best Time to Visit</h2>
@@ -971,7 +957,6 @@ export default function PlantationDetail() {
             </div>
           )}
 
-          {/* Rating and Reviews */}
           <div className="mb-16 text-center">
             <h2 className="text-3xl font-bold mb-4">Visitor Reviews</h2>
             <div className="flex items-center justify-center gap-2 mb-3">
@@ -995,7 +980,6 @@ export default function PlantationDetail() {
                 : 'No reviews yet'}
             </p>
 
-            {/* Individual Reviews */}
             {plantation.reviewsList && plantation.reviewsList.length > 0 ? (
               <>
                 <div className="space-y-6 max-w-3xl mx-auto mb-8">
@@ -1044,7 +1028,6 @@ export default function PlantationDetail() {
             )}
           </div>
 
-          {/* Contact Information */}
           <div className="bg-gradient-to-r from-[#52B788] to-[#40916c] text-white p-8 rounded-lg mb-16">
             <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
             <div className="grid md:grid-cols-2 gap-8">
@@ -1065,7 +1048,6 @@ export default function PlantationDetail() {
             </div>
           </div>
 
-          {/* Back Button */}
           <div className="text-center mt-8">
             <button
               onClick={() => navigate('/plantations')}
@@ -1077,7 +1059,6 @@ export default function PlantationDetail() {
         </div>
       </main>
 
-     
       <Footer />
     </div>
   );

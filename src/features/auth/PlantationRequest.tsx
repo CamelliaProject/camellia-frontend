@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
 import { validateEmail, validatePhone } from '../../utils/validators';
 
-// ── Constants ───────────────────────────────────────────────────────────────
+
 
 const STEPS = ['Plantation Info', 'Business Info', 'Documents', 'Subscription'];
 
@@ -41,7 +41,7 @@ const PLANS = [
   },
 ];
 
-// ── Component ───────────────────────────────────────────────────────────────
+
 
 export default function PlantationRequestPage() {
   const [showForm, setShowForm]       = useState(false);
@@ -51,7 +51,7 @@ export default function PlantationRequestPage() {
   const [serverError, setServerError] = useState('');
   const [errors, setErrors]           = useState<Record<string, string>>({});
 
-  // Step 1 – Plantation Info
+  //  Plantation Info
   const [plantationName, setPlantationName] = useState('');
   const [ownerName, setOwnerName]           = useState('');
   const [address, setAddress]               = useState('');
@@ -59,23 +59,22 @@ export default function PlantationRequestPage() {
   const [plantationImage, setPlantationImage]         = useState<File | null>(null);
   const [plantationImagePreview, setPlantationImagePreview] = useState('');
 
-  // Step 2 – Business Info
+  //  Business Info
   const [businessReg, setBusinessReg] = useState('');
   const [email, setEmail]             = useState('');
   const [telephone, setTelephone]     = useState('');
 
-  // Step 3 – Documents
+  //  Documents
   const [proofDocument, setProofDocument]   = useState<File | null>(null);
   const [proofDocumentName, setProofDocumentName] = useState('');
 
-  // Step 4 – Subscription
+  // Subscription
   const [subscriptionType, setSubscriptionType] = useState<'starter' | 'pro'>('pro');
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef   = useRef<HTMLInputElement>(null);
 
-  // ── Validation ────────────────────────────────────────────────────────────
-
+  // Validation 
   function validate() {
     const e: Record<string, string> = {};
     if (step === 0) {
@@ -102,7 +101,7 @@ export default function PlantationRequestPage() {
     setErrors(prev => { const copy = { ...prev }; delete copy[field]; return copy; });
   }
 
-  // ── Navigation ────────────────────────────────────────────────────────────
+
 
   function handleNext() {
     if (validate()) setStep(s => s + 1);
@@ -112,7 +111,7 @@ export default function PlantationRequestPage() {
     setStep(s => s - 1);
   }
 
-  // ── File Handlers ─────────────────────────────────────────────────────────
+  // File Handlers 
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -130,7 +129,7 @@ export default function PlantationRequestPage() {
     clearError('proofDocument');
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  
 
   async function handleSubmit() {
     setServerError('');
@@ -159,9 +158,9 @@ export default function PlantationRequestPage() {
     }
   }
 
-  // ── Success Screen ────────────────────────────────────────────────────────
+  
 
-  // ── Pricing page (shown before the form) ─────────────────────────────────
+  //Pricing page (shown before the form)
   if (!showForm) {
     return (
       <div className="min-h-screen bg-[#F5F7F5]">
@@ -272,8 +271,7 @@ export default function PlantationRequestPage() {
     );
   }
 
-  // ── Form ──────────────────────────────────────────────────────────────────
-
+  
   return (
     <div className="min-h-screen bg-[#F5F7F5]">
       {/* Top bar */}
@@ -329,7 +327,7 @@ export default function PlantationRequestPage() {
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-xl p-8">
 
-          {/* ── Step 0: Plantation Info ─────────────────────────────────── */}
+          
           {step === 0 && (
             <div className="space-y-5">
               <SectionTitle icon="🌿" title="Plantation Information" />
@@ -418,7 +416,7 @@ export default function PlantationRequestPage() {
             </div>
           )}
 
-          {/* ── Step 1: Business Info ───────────────────────────────────── */}
+          
           {step === 1 && (
             <div className="space-y-5">
               <SectionTitle icon="🏢" title="Business Information" />
@@ -461,7 +459,7 @@ export default function PlantationRequestPage() {
             </div>
           )}
 
-          {/* ── Step 2: Documents ───────────────────────────────────────── */}
+        
           {step === 2 && (
             <div className="space-y-5">
               <SectionTitle icon="📄" title="Verification Documents" />
@@ -533,7 +531,7 @@ export default function PlantationRequestPage() {
             </div>
           )}
 
-          {/* ── Step 3: Subscription ────────────────────────────────────── */}
+          
           {step === 3 && (
             <div className="space-y-5">
               <SectionTitle icon="⭐" title="Choose Your Subscription" />

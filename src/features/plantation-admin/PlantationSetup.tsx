@@ -128,7 +128,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f0f9f7] to-[#e8f5f3] py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <AlertCircle className="text-[#2D6A4F]" size={32} />
@@ -139,7 +138,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
           </p>
         </div>
 
-        {/* Progress */}
         <div className="mb-8">
           <div className="flex justify-between mb-4">
             {(['Basic Info', 'Details & Image', 'Contact & Stats'] as const).map((label, i) => (
@@ -163,7 +161,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
 
         <div className="bg-white rounded-xl shadow-lg p-8">
 
-          {/* Step 1: Basic Info */}
           {step === 1 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-[#1B4332]">Basic Information</h2>
@@ -192,7 +189,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
             </div>
           )}
 
-          {/* Step 2: Details & Main Image */}
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-[#1B4332]">Detailed Information</h2>
@@ -237,7 +233,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
             </div>
           )}
 
-          {/* Step 3: Contact & Stats */}
           {step === 3 && (
             <div className="space-y-5">
               <h2 className="text-xl font-bold text-[#1B4332]">Contact & Statistics</h2>
@@ -286,7 +281,6 @@ export default function PlantationSetup({ plantationId, existingData, onSetupCom
             </div>
           )}
 
-          {/* Navigation */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
             <button
               onClick={handleBack}

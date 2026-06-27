@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/api';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+
 interface ExperienceSlot {
   name: string;
   slot_time: string | null; // HH:MM:SS or null when no slot was booked
@@ -427,7 +427,7 @@ function DetailModal({ booking, onClose, onStatusChange }: DetailModalProps) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────
+
 export default function PlantationBookingManagement({ plantationId }: Props) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -439,7 +439,7 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
 
   const [selected, setSelected] = useState<Booking | null>(null);
 
-  // ── Fetch ───────────────────────────────────────────────────────────────
+  
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
@@ -457,7 +457,7 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
     void load();
   }, [plantationId]);
 
-  // ── Status update ────────────────────────────────────────────────────────
+  
   const handleStatusChange = async (id: string, status: 'completed' | 'cancelled', reason?: string) => {
     await adminApi.updateBookingStatus(plantationId, id, status, reason);
     setBookings(prev => prev.map(b =>
@@ -468,7 +468,7 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
   };
 
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+   
   const counts = useMemo(() => ({
     upcoming:  bookings.filter(b => b.status === 'upcoming').length,
     completed: bookings.filter(b => b.status === 'completed').length,

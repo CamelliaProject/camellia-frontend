@@ -65,7 +65,6 @@ export default function PaymentPage() {
           ? experiences.map((e: any) => e.id).filter(Boolean)
           : [],
         booking_time:     bookingTime || null,
-        // PayHere-specific
         currency,
         amount:     totalPrice,
         first_name: touristDetails.fullName.split(' ')[0],
@@ -77,18 +76,15 @@ export default function PaymentPage() {
       const res = await paymentApi.payhereInitiate(payload);
       const { booking_reference, params, checkout_url } = res.data;
 
-      // Persist booking info so PaymentReturnPage can display it
       sessionStorage.setItem('payhere_booking', JSON.stringify({
         bookingSummary: { ...bookingSummary, transactionId: booking_reference },
         touristDetails,
         transactionId: booking_reference,
       }));
 
-      // Inject hidden form and submit to PayHere
       setCheckoutUrl(checkout_url);
       setFormFields(params);
 
-      // Let React render the form, then submit
       setTimeout(() => formRef.current?.submit(), 100);
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Failed to initiate payment. Please try again.';
@@ -106,7 +102,6 @@ export default function PaymentPage() {
           <h1 className="text-3xl font-bold mb-1 text-center">Complete Your Booking</h1>
           <p className="text-gray-500 text-center mb-8">Review your details and pay securely via PayHere</p>
 
-          {/* Booking summary card */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
             <h2 className="font-bold text-[#1B4332] text-lg mb-4">{plantationName}</h2>
 
@@ -144,7 +139,6 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {/* Tourist details summary */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6 text-sm text-gray-700 space-y-1">
             <p><span className="font-medium text-gray-900">Name:</span> {touristDetails.fullName}</p>
             <p><span className="font-medium text-gray-900">Email:</span> {touristDetails.email}</p>
@@ -160,7 +154,6 @@ export default function PaymentPage() {
             </div>
           )}
 
-          {/* PayHere button */}
           <button
             onClick={handlePayHere}
             disabled={loading}
@@ -217,7 +210,6 @@ export default function PaymentPage() {
 
       <Footer />
 
-      {/* Hidden PayHere form — auto-submitted after initiation */}
       {formFields && (
         <form
           ref={formRef}

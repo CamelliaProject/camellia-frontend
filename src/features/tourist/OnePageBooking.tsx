@@ -81,7 +81,7 @@ interface TimeSlot {
 }
 
 interface AvailabilitySettings {
-  unavailable_days: number[];  // 0-6
+  unavailable_days: number[];
   closing_dates: { close_date: string }[];
 }
 
@@ -101,9 +101,6 @@ function formatDate(raw: string) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Progress bar
-// ─────────────────────────────────────────────────────────────────────────────
 function StepBar({ current }: { current: Step }) {
   const idx = STEP_ORDER.indexOf(current);
   return (
@@ -130,9 +127,6 @@ function StepBar({ current }: { current: Step }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Experience card
-// ─────────────────────────────────────────────────────────────────────────────
 function ExperienceCard({
   exp,
   isSelected,
@@ -161,13 +155,11 @@ function ExperienceCard({
       className={`rounded-xl border-2 transition-all duration-200 overflow-hidden
         ${isSelected ? 'border-[#2D6A4F] shadow-md' : 'border-gray-200 hover:border-[#52B788]'}`}
     >
-      {/* Card header — always visible */}
       <div
         className={`p-4 cursor-pointer ${isSelected ? 'bg-[#f0faf4]' : 'bg-white'}`}
         onClick={onToggle}
       >
         <div className="flex items-start gap-3">
-          {/* Checkbox */}
           <div
             className={`mt-0.5 w-5 h-5 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors
               ${isSelected ? 'bg-[#2D6A4F] border-[#2D6A4F]' : 'border-gray-400 bg-white'}`}
@@ -175,7 +167,6 @@ function ExperienceCard({
             {isSelected && <Check size={12} className="text-white" />}
           </div>
 
-          {/* Name + category */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <h3 className="font-bold text-gray-900 text-base leading-tight">{exp.name}</h3>
@@ -191,7 +182,6 @@ function ExperienceCard({
             )}
           </div>
 
-          {/* Price */}
           <div className="text-right flex-shrink-0 ml-2">
             <div className="text-lg font-bold text-[#2D6A4F]">
               {symbol} {adultPrice.toLocaleString()}
@@ -206,7 +196,6 @@ function ExperienceCard({
         </div>
       </div>
 
-      {/* Expandable details */}
       {(exp.detailed_description || exp.announcement || (exp.images && exp.images.length > 0)) && (
         <div className={`border-t ${isSelected ? 'border-[#B7E4C7]' : 'border-gray-100'}`}>
           <button
@@ -220,7 +209,6 @@ function ExperienceCard({
 
           {expanded && (
             <div className={`px-4 pb-4 ${isSelected ? 'bg-[#f0faf4]' : 'bg-gray-50'}`}>
-              {/* Announcement */}
               {exp.announcement && (
                 <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3">
                   <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
@@ -228,12 +216,10 @@ function ExperienceCard({
                 </div>
               )}
 
-              {/* Detailed description */}
               {exp.detailed_description && (
                 <p className="text-sm text-gray-700 mb-3 leading-relaxed">{exp.detailed_description}</p>
               )}
 
-              {/* Images */}
               {exp.images && exp.images.length > 0 && (
                 <div className="grid grid-cols-3 gap-2">
                   {exp.images.slice(0, 3).map((src, i) => (
@@ -255,9 +241,6 @@ function ExperienceCard({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Booking summary sidebar
-// ─────────────────────────────────────────────────────────────────────────────
 function BookingSummary({
   plantationName,
   selectedExperiences,
@@ -290,7 +273,6 @@ function BookingSummary({
         <span className="font-semibold text-gray-800">{plantationName}</span>
       </div>
 
-      {/* Experiences */}
       {selectedExperiences.length > 0 ? (
         <ul className="space-y-2 mb-4">
           {selectedExperiences.map((exp) => {
@@ -313,7 +295,6 @@ function BookingSummary({
         <p className="text-sm text-gray-400 italic mb-4">No experiences selected</p>
       )}
 
-      {/* Guests */}
       {(adults > 0 || children > 0) && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
           <Users size={14} />
@@ -321,7 +302,6 @@ function BookingSummary({
         </div>
       )}
 
-      {/* Date */}
       {date && (
         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
           <Calendar size={14} />
@@ -329,7 +309,6 @@ function BookingSummary({
         </div>
       )}
 
-      {/* Selected time */}
       {selectedTime && (
         <div className="flex items-center gap-2 text-sm text-[#2D6A4F] mb-4">
           <Clock size={14} />
@@ -337,7 +316,6 @@ function BookingSummary({
         </div>
       )}
 
-      {/* Total */}
       <div className="border-t pt-3 mt-3">
         <div className="flex justify-between items-center">
           <span className="text-sm text-gray-600">Total ({currency})</span>
@@ -350,9 +328,6 @@ function BookingSummary({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Guest counter widget
-// ─────────────────────────────────────────────────────────────────────────────
 function GuestCounter({
   label,
   value,
@@ -388,9 +363,6 @@ function GuestCounter({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
 export default function OnePageBooking() {
   const { id: plantationId } = useParams();
   const navigate = useNavigate();
@@ -405,24 +377,19 @@ export default function OnePageBooking() {
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [usdToLkr, setUsdToLkr] = useState(330);
 
-  // Step 1 state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isResident, setIsResident] = useState(true);
 
-  // Step 2 state
   const [selectedDate, setSelectedDate] = useState('');
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
 
-  // Plantation availability settings (loaded once)
   const [availSettings, setAvailSettings] = useState<AvailabilitySettings | null>(null);
 
-  // Plantation-level time slot state
   const [plantationSlots, setPlantationSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(''); // single visit time (HH:MM)
+  const [selectedTime, setSelectedTime] = useState('');
 
-  // Step 3 state
   const [details, setDetails] = useState({
     fullName: '',
     email: '',
@@ -436,15 +403,11 @@ export default function OnePageBooking() {
     'fullName' | 'email' | 'phone' | 'nicPassportNumber' | 'country' | 'city',
     string
   >>>({});
-  // Once the tourist types their own email, never auto-overwrite it with the
-  // signed-in account's email (e.g. they sign in with a different Google account
-  // mid-booking just to continue, but want the typed email kept on the booking).
   const emailManuallyEditedRef = useRef(false);
 
   const currency: 'LKR' | 'USD' = isResident ? 'LKR' : 'USD';
   const symbol = isResident ? 'Rs' : '$';
 
-  // ── Load plantation ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!plantationId) { setIsLoading(false); return; }
     const load = async () => {
@@ -460,30 +423,25 @@ export default function OnePageBooking() {
     void load();
   }, [plantationId]);
 
-  // ── Fetch live exchange rate ──────────────────────────────────────────────
   useEffect(() => {
     settingsApi.getExchangeRate()
       .then(res => { if (res.data?.usd_to_lkr) setUsdToLkr(res.data.usd_to_lkr); })
-      .catch(() => { /* keep default 330 fallback */ });
+      .catch(() => {});
   }, []);
 
-  // ── Load plantation availability settings (unavailable days + closing dates)
   useEffect(() => {
     if (!plantationId) return;
     availabilityApi.getSettings(plantationId)
       .then(res => setAvailSettings(res.data?.data ?? null))
-      .catch(() => { /* non-critical — fall back to permissive */ });
+      .catch(() => {});
   }, [plantationId]);
 
-  // Pre-fill email from auth — only while the tourist hasn't typed their own
-  // email yet. Once they edit it, it's theirs to keep (still freely editable).
   useEffect(() => {
     if (user?.email && !emailManuallyEditedRef.current) {
       setDetails((d) => ({ ...d, email: user.email }));
     }
   }, [user]);
 
-  // Restore full booking state when returning via "Go back" from PaymentPage
   useEffect(() => {
     const rb = (location.state as any)?.restoreBooking;
     if (!rb) return;
@@ -501,7 +459,6 @@ export default function OnePageBooking() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch plantation-level time slot availability when date changes
   useEffect(() => {
     if (!selectedDate || !plantationId) {
       setPlantationSlots([]);
@@ -516,8 +473,6 @@ export default function OnePageBooking() {
       .finally(() => { setLoadingSlots(false); });
   }, [selectedDate, plantationId]);
 
-  // Restore booking state after the user signs in (handles both same-page auth
-  // state change and remount after redirect back to this page).
   useEffect(() => {
     if (!isAuthenticated || !plantationId) return;
     const key = `booking_resume_${plantationId}`;
@@ -548,7 +503,6 @@ export default function OnePageBooking() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, plantationId]);
 
-  // ── Derived data ─────────────────────────────────────────────────────────
   const experiences: Experience[] = plantation?.experiences ?? [];
   const selected = experiences.filter((e) => selectedIds.includes(e.id));
 
@@ -562,7 +516,6 @@ export default function OnePageBooking() {
     return t;
   };
 
-  // ── Navigation helpers ───────────────────────────────────────────────────
   const scrollTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   const goToDatetime = () => {
@@ -572,7 +525,6 @@ export default function OnePageBooking() {
 
   const isDateTooSoon = selectedDate === TODAY;
 
-  // ── Closed-day / closing-date validation ────────────────────────────────
   const isUnavailableDay = (() => {
     if (!selectedDate || !availSettings) return false;
     const dow = new Date(selectedDate + 'T00:00:00').getDay();
@@ -592,7 +544,6 @@ export default function OnePageBooking() {
 
   const totalGuests = adults + children;
 
-  // ── Plantation-level time-slot logic ────────────────────────────────────
   const hasAnySlots = plantationSlots.length > 0;
   const completelyFull = hasAnySlots && plantationSlots.every(s => s.capacity - s.booked < totalGuests);
 
@@ -639,7 +590,6 @@ export default function OnePageBooking() {
         : 'border-gray-300 focus:ring-[#52B788]'
     }`;
 
-  // Dial code derived from selected country (residents are always LK/+94)
   const phoneCountryName = isResident ? 'Sri Lanka' : details.country;
   const phoneCountryCode = COUNTRIES.find(c => c.name === phoneCountryName)?.code as CountryCode | undefined;
   const dialCode = (() => {
@@ -647,7 +597,6 @@ export default function OnePageBooking() {
     catch { return ''; }
   })();
 
-  // Passport format for tourist's selected country (undefined for residents — they use NIC)
   const passportFormat = isResident
     ? undefined
     : (phoneCountryCode ? (PASSPORT_PATTERNS[phoneCountryCode] ?? PASSPORT_FALLBACK) : undefined);
@@ -667,7 +616,6 @@ export default function OnePageBooking() {
       errs.email = 'Enter a valid email address.';
     }
 
-    // Country — only tourists need to select; residents are locked to Sri Lanka
     if (!isResident && !details.country) {
       errs.country = 'Please select your country.';
       errs.phone = 'Select your country first so we can validate your phone number.';
@@ -716,7 +664,6 @@ export default function OnePageBooking() {
     if (!validateDetails()) return;
 
     if (!isAuthenticated) {
-      // Persist all booking state so it survives sign-in redirect / re-mount.
       sessionStorage.setItem(
         `booking_resume_${plantationId}`,
         JSON.stringify({ step: 'details', selectedIds, isResident, selectedDate, adults, children, details })
@@ -758,7 +705,6 @@ export default function OnePageBooking() {
     });
   };
 
-  // ── Loading / error states ───────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
@@ -790,14 +736,12 @@ export default function OnePageBooking() {
 
   const total = computeTotal();
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#f8faf8] font-sans text-[#1B4332]">
       <Navbar />
 
       <main ref={topRef} className="py-10 px-4 sm:px-8">
         <div className="max-w-6xl mx-auto">
-          {/* Back link */}
           <button
             onClick={() => navigate(`/plantation/${plantationId}`)}
             className="text-[#2D6A4F] text-sm font-medium hover:underline mb-6 flex items-center gap-1"
@@ -808,17 +752,13 @@ export default function OnePageBooking() {
           <h1 className="text-3xl font-bold mb-2">{plantation.name}</h1>
           <p className="text-gray-500 mb-8">{plantation.address}</p>
 
-          {/* Progress bar */}
           <StepBar current={step} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* ── Main content ────────────────────────────────────────── */}
             <div className="lg:col-span-2">
 
-              {/* ════════ STEP 1: EXPERIENCES ════════ */}
               {step === 'experiences' && (
                 <div>
-                  {/* Residency toggle */}
                   <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex items-center justify-between gap-4 flex-wrap">
                     <div>
                       <p className="font-semibold text-gray-800 text-sm mb-0.5">Your residency</p>
@@ -847,7 +787,6 @@ export default function OnePageBooking() {
                     </div>
                   </div>
 
-                  {/* Experience list */}
                   {experiences.length === 0 ? (
                     <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center text-gray-400">
                       <Info size={36} className="mx-auto mb-3 opacity-40" />
@@ -873,7 +812,6 @@ export default function OnePageBooking() {
                     </div>
                   )}
 
-                  {/* CTA */}
                   <div className="mt-6 flex justify-end">
                     <button
                       type="button"
@@ -887,10 +825,8 @@ export default function OnePageBooking() {
                 </div>
               )}
 
-              {/* ════════ STEP 2: DATE, TIME & GUESTS ════════ */}
               {step === 'datetime' && (
                 <div className="space-y-5">
-                  {/* Date picker */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
                     <label className="block font-semibold text-gray-800 mb-3 flex items-center gap-2">
                       <Calendar size={18} className="text-[#2D6A4F]" /> Choose a date
@@ -920,7 +856,6 @@ export default function OnePageBooking() {
                     )}
                   </div>
 
-                  {/* ── Visit time picker ─────────────────────────── */}
                   {selectedDate && !isDateTooSoon && !dateBlockedReason && (
                     <div className="bg-white rounded-xl border border-gray-200 p-5">
                       <p className="font-semibold text-gray-800 mb-0.5 flex items-center gap-2">
@@ -981,7 +916,6 @@ export default function OnePageBooking() {
                     </div>
                   )}
 
-                  {/* Guest counts */}
                   <div className="bg-white rounded-xl border border-gray-200 p-5">
                     <p className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
                       <Users size={18} className="text-[#2D6A4F]" /> Number of guests
@@ -991,7 +925,6 @@ export default function OnePageBooking() {
                     <GuestCounter label="Children" value={children} min={0} onChange={setChildren} />
                   </div>
 
-                  {/* Navigation */}
                   <div className="flex gap-3">
                     <button type="button" onClick={goBack} className="flex-1 border-2 border-gray-300 text-gray-700 hover:border-[#2D6A4F] hover:text-[#2D6A4F] font-semibold py-3 rounded-lg transition">
                       Back
@@ -1008,13 +941,11 @@ export default function OnePageBooking() {
                 </div>
               )}
 
-              {/* ════════ STEP 3: PERSONAL DETAILS ════════ */}
               {step === 'details' && (
                 <form onSubmit={handleSubmit}>
                   <div className="bg-white rounded-xl border border-gray-200 p-6 mb-5">
                     <h2 className="font-bold text-gray-900 text-lg mb-5">Your personal details</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Full Name */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           Full Name <span className="text-red-500">*</span>
@@ -1030,7 +961,6 @@ export default function OnePageBooking() {
                         {detailErrors.fullName && <p className="mt-1 text-xs text-red-600">{detailErrors.fullName}</p>}
                       </div>
 
-                      {/* Email */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           Email Address <span className="text-red-500">*</span>
@@ -1046,7 +976,6 @@ export default function OnePageBooking() {
                         {detailErrors.email && <p className="mt-1 text-xs text-red-600">{detailErrors.email}</p>}
                       </div>
 
-                      {/* Country — locked to Sri Lanka for residents; tourists cannot pick Sri Lanka */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           Country <span className="text-red-500">*</span>
@@ -1076,7 +1005,6 @@ export default function OnePageBooking() {
                         {detailErrors.country && <p className="mt-1 text-xs text-red-600">{detailErrors.country}</p>}
                       </div>
 
-                      {/* Phone — dial code badge auto-set by country; user enters local number */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           Phone Number <span className="text-red-500">*</span>
@@ -1108,7 +1036,6 @@ export default function OnePageBooking() {
                         {detailErrors.phone && <p className="mt-1 text-xs text-red-600">{detailErrors.phone}</p>}
                       </div>
 
-                      {/* NIC (resident) / Passport (tourist) */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           {isResident ? 'NIC Number' : 'Passport Number'} <span className="text-red-500">*</span>
@@ -1131,7 +1058,6 @@ export default function OnePageBooking() {
                         }
                       </div>
 
-                      {/* City */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
                           City <span className="text-red-500">*</span>
@@ -1147,7 +1073,6 @@ export default function OnePageBooking() {
                         {detailErrors.city && <p className="mt-1 text-xs text-red-600">{detailErrors.city}</p>}
                       </div>
 
-                      {/* Special notes — full width */}
                       <div className="sm:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Special notes (optional)</label>
                         <textarea
@@ -1171,7 +1096,6 @@ export default function OnePageBooking() {
                     </div>
                   )}
 
-                  {/* Price recap before payment */}
                   <div className="bg-[#f0faf4] border border-[#B7E4C7] rounded-xl p-5 mb-5">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 font-medium">Total amount ({currency})</span>
@@ -1197,7 +1121,6 @@ export default function OnePageBooking() {
               )}
             </div>
 
-            {/* ── Sticky sidebar ──────────────────────────────────────── */}
             <div className="lg:col-span-1">
               <BookingSummary
                 plantationName={plantation.name}

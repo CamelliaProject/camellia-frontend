@@ -29,7 +29,7 @@ export default function SubscriptionPaymentPage() {
     }
   };
 
-  // Auto-submit form once we have PayHere params
+
   useEffect(() => {
     if (status === 'redirecting' && formData && formRef.current) {
       formRef.current.submit();

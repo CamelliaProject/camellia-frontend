@@ -17,7 +17,7 @@ interface Plantation {
 
 interface Props { plantation: Plantation; }
 
-// ── Read-only field ────────────────────────────────────────────────────────
+
 function ViewField({ label, value, span2 = false }: { label: string; value: string; span2?: boolean }) {
   return (
     <div className={span2 ? 'md:col-span-2' : ''}>
@@ -27,7 +27,7 @@ function ViewField({ label, value, span2 = false }: { label: string; value: stri
   );
 }
 
-// ── Edit input ─────────────────────────────────────────────────────────────
+
 function Field({
   label, id, name, value, onChange, span2 = false, type = 'text',
 }: {

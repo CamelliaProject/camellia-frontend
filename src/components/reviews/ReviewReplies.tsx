@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import SignInModal from '../../components/layout/SignInModal';
 import { reviewApi } from '../../services/api';
 
-// LocalStorage key for tracking which items this device has already reacted to
+
 const REACTIONS_KEY = 'camellia_reactions';
 
 function getReacted(): Record<string, boolean> {
@@ -20,7 +20,7 @@ function markReacted(key: string) {
   localStorage.setItem(REACTIONS_KEY, JSON.stringify(r));
 }
 
-// ── Reaction button shared by reviews and replies ─────────────────────────
+
 interface ThumbsProps {
   count: number;
   reactionKey: string;
@@ -64,7 +64,7 @@ function ThumbsButton({ count, reactionKey, onReact }: ThumbsProps) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────
+
 interface ReviewRepliesProps {
   review: Review;
   plantationId: string;

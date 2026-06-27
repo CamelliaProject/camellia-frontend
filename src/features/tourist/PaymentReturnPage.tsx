@@ -14,8 +14,6 @@ function resolveStatus(params: URLSearchParams): Status {
   if (code === '0')  return 'pending';
   if (code === '-1') return 'cancelled';
   if (code === '-2') return 'failed';
-  // PayHere sandbox often omits status_code on the return URL.
-  // If order_id is present and not cancelled, the payment completed.
   if (params.get('order_id')) return 'success';
   return 'unknown';
 }
@@ -29,7 +27,6 @@ export default function PaymentReturnPage() {
   const paymentId  = searchParams.get('payment_id');
   const message    = searchParams.get('message');
 
-  // Retrieve stored booking info (set before redirecting to PayHere)
   const [stored] = useState<any>(() => {
     try {
       const raw = sessionStorage.getItem('payhere_booking');
@@ -38,19 +35,17 @@ export default function PaymentReturnPage() {
         sessionStorage.removeItem('payhere_booking');
         return parsed;
       }
-    } catch { /* ignore */ }
+    } catch {}
     return null;
   });
 
   const transactionId = orderId || stored?.transactionId || '—';
 
-  // On success: save payment_id to backend, then navigate to confirmation
   useEffect(() => {
     if (status !== 'success') return;
 
-    // Notify backend so it can send the confirmation email and store the payment_id for refunds
     if (transactionId && transactionId !== '—') {
-      paymentApi.payheresSavePayment(transactionId, paymentId ?? '').catch(() => {/* non-critical */});
+      paymentApi.payheresSavePayment(transactionId, paymentId ?? '').catch(() => {});
     }
 
     if (stored) {

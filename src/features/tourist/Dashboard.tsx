@@ -87,7 +87,6 @@ export default function Dashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<ExperienceBooking | null>(null);
 
-  // Fetch bookings
   useEffect(() => {
     const load = async () => {
       setIsLoadingBookings(true);
@@ -106,7 +105,6 @@ export default function Dashboard() {
     void load();
   }, []);
 
-  // Fetch reviews on mount so the "Reviewed" tag is visible on the bookings tab too
   useEffect(() => {
     void loadReviews();
   }, []);
@@ -137,21 +135,17 @@ export default function Dashboard() {
   };
 
   const handleReviewSubmit = async () => {
-    // Refresh reviews list after successful modal submit
     await loadReviews();
     setIsReviewModalOpen(false);
     setSelectedBookingForReview(null);
     setActiveTab('reviews');
   };
 
-  // Derived
   const upcomingBookings = bookings.filter((b) => b.status === 'upcoming');
   const pastBookings = bookings.filter((b) => b.status === 'completed' || b.status === 'cancelled');
   const completedBookings = bookings.filter((b) => b.status === 'completed');
 
-  // Booking IDs that already have a review
   const reviewedBookingIds = new Set(myReviews.map((r) => r.booking_id).filter(Boolean) as string[]);
-  // Completed bookings not yet reviewed — available to review one-per-visit
   const reviewableBookings = completedBookings
     .filter((b) => !reviewedBookingIds.has(b.id))
     .map((b) => ({ bookingId: b.id, plantationId: b.plantationId, plantationName: b.plantationName, date: b.date }));
@@ -206,7 +200,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#F5F7F5] font-sans text-[#1B4332]">
       <Navbar />
 
-      {/* Profile banner */}
       <div className="bg-gradient-to-br from-[#1B4332] via-[#2D6A4F] to-[#40916C] text-white">
         <div className="max-w-6xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center md:items-end gap-6">
           <div className="w-24 h-24 rounded-full bg-[#52B788] flex items-center justify-center text-4xl font-bold shadow-lg ring-4 ring-white/20 shrink-0">
@@ -220,7 +213,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="max-w-6xl mx-auto px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 -mt-6">
           {stats.map((stat) => (
@@ -233,7 +225,6 @@ export default function Dashboard() {
       </div>
 
       <main className="max-w-6xl mx-auto px-8 py-10">
-        {/* Tab bar */}
         <div className="bg-white rounded-2xl shadow-sm p-1.5 flex gap-1 w-fit mb-8">
           {([['bookings', 'Booking History'], ['reviews', 'My Reviews']] as const).map(([tab, label]) => (
             <button
@@ -248,7 +239,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* ── Bookings tab ── */}
         {activeTab === 'bookings' && (
           <div className="space-y-10">
             {isLoadingBookings && (
@@ -371,7 +361,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── Reviews tab ── */}
         {activeTab === 'reviews' && (
           <div>
             <div className="flex items-center justify-between mb-6">
@@ -389,7 +378,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Sub-tabs */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-6">
               {([['mine', 'My Reviews'], ['replies', 'My Comments']] as const).map(([tab, label]) => (
                 <button
@@ -435,7 +423,6 @@ export default function Dashboard() {
                           <img src={review.image_url} alt="Review" className="max-w-[90px] max-h-[90px] w-auto h-auto object-contain rounded-lg mt-2" />
                         )}
 
-                        {/* Replies on this review */}
                         {review.replies.length > 0 && (
                           <div className="mt-4 border-t border-gray-100 pt-4">
                             <p className="text-xs font-semibold text-gray-500 mb-3 flex items-center gap-1.5">
@@ -506,7 +493,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Bottom actions */}
         <div className="mt-14 flex flex-wrap gap-4 justify-center">
           <button
             onClick={() => navigate('/plantations')}

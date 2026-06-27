@@ -88,7 +88,6 @@ export default function Contact() {
     <div className="min-h-screen bg-[#F5F7F5] font-sans text-[#1B4332]">
       <Navbar />
 
-      {/* Hero banner */}
       <div className="bg-gradient-to-br from-[#1B4332] via-[#2D6A4F] to-[#40916C] text-white py-16 px-6 text-center">
         <p className="text-green-300 text-sm font-semibold uppercase tracking-widest mb-3">Get in Touch</p>
         <h1 className="text-4xl font-bold font-serif mb-4">Contact Camellia Platform Team</h1>
@@ -100,7 +99,6 @@ export default function Contact() {
       <main className="max-w-6xl mx-auto px-6 py-16">
         <div className="grid lg:grid-cols-5 gap-10">
 
-          {/* Left — contact info */}
           <div className="lg:col-span-2 space-y-6">
             <div>
               <h2 className="text-2xl font-bold mb-2">How can we help?</h2>
@@ -143,7 +141,6 @@ export default function Contact() {
             </div>
           </div>
 
-          {/* Right — form */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
               <h2 className="text-xl font-bold mb-6">Send Us a Message</h2>

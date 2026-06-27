@@ -10,14 +10,12 @@ export default function BookingConfirmationPage() {
   const { bookingSummary, touristDetails, transactionId } = location.state || {};
 
   if (!bookingSummary || !touristDetails || !transactionId) {
-    // Redirect if booking data is missing
     navigate('/plantations', { replace: true });
     return null;
   }
 
   const { plantationName, experiences, date, adults, children, totalPrice, currency } = bookingSummary;
 
-  // Format date to "Monday, November 17, 2025" for display
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -72,11 +70,10 @@ export default function BookingConfirmationPage() {
             </div>
           </div>
 
-          {/* Plantation Contact Information */}
           <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 text-center">
             <p className="text-sm font-semibold mb-2 text-gray-700">Plantation Contact Information</p>
             <p className="text-gray-600 mb-2">For any questions or changes, Please contact plantation directly.</p>
-            <p className="text-[#2D6A4F] font-medium">Email: info@pedroet.lk</p> {/* Replace with actual plantation email */}
+            <p className="text-[#2D6A4F] font-medium">Email: info@pedroet.lk</p>
           </div>
 
           <p className="text-center text-gray-600 mb-8">A confirmation email has been sent to {touristDetails.email}</p>

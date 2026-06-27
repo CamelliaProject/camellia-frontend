@@ -94,7 +94,6 @@ export default function ReviewModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-[#2D6A4F]">Write a Review</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
@@ -103,7 +102,6 @@ export default function ReviewModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Visit Selection */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Visit <span className="text-red-500">*</span>
@@ -127,7 +125,6 @@ export default function ReviewModal({
             )}
           </div>
 
-          {/* Rating */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Rating <span className="text-red-500">*</span>
@@ -150,7 +147,6 @@ export default function ReviewModal({
             </div>
           </div>
 
-          {/* Review Text */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Your Experience <span className="text-red-500">*</span>
@@ -167,7 +163,6 @@ export default function ReviewModal({
             <p className="text-xs text-gray-400 text-right mt-1">{reviewText.length}/2000</p>
           </div>
 
-          {/* Photo Upload */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Photo <span className="text-gray-400 font-normal">(optional, max 5 MB)</span>
@@ -197,7 +192,6 @@ export default function ReviewModal({
             )}
           </div>
 
-          {/* Error */}
           {submitError && (
             <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-2">
               {submitError}

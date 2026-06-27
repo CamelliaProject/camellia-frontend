@@ -7,8 +7,6 @@ import {
 } from 'lucide-react';
 import PlantationDetailModal from './PlantationDetailModal';
 
-// ── Types ───────────────────────────────────────────────────────────────────
-
 export interface Plantation {
   image: string;
   description: ReactNode;
@@ -41,20 +39,16 @@ interface ApprovalResult {
   email: string;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
-
 export default function SuperAdminDashboard() {
   const navigate  = useNavigate();
   const { user, logOut } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'plantations' | 'requests' | 'subscriptions' | 'contactRequests'>('plantations');
 
-  // Plantations
   const [plantations, setPlantations] = useState<Plantation[]>([]);
   const [selectedPlantation, setSelectedPlantation] = useState<Plantation | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Pending requests
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
@@ -63,22 +57,16 @@ export default function SuperAdminDashboard() {
   const [resolveNote, setResolveNote]             = useState('');
   const [resolveLoading, setResolveLoading]       = useState(false);
 
-  // Subscriptions
   const [subscriptions, setSubscriptions]   = useState<any[]>([]);
   const [earnings, setEarnings]             = useState<any>(null);
 
-  // Approval credentials modal
   const [approvalResult, setApprovalResult] = useState<ApprovalResult | null>(null);
 
-  // Rejection modal
   const [rejectingId, setRejectingId]     = useState<string | null>(null);
   const [rejectReason, setRejectReason]   = useState('');
   const [rejectLoading, setRejectLoading] = useState(false);
 
-  // Approve in-progress set (to disable button while calling API)
   const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
-
-  // ── Data fetchers ─────────────────────────────────────────────────────────
 
   const fetchPlantations = async () => {
     try {
@@ -163,8 +151,6 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // ── Plantation management ─────────────────────────────────────────────────
-
   const handleViewDetails = (p: Plantation) => {
     setSelectedPlantation(p);
     setIsModalOpen(true);
@@ -174,9 +160,6 @@ export default function SuperAdminDashboard() {
     setPlantations(prev => prev.map(p => p.id === updated.id ? updated : p));
     setSelectedPlantation(updated);
   };
-
-
-  // ── Approve / Reject ──────────────────────────────────────────────────────
 
   const handleApprove = async (requestId: string) => {
     setApprovingIds(prev => new Set(prev).add(requestId));
@@ -211,8 +194,6 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // ── Chart ─────────────────────────────────────────────────────────────────
-
   const chartData = (() => {
     const years = plantations.map(p => p.registeredYear);
     const cur   = new Date().getFullYear();
@@ -226,8 +207,6 @@ export default function SuperAdminDashboard() {
 
   const maxCount = Math.max(...chartData.map(d => d.count), 1);
 
-  // ── Guard ─────────────────────────────────────────────────────────────────
-
   if (!user || user.role !== 'superadmin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -236,12 +215,9 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
 
-      {/* Sidebar */}
       <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
         <div className="p-6 border-b border-[#2D6A4F]">
           <div className="flex items-center gap-3">
@@ -291,11 +267,9 @@ export default function SuperAdminDashboard() {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 p-8 overflow-x-hidden">
         <div className="max-w-6xl mx-auto space-y-6">
 
-          {/* Header */}
           <header className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-[#1B4332] font-serif">
@@ -312,10 +286,8 @@ export default function SuperAdminDashboard() {
             </div>
           </header>
 
-          {/* ── Plantations tab ───────────────────────────────────────────── */}
           {activeTab === 'plantations' && (
             <div className="space-y-6">
-              {/* Stats */}
               <div className="grid grid-cols-4 gap-4">
                 {[
                   { label: 'Total Plantations', value: plantations.length },
@@ -330,7 +302,6 @@ export default function SuperAdminDashboard() {
                 ))}
               </div>
 
-              {/* Bar chart */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-base font-semibold mb-5">Plantations Registered Per Year</h3>
                 <div className="flex items-end gap-4 h-40">
@@ -347,7 +318,6 @@ export default function SuperAdminDashboard() {
                 </div>
               </div>
 
-              {/* Plantations table */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-100">
                   <thead className="bg-gray-50">
@@ -413,7 +383,6 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {/* ── Requests tab ──────────────────────────────────────────────── */}
           {activeTab === 'requests' && (
             <div>
               {requestsLoading && (
@@ -436,9 +405,7 @@ export default function SuperAdminDashboard() {
               <div className="space-y-5">
                 {pendingRequests.map((req: any) => (
                   <div key={req.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    {/* Card top — image + heading */}
                     <div className="flex gap-5 p-6 pb-4">
-                      {/* Plantation image */}
                       <div className="shrink-0">
                         {req.plantation_image_url ? (
                           <img
@@ -453,7 +420,6 @@ export default function SuperAdminDashboard() {
                         )}
                       </div>
 
-                      {/* Main info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3 flex-wrap">
                           <div>
@@ -480,7 +446,6 @@ export default function SuperAdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Details grid */}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 px-6 pb-4">
                       <Detail label="Business Reg" value={req.business_registration} />
                       <Detail label="Email"         value={req.email} />
@@ -506,7 +471,6 @@ export default function SuperAdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Action bar */}
                     <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
                       <button
                         onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
@@ -536,7 +500,6 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {/* ── Subscriptions tab ────────────────────────────────────────── */}
           {activeTab === 'subscriptions' && (() => {
             const totalEarnings = earnings?.overall?.total_earnings ? Number(earnings.overall.total_earnings) : 0;
             const totalSubs     = earnings?.overall?.total_subscriptions ? Number(earnings.overall.total_subscriptions) : 0;
@@ -552,7 +515,6 @@ export default function SuperAdminDashboard() {
             };
             return (
               <div className="space-y-6">
-                {/* Earnings summary */}
                 <div className="grid grid-cols-3 gap-4">
                   <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white rounded-xl p-5">
                     <p className="text-green-200 text-xs font-semibold uppercase tracking-wide mb-1">Total Earnings</p>
@@ -570,7 +532,6 @@ export default function SuperAdminDashboard() {
                   ))}
                 </div>
 
-                {/* Subscriptions table */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                   <table className="min-w-full divide-y divide-gray-100">
                     <thead className="bg-gray-50">
@@ -613,10 +574,8 @@ export default function SuperAdminDashboard() {
             );
           })()}
 
-          {/* ── Contact Requests tab ──────────────────────────────────────── */}
           {activeTab === 'contactRequests' && (
             <div className="space-y-4">
-              {/* stats row */}
               <div className="grid grid-cols-3 gap-4">
                 {[
                   { label: 'Total', value: contactRequests.length, cls: 'bg-blue-50 text-blue-800' },
@@ -681,7 +640,6 @@ export default function SuperAdminDashboard() {
         </div>
       </main>
 
-      {/* ── Plantation detail modal ──────────────────────────────────────── */}
       {selectedPlantation && (
         <PlantationDetailModal
           isOpen={isModalOpen}
@@ -691,7 +649,6 @@ export default function SuperAdminDashboard() {
         />
       )}
 
-      {/* ── Approval credentials modal ───────────────────────────────────── */}
       {approvalResult && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
@@ -725,7 +682,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* ── Resolve contact request modal ───────────────────────────────── */}
       {resolvingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
@@ -757,7 +713,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* ── Rejection reason modal ───────────────────────────────────────── */}
       {rejectingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
@@ -794,8 +749,6 @@ export default function SuperAdminDashboard() {
   );
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
 function Detail({ label, value, span }: { label: string; value: string; span?: number }) {
   return (
     <div className={span === 2 ? 'col-span-2' : ''}>
@@ -804,4 +757,3 @@ function Detail({ label, value, span }: { label: string; value: string; span?: n
     </div>
   );
 }
-

@@ -5,9 +5,9 @@ export default function Hero() {
 
   return (
     <div className="relative h-[700px] flex items-center px-12 text-white">
-      <img 
-        src="/images/landing.jpg" 
-        className="absolute inset-0 w-full h-full object-cover brightness-75" 
+      <img
+        src="/images/landing.jpg"
+        className="absolute inset-0 w-full h-full object-cover brightness-75"
         alt="Tea Background"
       />
       <div className="relative z-10 max-w-2xl">
@@ -15,7 +15,7 @@ export default function Hero() {
         <h2 className="text-4xl font-bold mb-6 leading-tight">
           Immerse yourself in the rich history and breathtaking beauty of Sri Lanka's finest tea plantations.
         </h2>
-        <button 
+        <button
           onClick={() => navigate('/plantations')}
           className="bg-white/90 text-[#2D6A4F] px-8 py-3 rounded-md font-bold hover:bg-white transition"
         >

@@ -52,7 +52,6 @@ const PERIOD_LABELS: Record<Period, string> = {
   week: 'This Week', month: 'This Month', year: 'This Year', all: 'All Time',
 };
 
-// ── KPI card ───────────────────────────────────────────────────────────────
 function KpiCard({
   icon,
   label,
@@ -92,7 +91,6 @@ function KpiCard({
   );
 }
 
-// ── Donut chart ────────────────────────────────────────────────────────────
 function DonutChart({
   segments,
   centerLabel,
@@ -253,7 +251,6 @@ export default function PlantationPayments({ plantationId }: Props) {
   return (
     <div className="space-y-6">
 
-      {/* ── Page title + all-time snapshot ── */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -265,7 +262,6 @@ export default function PlantationPayments({ plantationId }: Props) {
           </p>
         </div>
 
-        {/* Period selector */}
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
             <button
@@ -283,7 +279,6 @@ export default function PlantationPayments({ plantationId }: Props) {
         </div>
       </div>
 
-      {/* ── KPI row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           icon={<DollarSign size={20} />}
@@ -323,10 +318,8 @@ export default function PlantationPayments({ plantationId }: Props) {
         />
       </div>
 
-      {/* ── Revenue sources + Top experiences ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Revenue sources */}
         <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-semibold text-[#1B4332] flex items-center gap-2">
             <DollarSign size={15} className="text-[#2D6A4F]" /> Revenue by Currency
@@ -369,7 +362,6 @@ export default function PlantationPayments({ plantationId }: Props) {
           )}
         </div>
 
-        {/* Top experiences */}
         <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
           <h3 className="text-sm font-semibold text-[#1B4332] flex items-center gap-2">
             <Tag size={15} className="text-[#2D6A4F]" /> Top Experiences
@@ -409,7 +401,6 @@ export default function PlantationPayments({ plantationId }: Props) {
         </div>
       </div>
 
-      {/* ── Cancellation summary ── */}
       <div className="bg-white border border-gray-100 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-[#1B4332] flex items-center gap-2 mb-4">
           <TrendingDown size={15} className="text-red-400" /> Cancellation Summary

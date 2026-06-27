@@ -17,18 +17,18 @@ interface PlantationMediaManagementProps {
 }
 
 export default function PlantationMediaManagement({ plantation, onSaved }: PlantationMediaManagementProps) {
-  // Normalise field names — backend sends both shapes
+ 
   const initialGallery: string[] = plantation.galleryImages || plantation.gallery || [];
   const initialMainImage: string = plantation.main_image_url || plantation.mainImage || '';
 
   const [mainImagePreview, setMainImagePreview] = useState<string>(initialMainImage);
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
 
-  // Existing gallery URLs (from DB). Used to detect what the admin removes.
+  
   const [originalGallery, setOriginalGallery] = useState<string[]>(initialGallery);
-  // Current gallery display: starts as DB URLs, new ones appended as blob URLs.
+  
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>(initialGallery);
-  // File objects for newly selected images (not yet uploaded).
+  
   const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
   const mainImageInputRef = useRef<HTMLInputElement>(null);
   const galleryImageInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync if plantation prop changes (e.g. parent reloads data)
+ 
   useEffect(() => {
     const gallery = plantation.galleryImages || plantation.gallery || [];
     const main = plantation.main_image_url || plantation.mainImage || '';
@@ -53,7 +53,6 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
     setTimeout(() => setMessage(null), 4000);
   };
 
-  // ── Main image handlers ────────────────────────────────────────────────
   const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -61,7 +60,7 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
     setMainImagePreview(URL.createObjectURL(file));
   };
 
-  // ── Gallery handlers ───────────────────────────────────────────────────
+  
   const handleGalleryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -76,7 +75,7 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
     const url = galleryPreviews[index];
     setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
 
-    // If this is a newly added file (blob URL), remove from newGalleryFiles too
+    
     if (url.startsWith('blob:')) {
       const newFileIndex = galleryPreviews
         .slice(0, index)
@@ -85,34 +84,34 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
     }
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage(null);
 
     try {
-      // 1. Upload new main image if the admin changed it
+    
       if (mainImageFile) {
         const fd = new FormData();
         fd.append('mainImage', mainImageFile);
         await plantationApi.update(plantation.id, fd);
       }
 
-      // 2. Delete gallery images the admin removed
+      
       const removedUrls = originalGallery.filter(url => !galleryPreviews.includes(url));
       for (const url of removedUrls) {
         await plantationApi.deleteGalleryImage(plantation.id, url);
       }
 
-      // 3. Upload new gallery images
+     
       if (newGalleryFiles.length > 0) {
         const fd = new FormData();
         newGalleryFiles.forEach(file => fd.append('images', file));
         const res = await plantationApi.addGalleryImages(plantation.id, fd);
         const uploadedUrls: string[] = res.data?.data || [];
 
-        // Replace blob URLs in the preview with real Cloudinary URLs
+        
         setGalleryPreviews(prev => {
           let uploadIdx = 0;
           return prev.map(url => {
@@ -124,7 +123,7 @@ export default function PlantationMediaManagement({ plantation, onSaved }: Plant
         });
       }
 
-      // Refresh internal baseline so subsequent saves work correctly
+      
       setOriginalGallery(galleryPreviews.filter(u => !u.startsWith('blob:')));
       setNewGalleryFiles([]);
       setMainImageFile(null);

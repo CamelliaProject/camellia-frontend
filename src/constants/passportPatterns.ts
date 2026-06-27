@@ -4,10 +4,7 @@ export interface PassportFormat {
   maxLength: number;
 }
 
-/**
- * Country-specific passport number formats keyed by ISO 3166-1 alpha-2 code.
- * maxLength = the longest valid string the pattern accepts — used as the HTML input cap.
- */
+
 export const PASSPORT_PATTERNS: Record<string, PassportFormat> = {
   // ── Americas ──────────────────────────────────────────────────────────────
   US: { pattern: /^[A-Z0-9]{9}$/i,                hint: '9 letters/digits (e.g. A12345678)',           maxLength: 9  },
@@ -145,7 +142,7 @@ export const PASSPORT_PATTERNS: Record<string, PassportFormat> = {
   MU: { pattern: /^[A-Z]\d{6}$/i,                  hint: '1 letter + 6 digits',                        maxLength: 7  },
 };
 
-/** Fallback for countries not in the map */
+
 export const PASSPORT_FALLBACK: PassportFormat = {
   pattern: /^[A-Z0-9\-]{5,20}$/i,
   hint: '5–20 letters and digits (as printed on your passport)',

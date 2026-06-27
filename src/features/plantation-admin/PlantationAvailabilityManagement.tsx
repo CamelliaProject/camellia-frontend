@@ -123,7 +123,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     finally { setSaving(false); }
   };
 
-  // ── Closing dates ────────────────────────────────────────────────────────
+  
   const handleAddClosingDate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDate) return;
@@ -148,7 +148,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     finally { setSaving(false); }
   };
 
-  // ── Time slots ───────────────────────────────────────────────────────────
+  
   const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTime) return;
@@ -209,7 +209,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
     );
   }
 
-  // ── Availability overview helpers ─────────────────────────────────────────
+  
   const availDow = availDate ? new Date(availDate + 'T00:00:00').getDay() : -1;
   const isClosingDate = closingDates.some(cd => cd.close_date.slice(0, 10) === availDate);
   const isDayOpen = availDow >= 0 ? openDays[availDow] : true;
@@ -307,7 +307,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
         )}
       </section>
 
-      {/* ── Operating days ── */}
+     
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-1">
           <Clock size={18} className="text-[#2D6A4F]" />
@@ -339,7 +339,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
         </div>
       </section>
 
-      {/* ── Arrival time slots ── */}
+      
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-1">
           <Clock size={18} className="text-[#2D6A4F]" />
@@ -350,7 +350,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
           Tourists pick one arrival time for their whole visit.
         </p>
 
-        {/* Day tabs */}
+        
         <div className="flex gap-1.5 flex-wrap mb-4">
           {DOW_LABELS.map((label, dow) => {
             const count = slotCountByDay(dow);
@@ -377,7 +377,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
           })}
         </div>
 
-        {/* Slots for active day */}
+        
         <div className="bg-gray-50 rounded-xl p-4">
           <p className="text-xs font-semibold text-gray-500 mb-3">
             {DOW_FULL[activeDay]} — repeats every week
@@ -486,7 +486,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
         </div>
       </section>
 
-      {/* ── Specific closing dates ── */}
+      
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-1">
           <CalendarOff size={18} className="text-[#2D6A4F]" />

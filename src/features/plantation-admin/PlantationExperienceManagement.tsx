@@ -52,9 +52,7 @@ function mapDbToUi(raw: any): Experience {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Locked field display — replaces an input when the field cannot be edited
-// ─────────────────────────────────────────────────────────────────────────────
+
 function LockedValue({ value }: { value: string | number }) {
   return (
     <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed select-none pointer-events-none">
@@ -63,9 +61,7 @@ function LockedValue({ value }: { value: string | number }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Experience Modal
-// ─────────────────────────────────────────────────────────────────────────────
+
 interface ExperienceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -345,9 +341,7 @@ function ExperienceModal({ isOpen, onClose, onSubmit, initialExperience }: Exper
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
+
 export default function PlantationExperienceManagement({ plantation, onSaved }: PlantationExperienceManagementProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentExperience, setCurrentExperience] = useState<Experience | undefined>(undefined);
@@ -356,7 +350,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [localExperiences, setLocalExperiences] = useState<Experience[]>([]);
 
-  // Legacy browser-stored experiences (pre-DB migration)
+  
   const [legacyExperiences, setLegacyExperiences] = useState<any[]>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem('plantations') || '{}');
@@ -370,7 +364,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
     setTimeout(() => setMessage(null), 4000);
   };
 
-  // Fetch experiences directly so upcoming_booking_count is always fresh
+ 
   const loadExperiences = async () => {
     setListLoading(true);
     try {
@@ -419,7 +413,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
     setIsMigrating(false);
   };
 
-  // ── Save (create or update) ───────────────────────────────────────────────
+   
   const handleSaveExperience = async (experience: Experience, imageFiles: File[], imagesToDelete: string[]) => {
     setIsLoading(true);
     try {
@@ -430,7 +424,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
       const locked = experience.upcomingBookingCount > 0;
 
       const fd = new FormData();
-      // Never send name or prices to the backend when locked — those are immutable while bookings exist
+     
       if (!locked) {
         fd.append('name', experience.name);
         fd.append('price_usd_adult', String(experience.priceUSD.adult));
@@ -462,7 +456,7 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
     }
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  
   const handleDeleteExperience = async (experience: Experience) => {
     if (!experience.id) return;
     if (!window.confirm(`Delete "${experience.name}"?`)) return;
@@ -575,10 +569,10 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
                     <Edit3 size={18} />
                   </button>
 
-                  {/* Delete — frozen (non-interactive span) when bookings exist */}
+                  {/* Delete — frozen  when bookings exist */}
                   <div className="relative group">
                     {hasBookings ? (
-                      /* pointer-events-none + no onClick = completely dead element */
+                      
                       <span
                         className="p-2 rounded-full bg-gray-100 text-gray-300 cursor-not-allowed pointer-events-none select-none inline-flex items-center justify-center"
                         aria-disabled="true"

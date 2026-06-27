@@ -16,7 +16,6 @@ const getAuthToken = (): string | null => {
     const sessionToken = sessionStorage.getItem('firebaseAuthToken') || sessionStorage.getItem('authToken');
     if (sessionToken) return sessionToken;
   } catch {
-    // Ignore storage access errors in non-browser environments
   }
 
   return (window as any).__firebaseAuthToken ?? null;

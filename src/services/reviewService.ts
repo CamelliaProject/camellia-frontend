@@ -1,15 +1,15 @@
 export interface ReviewReply {
   id: string;
   review_id?: string;
-  author: string;       // maps from author_name
+  author: string;
   author_name?: string;
   authorRole: 'plantationadmin' | 'tourist' | 'superadmin';
   author_role?: string;
   author_id?: string;
   authorPlantationId?: string;
-  text: string;         // maps from content
+  text: string;
   content?: string;
-  date: string;         // maps from created_at
+  date: string;
   created_at?: string;
   verified: boolean;
   plantationId: string;
@@ -20,13 +20,13 @@ export interface Review {
   id: string;
   plantation_id?: string;
   tourist_id?: string;
-  author: string;           // maps from tourist_username
+  author: string;
   tourist_username?: string;
   rating: number;
-  date: string;             // maps from created_at
+  date: string;
   created_at?: string;
   title?: string;
-  text: string;             // maps from content
+  text: string;
   content?: string;
   image_url?: string;
   verified: boolean;
@@ -51,7 +51,6 @@ export interface MyReviewData {
   }>;
 }
 
-// Map raw DB review row to display Review shape
 export function mapReview(raw: any, plantationId: string): Review {
   return {
     ...raw,
@@ -72,7 +71,6 @@ export function mapReview(raw: any, plantationId: string): Review {
   };
 }
 
-// Map raw DB reply row to display ReviewReply shape
 export function mapReply(raw: any, plantationId: string): ReviewReply {
   return {
     id: raw.id,

@@ -27,7 +27,6 @@ import SubscriptionRenewalPage from './features/auth/SubscriptionRenewalPage';
 import SubscriptionRenewalReturnPage from './features/auth/SubscriptionRenewalReturnPage';
 import { useAuth } from './context/AuthContext';
 
-// Redirects to `loginPath` when the user is not authenticated or lacks the required role.
 function ProtectedRoute({
   role,
   loginPath,

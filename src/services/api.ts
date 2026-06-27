@@ -17,29 +17,24 @@ export const authApi = {
 };
 
 export const adminApi = {
-  // Plantation Admin - Bookings
   getPlantationBookings: (plantationId: string) =>
     apiClient.get(`/admin/bookings/${plantationId}`),
 
   updateBookingStatus: (plantationId: string, bookingId: string, status: string, reason?: string) =>
     apiClient.put(`/admin/bookings/${plantationId}/${bookingId}`, { status, reason }),
 
-  // Plantation Admin - Payments (derived from bookings)
   getPlantationPayments: (plantationId: string) =>
     apiClient.get(`/admin/payments/${plantationId}`),
 
-  // Plantation Admin - Reviews
   getPlantationReviews: (plantationId: string) =>
     apiClient.get(`/admin/reviews/${plantationId}`),
 
   addReviewReply: (plantationId: string, reviewId: string, text: string) =>
     apiClient.post(`/admin/reviews/${plantationId}/${reviewId}/reply`, { text }),
 
-  // Super Admin - All plantations (with publish & credential status)
   getAllPlantations: () =>
     apiClient.get('/admin/plantations'),
 
-  // Super Admin - Requests
   getPendingRequests: () =>
     apiClient.get('/plantation-requests'),
 
@@ -49,7 +44,6 @@ export const adminApi = {
   rejectPlantationRequest: (requestId: string, reason: string) =>
     apiClient.post(`/plantation-requests/${requestId}/reject`, { reason }),
 
-  // Super Admin - Subscriptions
   getSubscriptions: () => apiClient.get('/admin/subscriptions'),
   getSubscriptionEarnings: () => apiClient.get('/admin/subscription-earnings'),
 };
@@ -74,7 +68,6 @@ export const bookingApi = {
 
 export const experienceApi = {
   getByPlantation: (plantationId: string) => apiClient.get(`/experiences/plantation/${plantationId}`),
-  // Legacy per-date slots (kept for backward compat)
   getSlots: (id: string, date?: string) =>
     apiClient.get(`/experiences/${id}/slots`, { params: date ? { date } : undefined }),
   create: (data: FormData | Record<string, any>) => apiClient.post('/experiences', data),
@@ -82,7 +75,6 @@ export const experienceApi = {
   delete: (id: string) => apiClient.delete(`/experiences/${id}`),
   deleteImage: (id: string, imageUrl: string) =>
     apiClient.delete(`/experiences/${id}/images`, { data: { image_url: imageUrl } }),
-  // Weekly recurring schedule
   getWeeklySlots: (id: string) => apiClient.get(`/experiences/${id}/weekly-slots`),
   createWeeklySlot: (id: string, data: { day_of_week: number; slot_time: string; capacity: number }) =>
     apiClient.post(`/experiences/${id}/weekly-slots`, data),
@@ -90,7 +82,6 @@ export const experienceApi = {
     apiClient.put(`/experiences/${id}/weekly-slots/${slotId}`, data),
   deleteWeeklySlot: (id: string, slotId: string) =>
     apiClient.delete(`/experiences/${id}/weekly-slots/${slotId}`),
-  // Computed availability for a specific date (uses weekly schedule + live booking counts)
   getAvailability: (id: string, date: string) =>
     apiClient.get(`/experiences/${id}/availability`, { params: { date } }),
 };
@@ -104,7 +95,6 @@ export const availabilityApi = {
     apiClient.post(`/plantations/${plantationId}/closing-dates`, { close_date, reason }),
   removeClosingDate: (plantationId: string, closeId: string) =>
     apiClient.delete(`/plantations/${plantationId}/closing-dates/${closeId}`),
-  // Plantation-level time slots
   getTimeSlots: (plantationId: string) =>
     apiClient.get(`/plantations/${plantationId}/time-slots`),
   getSlotAvailability: (plantationId: string, date: string) =>

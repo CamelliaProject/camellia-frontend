@@ -316,7 +316,7 @@ export default function PlantationAvailabilityManagement({ plantationId }: { pla
         <p className="text-sm text-gray-500 mb-5">
           Toggle the days of the week when the plantation accepts bookings.
         </p>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
           {DOW_LABELS.map((label, dow) => {
             const isOpen = openDays[dow];
             return (

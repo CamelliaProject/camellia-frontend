@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminApi, contactApi } from '../../services/api';
 import {
-  Eye, Mail, CheckCircle, BarChart2, LogOut, LayoutDashboard, Clock,
+  Eye, Mail, CheckCircle, BarChart2, LogOut, LayoutDashboard, Clock, Menu, X,
 } from 'lucide-react';
 import PlantationDetailModal from './PlantationDetailModal';
 
@@ -44,6 +44,7 @@ export default function SuperAdminDashboard() {
   const { user, logOut } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'plantations' | 'requests' | 'subscriptions' | 'contactRequests'>('plantations');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [plantations, setPlantations] = useState<Plantation[]>([]);
   const [selectedPlantation, setSelectedPlantation] = useState<Plantation | null>(null);
@@ -68,6 +69,11 @@ export default function SuperAdminDashboard() {
 
   const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
 
+  const dedupById = <T extends { id: string }>(arr: T[]): T[] => {
+    const seen = new Set<string>();
+    return arr.filter(x => seen.has(x.id) ? false : (seen.add(x.id), true));
+  };
+
   const fetchPlantations = async () => {
     try {
       const res = await adminApi.getAllPlantations();
@@ -88,7 +94,7 @@ export default function SuperAdminDashboard() {
         image:           item.main_image_url || item.image || '',
         description:     item.description || '',
       }));
-      setPlantations(fetched);
+      setPlantations(dedupById(fetched));
     } catch {
       setPlantations([]);
     }
@@ -98,7 +104,7 @@ export default function SuperAdminDashboard() {
     setRequestsLoading(true);
     try {
       const res = await adminApi.getPendingRequests();
-      setPendingRequests(res.data.requests || []);
+      setPendingRequests(dedupById(res.data.requests || []));
     } catch (err: any) {
       console.error('[Dashboard] fetchPendingRequests failed:', err?.response?.status, err?.response?.data || err?.message);
       setPendingRequests([]);
@@ -113,7 +119,7 @@ export default function SuperAdminDashboard() {
         adminApi.getSubscriptions(),
         adminApi.getSubscriptionEarnings(),
       ]);
-      setSubscriptions(subRes.data?.data || []);
+      setSubscriptions(dedupById(subRes.data?.data || []));
       setEarnings(earnRes.data || null);
     } catch { setSubscriptions([]); }
   };
@@ -132,7 +138,7 @@ export default function SuperAdminDashboard() {
   const fetchContactRequests = async () => {
     try {
       const res = await contactApi.getAll();
-      setContactRequests(res.data?.data || []);
+      setContactRequests(dedupById(res.data?.data || []));
     } catch { setContactRequests([]); }
   };
 
@@ -215,10 +221,76 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
+  const NAV_TABS = [
+    { key: 'plantations',     icon: <BarChart2 size={18} />, label: 'Plantations',      badge: null as number | null },
+    { key: 'requests',        icon: <Clock size={18} />,     label: 'Pending Requests', badge: pendingRequests.length || null },
+    { key: 'subscriptions',   icon: <BarChart2 size={18} />, label: 'Subscriptions',    badge: null as number | null },
+    { key: 'contactRequests', icon: <Mail size={18} />,      label: 'Contact Requests', badge: contactRequests.filter(r => r.status === 'pending').length || null },
+  ];
 
-      <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
+  const SidebarNav = ({ onSelect }: { onSelect?: () => void }) => (
+    <>
+      <nav className="flex-1 p-4 space-y-1">
+        {NAV_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => { setActiveTab(tab.key as any); onSelect?.(); }}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
+              activeTab === tab.key
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            <span className="flex items-center gap-3">{tab.icon}{tab.label}</span>
+            {tab.badge ? (
+              <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                {tab.badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-[#2D6A4F]">
+        <div className="px-4 py-2 mb-2">
+          <p className="text-green-200 text-xs">Signed in as</p>
+          <p className="text-white text-sm font-semibold truncate">{user.username || user.name}</p>
+        </div>
+        <button
+          onClick={() => logOut()}
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+        >
+          <LogOut size={18} /> Log Out
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans text-[#1B4332]">
+
+      {/* Mobile header */}
+      <header className="md:hidden flex items-center justify-between bg-[#1B4332] text-white px-4 py-3 sticky top-0 z-30 shadow-lg">
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="h-6 w-6 text-green-300" />
+          <span className="font-bold font-serif text-base">Super Admin</span>
+        </div>
+        <button onClick={() => setMobileMenuOpen(v => !v)} className="p-2 rounded-lg hover:bg-[#2D6A4F] transition">
+          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </header>
+
+      {/* Mobile drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-20 flex">
+          <div className="w-64 bg-[#1B4332] text-white flex flex-col pt-16 shadow-2xl">
+            <SidebarNav onSelect={() => setMobileMenuOpen(false)} />
+          </div>
+          <div className="flex-1 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-[#1B4332] text-white min-h-screen sticky top-0 shadow-xl z-20">
         <div className="p-6 border-b border-[#2D6A4F]">
           <div className="flex items-center gap-3">
             <LayoutDashboard className="h-7 w-7 text-green-300" />
@@ -226,51 +298,13 @@ export default function SuperAdminDashboard() {
           </div>
           <p className="text-green-300 text-xs mt-1 pl-10">Camellia Platform</p>
         </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          {[
-            { key: 'plantations',    icon: <BarChart2 size={18} />, label: 'Plantations',        badge: null },
-            { key: 'requests',       icon: <Clock size={18} />,     label: 'Pending Requests',   badge: pendingRequests.length || null },
-            { key: 'subscriptions',  icon: <BarChart2 size={18} />, label: 'Subscriptions',      badge: null },
-            { key: 'contactRequests',icon: <Mail size={18} />,      label: 'Contact Requests',   badge: contactRequests.filter(r => r.status === 'pending').length || null },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === tab.key
-                  ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                  : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-              }`}
-            >
-              <span className="flex items-center gap-3">{tab.icon}{tab.label}</span>
-              {tab.badge ? (
-                <span className="bg-amber-400 text-amber-900 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {tab.badge}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-[#2D6A4F]">
-          <div className="px-4 py-2 mb-2">
-            <p className="text-green-200 text-xs">Signed in as</p>
-            <p className="text-white text-sm font-semibold truncate">{user.username || user.name}</p>
-          </div>
-          <button
-            onClick={() => logOut()}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
-          >
-            <LogOut size={18} /> Log Out
-          </button>
-        </div>
+        <SidebarNav />
       </aside>
 
-      <main className="flex-1 p-8 overflow-x-hidden">
+      <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
         <div className="max-w-6xl mx-auto space-y-6">
 
-          <header className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex justify-between items-center">
+          <header className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-3">
             <div>
               <h2 className="text-2xl font-bold text-[#1B4332] font-serif">
                 {activeTab === 'plantations'    && 'Plantations Overview'}
@@ -288,7 +322,7 @@ export default function SuperAdminDashboard() {
 
           {activeTab === 'plantations' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { label: 'Total Plantations', value: plantations.length },
                   { label: 'Active',             value: plantations.filter(p => p.isPublished && !p.isDisabled).length },
@@ -318,7 +352,7 @@ export default function SuperAdminDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-100">
                   <thead className="bg-gray-50">
                     <tr>
@@ -515,7 +549,7 @@ export default function SuperAdminDashboard() {
             };
             return (
               <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="bg-gradient-to-br from-[#1B4332] to-[#2D6A4F] text-white rounded-xl p-5">
                     <p className="text-green-200 text-xs font-semibold uppercase tracking-wide mb-1">Total Earnings</p>
                     <p className="text-3xl font-bold">Rs {totalEarnings.toLocaleString()}</p>
@@ -532,7 +566,7 @@ export default function SuperAdminDashboard() {
                   ))}
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-100">
                     <thead className="bg-gray-50">
                       <tr>
@@ -576,7 +610,7 @@ export default function SuperAdminDashboard() {
 
           {activeTab === 'contactRequests' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: 'Total', value: contactRequests.length, cls: 'bg-blue-50 text-blue-800' },
                   { label: 'Pending', value: contactRequests.filter(r => r.status === 'pending').length, cls: 'bg-amber-50 text-amber-800' },

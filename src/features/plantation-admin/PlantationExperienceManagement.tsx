@@ -369,7 +369,9 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
     setListLoading(true);
     try {
       const res = await experienceApi.getByPlantation(plantation.id);
-      setLocalExperiences((res.data?.data || []).map(mapDbToUi));
+      const mapped = (res.data?.data || []).map(mapDbToUi);
+      const seen = new Set<string>();
+      setLocalExperiences(mapped.filter(e => !e.id || (seen.has(e.id) ? false : (seen.add(e.id), true))));
     } catch {
       showMessage('Failed to load experiences.', 'error');
     } finally {
@@ -474,8 +476,8 @@ export default function PlantationExperienceManagement({ plantation, onSaved }: 
   };
 
   return (
-    <div className="bg-white p-8 rounded-lg shadow-md">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white p-4 sm:p-8 rounded-lg shadow-md">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h2 className="text-3xl font-bold text-[#1B4332]">Manage Experiences</h2>
         <button
           onClick={() => { setCurrentExperience(undefined); setIsModalOpen(true); }}

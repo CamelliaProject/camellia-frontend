@@ -446,7 +446,9 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
       setLoadError('');
       try {
         const res = await adminApi.getPlantationBookings(plantationId);
-        setBookings((res.data?.bookings || []).map(mapRow));
+        const rows = (res.data?.bookings || []).map(mapRow);
+        const seen = new Set<string>();
+        setBookings(rows.filter(b => seen.has(b.id) ? false : (seen.add(b.id), true)));
       } catch (err) {
         console.error('Failed to load bookings:', err);
         setLoadError('Unable to load bookings. Please refresh.');
@@ -499,7 +501,7 @@ export default function PlantationBookingManagement({ plantationId }: Props) {
       <h2 className="text-2xl font-bold text-[#1B4332] mb-6">Booking Management</h2>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label: 'Upcoming',  value: counts.upcoming,  icon: <Clock size={20} />,        style: 'bg-blue-50 text-blue-800',   icon_color: 'text-blue-500' },
           { label: 'Completed', value: counts.completed, icon: <CheckCircle size={20} />,  style: 'bg-green-50 text-green-800', icon_color: 'text-green-500' },

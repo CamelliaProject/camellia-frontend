@@ -8,7 +8,7 @@ import PlantationMediaManagement from '../plantation-admin/PlantationMediaManage
 import PlantationExperienceManagement from './PlantationExperienceManagement';
 import PlantationBookingManagement from '../plantation-admin/PlantationBookingManagement';
 import PlantationSetup from './PlantationSetup';
-import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, LayoutDashboard, Settings, CalendarOff } from 'lucide-react';
+import { Image, GalleryHorizontal, Package, CalendarCheck, Wallet, LogOut, LayoutDashboard, Settings, CalendarOff, Menu, X } from 'lucide-react';
 import PlantationPayments from './PlantationPayments';
 import PlantationAvailabilityManagement from './PlantationAvailabilityManagement';
 
@@ -52,6 +52,7 @@ export default function PlantationAdminDashboard() {
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'media' | 'availability' | 'experiences' | 'bookings' | 'payments'>('payments');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [plantationAdmin, setPlantationAdmin] = useState<PlantationAdminUser | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [rawPlantation, setRawPlantation] = useState<any>(null);   // flat DB row
@@ -175,103 +176,87 @@ export default function PlantationAdminDashboard() {
     );
   }
 
+  const TAB_ITEMS = [
+    { key: 'payments',     icon: <Wallet size={20} />,          label: 'Payments' },
+    { key: 'bookings',     icon: <CalendarCheck size={20} />,   label: 'View Bookings' },
+    { key: 'details',      icon: <Image size={20} />,           label: 'Details' },
+    { key: 'media',        icon: <GalleryHorizontal size={20} />,label: 'Media Gallery' },
+    { key: 'availability', icon: <CalendarOff size={20} />,     label: 'Date & Time' },
+    { key: 'experiences',  icon: <Package size={20} />,         label: 'Experiences' },
+  ] as const;
+
+  const SidebarContent = ({ onSelect }: { onSelect?: () => void }) => (
+    <>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {TAB_ITEMS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => { setActiveTab(t.key); onSelect?.(); }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === t.key
+                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
+                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-[#2D6A4F]">
+        <button
+          onClick={() => navigate('/plantation-admin/change-password')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white transition-colors mb-2"
+        >
+          <Settings size={20} /> Settings
+        </button>
+        <button
+          onClick={() => logOut()}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
+        >
+          <LogOut size={20} /> Log Out
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen flex bg-gray-50 font-sans text-[#1B4332]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#1B4332] text-white flex flex-col min-h-screen sticky top-0 shadow-xl z-20">
+    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 font-sans text-[#1B4332]">
+
+      {/* Mobile header */}
+      <header className="md:hidden flex items-center justify-between bg-[#1B4332] text-white px-4 py-3 sticky top-0 z-30 shadow-lg">
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="h-6 w-6 text-green-300" />
+          <span className="font-bold font-serif text-base truncate max-w-[180px]">{plantation.name}</span>
+        </div>
+        <button onClick={() => setMobileMenuOpen(v => !v)} className="p-2 rounded-lg hover:bg-[#2D6A4F] transition">
+          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </header>
+
+      {/* Mobile slide-out drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-20 flex">
+          <div className="w-64 bg-[#1B4332] text-white flex flex-col pt-16 shadow-2xl">
+            <SidebarContent onSelect={() => setMobileMenuOpen(false)} />
+          </div>
+          <div className="flex-1 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-[#1B4332] text-white min-h-screen sticky top-0 shadow-xl z-20">
         <div className="p-6 border-b border-[#2D6A4F]">
           <div className="flex items-center gap-3">
             <LayoutDashboard className="h-8 w-8 text-green-300" />
-            <h1 className="text-xl font-bold font-serif whitespace-nowrap overflow-hidden text-ellipsis" title={plantation.name}>
-              Admin
-            </h1>
+            <h1 className="text-xl font-bold font-serif">Admin</h1>
           </div>
           <p className="text-green-200 text-xs mt-2 pl-11 truncate">{plantation.name}</p>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'payments'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <Wallet size={20} /> Payments
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'bookings'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <CalendarCheck size={20} /> View Bookings
-          </button>
-          <button
-            onClick={() => setActiveTab('details')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'details'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <Image size={20} /> Details
-          </button>
-          <button
-            onClick={() => setActiveTab('media')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'media'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <GalleryHorizontal size={20} /> Media Gallery
-          </button>
-          <button
-            onClick={() => setActiveTab('availability')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'availability'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <CalendarOff size={20} /> Available Date & Time
-          </button>
-          <button
-            onClick={() => setActiveTab('experiences')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'experiences'
-                ? 'bg-[#2D6A4F] text-white shadow-md border-l-4 border-green-300'
-                : 'text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white'
-            }`}
-          >
-            <Package size={20} /> Experiences
-          </button>
-        </nav>
-        
-        <div className="p-4 border-t border-[#2D6A4F]">
-          <button
-            onClick={() => {
-              navigate('/plantation-admin/change-password');
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-[#2D6A4F]/50 hover:text-white transition-colors mb-2"
-          >
-            <Settings size={20} /> Settings
-          </button>
-          <button
-            onClick={() => logOut()}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-colors"
-          >
-            <LogOut size={20} /> Log Out
-          </button>
-        </div>
+        <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 md:p-12 overflow-x-hidden">
+      <main className="flex-1 p-4 md:p-8 lg:p-12 overflow-x-hidden">
         {setupSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 shadow-sm flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
             <span className="text-green-600 text-2xl bg-green-100 rounded-full w-8 h-8 flex items-center justify-center">✓</span>
@@ -284,7 +269,7 @@ export default function PlantationAdminDashboard() {
         
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Header */}
-          <header className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex justify-between items-center">
+          <header className="bg-white rounded-xl p-4 md:p-6 shadow-sm border border-gray-100 flex flex-wrap justify-between items-center gap-3">
             <div>
               <h2 className="text-3xl font-bold text-[#1B4332] font-serif">
                 {activeTab === 'details' && 'Plantation Details'}
@@ -303,7 +288,7 @@ export default function PlantationAdminDashboard() {
           </header>
 
           {/* Tab Content */}
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
+          <div className="bg-white p-4 md:p-8 rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
             {activeTab === 'details' && (
               <PlantationDetailsManagement plantation={plantation} />
             )}
